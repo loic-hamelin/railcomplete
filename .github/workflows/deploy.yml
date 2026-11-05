@@ -30,6 +30,8 @@ jobs:
         run: |
           npm run check
           npm run lint
+      - name: Tests unitaires (moteur de quêtes)
+        run: npm test
       - run: npm run build
       - name: Budget de poids (sobriété)
         run: npm run budget

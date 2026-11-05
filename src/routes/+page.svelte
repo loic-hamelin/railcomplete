@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import Logo from '#lib/Logo.svelte';
+	import { readPref, writePref } from '#lib/cache.js';
+	import { onMount } from 'svelte';
 
 	// E1 — Bienvenue et sécurité (ux-spec.md § 3). La carte « Sécurité » ne peut pas être passée.
 	const STEPS = 3;
@@ -10,8 +12,15 @@
 
 	function next() {
 		if (step < STEPS - 1) step += 1;
-		else done = true;
+		else {
+			done = true;
+			writePref('intro', true);
+		}
 	}
+	// Présentation déjà vue : on propose directement de choisir une gare.
+	onMount(() => {
+		if (readPref('intro', false)) done = true;
+	});
 	function skip() {
 		// « Passer » mène toujours à la carte sécurité si elle n'a pas été vue.
 		step = step < SAFETY ? SAFETY : STEPS - 1;
@@ -146,13 +155,14 @@
 		</footer>
 	{:else}
 		<section class="card">
-			<h1>L'application arrive bientôt</h1>
+			<h1>Explorez les gares de France</h1>
 			<p>
-				railcomplete est en cours de développement. Le code est libre et les premières gares
-				pourront être complétées bientôt.
+				Consultez dès maintenant ce qui manque dans chaque gare : numéros de quais, numéros de
+				voies, pancartes d'arrêt. La saisie et l'envoi vers OpenStreetMap arrivent bientôt.
 			</p>
 		</section>
 		<footer class="actions">
+			<a class="btn" href={resolve('/gares')}>Choisir une gare</a>
 			<a class="btn btn-secondary" href={resolve('/a-propos')}>En savoir plus sur le projet</a>
 			<button class="link" type="button" onclick={() => ((done = false), (step = 0))}>
 				Revoir la présentation

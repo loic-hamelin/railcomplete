@@ -10,7 +10,10 @@ function watchErrors(page: Page) {
 }
 
 async function expectAccessible(page: Page) {
-	const { violations } = await new AxeBuilder({ page })
+	// axe embarque sa propre version des types Playwright : simple conversion de type.
+	const { violations } = await new AxeBuilder({
+		page: page as unknown as ConstructorParameters<typeof AxeBuilder>[0]['page']
+	})
 		.withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
 		.analyze();
 	expect(violations.map((v) => `${v.id} : ${v.help}`)).toEqual([]);
@@ -29,7 +32,8 @@ test('la présentation se déroule et la carte sécurité ne peut pas être pass
 	await expect(page.getByRole('button', { name: 'Passer' })).toHaveCount(0);
 	await page.getByRole('button', { name: "J'ai compris" }).click();
 	await page.getByRole('button', { name: 'Commencer' }).click();
-	await expect(page.getByRole('heading', { level: 1 })).toHaveText("L'application arrive bientôt");
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Explorez les gares de France');
+	await expect(page.getByRole('link', { name: 'Choisir une gare' })).toBeVisible();
 	expect(errors).toEqual([]);
 });
 
