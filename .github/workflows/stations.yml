@@ -1,0 +1,74 @@
+# Régénère chaque semaine l'index des gares (static/data/stations-fr.json) depuis l'extrait
+# OpenStreetMap France de Geofabrik, puis relance la publication du site.
+# Lancement manuel possible (onglet Actions), avec en option le téléchargement des gares de référence.
+name: Index des gares
+
+on:
+  schedule:
+    - cron: '17 3 * * 1' # lundi 3 h 17 UTC
+  workflow_dispatch:
+    inputs:
+      fixtures:
+        description: 'Télécharger aussi les gares de référence (tests)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: stations
+  cancel-in-progress: false
+
+jobs:
+  index:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Outil osmium
+        run: sudo apt-get update -q && sudo apt-get install -y -q osmium-tool
+      - name: Extrait France (Geofabrik)
+        run: |
+          curl -fsSL -A "railcomplete-stations (+https://railcomplete.org)" \
+            -o france.osm.pbf https://download.geofabrik.de/europe/france-latest.osm.pbf
+          ls -lh france.osm.pbf
+      - name: Filtrage ferroviaire et export
+        run: |
+          osmium tags-filter france.osm.pbf \
+            nwr/railway=station,halt,platform n/railway=signal nwr/public_transport=platform \
+            -o rail-fr.osm.pbf
+          rm france.osm.pbf
+          osmium export rail-fr.osm.pbf -f geojsonseq --add-unique-id=type_id -o rail-fr.geojsonseq
+          ls -lh rail-fr.osm.pbf rail-fr.geojsonseq
+      - name: Construction de l'index
+        run: node scripts/build-stations.mjs rail-fr.geojsonseq
+      - name: Taille de l'index
+        run: |
+          echo "brut : $(stat -c %s static/data/stations-fr.json) octets"
+          echo "gzip : $(gzip -9 -c static/data/stations-fr.json | wc -c) octets"
+      - name: Gares de référence
+        if: inputs.fixtures
+        run: node scripts/fetch-fixtures.mjs
+      - name: Enregistrement
+        run: |
+          git config user.name "railcomplete-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add static/data data tests/fixtures 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "Aucun changement."
+            echo "changed=false" >> "$GITHUB_ENV"
+          else
+            git commit -m "Index des gares : mise à jour du $(date -u +%F)"
+            git push
+            echo "changed=true" >> "$GITHUB_ENV"
+          fi
+      - name: Relancer la publication
+        if: env.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy.yml --ref main
