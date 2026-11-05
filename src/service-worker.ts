@@ -18,6 +18,14 @@ const ASSETS = [...immutable, ...assets, ...prerendered]
 	.map(({ path }) => toPath(path))
 	// Les anciennes polices .woff ne servent qu'aux navigateurs trop vieux pour l'appli.
 	.filter((p) => !p.endsWith('.woff') && !p.endsWith('/CNAME'));
+// Fichiers dont le nom change à chaque version : servis depuis le cache sans vérification.
+// Les pages HTML et les données (index des gares) passent par le réseau d'abord,
+// pour que chaque nouvelle version soit visible dès la visite suivante.
+const IMMUTABLE = new Set(
+	[...immutable, ...assets]
+		.map(({ path }) => toPath(path))
+		.filter((p) => !p.endsWith('.json') && !p.endsWith('.webmanifest'))
+);
 
 sw.addEventListener('install', (event) => {
 	event.waitUntil(
@@ -48,8 +56,8 @@ sw.addEventListener('fetch', (event) => {
 	event.respondWith(
 		(async () => {
 			const cache = await caches.open(CACHE);
-			// Fichiers de l'appli : toujours depuis le cache (ils changent de nom à chaque version).
-			if (ASSETS.includes(url.pathname)) {
+			// Fichiers versionnés de l'appli : toujours depuis le cache.
+			if (IMMUTABLE.has(url.pathname)) {
 				const cached = await cache.match(url.pathname);
 				if (cached) return cached;
 			}
@@ -60,7 +68,7 @@ sw.addEventListener('fetch', (event) => {
 				return response;
 			} catch {
 				const cached =
-					(await cache.match(request)) ??
+					(await cache.match(request, { ignoreSearch: request.mode === 'navigate' })) ??
 					(request.mode === 'navigate' ? await cache.match('/') : undefined);
 				if (cached) return cached;
 				return new Response('Hors-ligne', { status: 503, statusText: 'Hors-ligne' });

@@ -6,8 +6,22 @@
 	import '../app.css';
 	import favicon from '#lib/assets/favicon.svg';
 	import type { LayoutProps } from './$types';
+	import { onMount } from 'svelte';
 
 	let { children }: LayoutProps = $props();
+
+	// Quand une nouvelle version de l'appli prend le relais, on recharge une fois la page
+	// pour l'afficher (sauf à la toute première installation).
+	onMount(() => {
+		const sw = navigator.serviceWorker;
+		if (!sw?.controller) return;
+		let reloaded = false;
+		sw.addEventListener('controllerchange', () => {
+			if (reloaded) return;
+			reloaded = true;
+			location.reload();
+		});
+	});
 </script>
 
 <svelte:head>
