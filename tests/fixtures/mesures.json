@@ -1,0 +1,97 @@
+[
+  {
+    "role": "gare moyenne",
+    "name": "Ambérieu-en-Bugey",
+    "fichier": "tests/fixtures/amberieu-en-bugey.json",
+    "bbox": [
+      5.3393,
+      45.9529,
+      5.3442,
+      45.9548
+    ],
+    "statut": 200,
+    "ms": 1277,
+    "noeuds": 2164,
+    "ways": 245,
+    "relations": 66,
+    "moBruts": 1.18,
+    "moGzip": 0.135,
+    "encodageServeur": "br"
+  },
+  {
+    "role": "grande gare",
+    "name": "Lyon Part-Dieu",
+    "fichier": "tests/fixtures/lyon-part-dieu.json",
+    "bbox": [
+      4.8569,
+      45.7567,
+      4.8628,
+      45.763
+    ],
+    "statut": 200,
+    "ms": 2660,
+    "noeuds": 11417,
+    "ways": 1764,
+    "relations": 255,
+    "moBruts": 7.8,
+    "moGzip": 0.92,
+    "encodageServeur": "br"
+  },
+  {
+    "role": "halte",
+    "name": "Brion - Montréal-la-Cluse",
+    "fichier": "tests/fixtures/brion-montreal-la-cluse.json",
+    "bbox": [
+      5.5571,
+      46.1748,
+      5.5599,
+      46.1767
+    ],
+    "statut": 200,
+    "ms": 282,
+    "noeuds": 527,
+    "ways": 38,
+    "relations": 29,
+    "moBruts": 0.4,
+    "moGzip": 0.049,
+    "encodageServeur": "br"
+  },
+  {
+    "role": "sans quai",
+    "name": "Planès",
+    "fichier": "tests/fixtures/planes.json",
+    "bbox": [
+      2.1345,
+      42.4991,
+      2.1394,
+      42.5027
+    ],
+    "statut": 200,
+    "ms": 235,
+    "noeuds": 912,
+    "ways": 19,
+    "relations": 10,
+    "moBruts": 0.22,
+    "moGzip": 0.025,
+    "encodageServeur": "br"
+  },
+  {
+    "role": "ancien format",
+    "name": "Fontenay-le-Fleury",
+    "fichier": "tests/fixtures/fontenay-le-fleury.json",
+    "bbox": [
+      2.0383,
+      48.8064,
+      2.0429,
+      48.8081
+    ],
+    "statut": 200,
+    "ms": 380,
+    "noeuds": 954,
+    "ways": 110,
+    "relations": 40,
+    "moBruts": 0.56,
+    "moGzip": 0.066,
+    "encodageServeur": "br"
+  }
+]
