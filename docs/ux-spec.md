@@ -6,28 +6,28 @@
 
 ## 0 bis. Décisions validées (5 novembre 2026)
 
-| Sujet | Décision |
-|---|---|
-| Envoi | Un changeset **par gare**, après relecture sur E8 (choix par défaut, Loïc sans préférence) |
-| Pancartes | **Position + type de pancarte (texte lu) + sens**. Les conditions détaillées (nombre de véhicules, longueur, US/UM) font partie du type et se saisissent dans la même grille |
-| À distance | Autorisé pour **positions et vérifications** seulement. Les numéros de quais/voies et les pancartes exigent d'être **sur place** (GPS ponctuel dans l'emprise de la gare) |
-| Gares sans quais | **Dessiner le quai** dans l'appli : nouvel écran E11 |
-| Motivation | Compteurs personnels sobres, ni badges ni classement |
-| Police | **Atkinson Hyperlegible** (Marianne est réservée aux services de l'État) |
-| Contributeurs | Citoyens uniquement ; les employés de gare seront traités plus tard (organised editing) |
+| Sujet            | Décision                                                                                                                                                                     |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Envoi            | Un changeset **par gare**, après relecture sur E8 (choix par défaut, Loïc sans préférence)                                                                                   |
+| Pancartes        | **Position + type de pancarte (texte lu) + sens**. Les conditions détaillées (nombre de véhicules, longueur, US/UM) font partie du type et se saisissent dans la même grille |
+| À distance       | Autorisé pour **positions et vérifications** seulement. Les numéros de quais/voies et les pancartes exigent d'être **sur place** (GPS ponctuel dans l'emprise de la gare)    |
+| Gares sans quais | **Dessiner le quai** dans l'appli : nouvel écran E11                                                                                                                         |
+| Motivation       | Compteurs personnels sobres, ni badges ni classement                                                                                                                         |
+| Police           | **Atkinson Hyperlegible** (Marianne est réservée aux services de l'État)                                                                                                     |
+| Contributeurs    | Citoyens uniquement ; les employés de gare seront traités plus tard (organised editing)                                                                                      |
 
 ---
 
 ## 0. Principes directeurs (résumé)
 
-| Principe | Traduction concrète |
-|---|---|
-| Une gare à la fois | Tout part de la gare choisie ; pas de carte « France entière » à explorer. |
-| Quêtes simples | Une question = un objet = un écran de saisie (inspiré de StreetComplete). |
-| Précision au mètre | Le GPS centre la carte ; l'utilisateur place l'objet sur ortho IGN 20 cm, avec accrochage OSM. |
-| Sécurité d'abord | Jamais d'incitation à s'approcher des voies. Saisie possible depuis le quai ou à distance. |
-| Sobriété | 10 écrans, pas d'animation décorative, mode sombre, hors-ligne, GPS à la demande. |
-| Accessible | WCAG 2.2 AA, cibles ≥ 48 × 48 dp, actions principales dans la zone du pouce, alternative à tout glisser. |
+| Principe           | Traduction concrète                                                                                      |
+| ------------------ | -------------------------------------------------------------------------------------------------------- |
+| Une gare à la fois | Tout part de la gare choisie ; pas de carte « France entière » à explorer.                               |
+| Quêtes simples     | Une question = un objet = un écran de saisie (inspiré de StreetComplete).                                |
+| Précision au mètre | Le GPS centre la carte ; l'utilisateur place l'objet sur ortho IGN 20 cm, avec accrochage OSM.           |
+| Sécurité d'abord   | Jamais d'incitation à s'approcher des voies. Saisie possible depuis le quai ou à distance.               |
+| Sobriété           | 10 écrans, pas d'animation décorative, mode sombre, hors-ligne, GPS à la demande.                        |
+| Accessible         | WCAG 2.2 AA, cibles ≥ 48 × 48 dp, actions principales dans la zone du pouce, alternative à tout glisser. |
 
 Navigation globale : barre basse à 3 onglets — **Gare** · **Mes contributions** · **Réglages**. Un badge sur « Mes contributions » indique le nombre d'envois en attente.
 
@@ -36,6 +36,7 @@ Navigation globale : barre basse à 3 onglets — **Gare** · **Mes contribution
 ## 1. Personas
 
 ### P1 — Julien, 34 ans, passionné de ferroviaire, contributeur OSM occasionnel
+
 - Technicien de maintenance industrielle, prend le TER chaque jour (Lyon ↔ Ambérieu). Connaît la signalisation, lit les pancartes « 8 », « US/UM ».
 - A déjà corrigé quelques rues dans OSM via iD, jamais de données ferroviaires.
 - **Objectif** : documenter « ses » gares, voir sa gare passer à 100 %.
@@ -44,6 +45,7 @@ Navigation globale : barre basse à 3 onglets — **Gare** · **Mes contribution
 - **Besoins UX** : quêtes courtes, reprise là où il s'est arrêté, retour visible de sa progression.
 
 ### P2 — Amina, 27 ans, voyageuse occasionnelle curieuse
+
 - Chargée de communication, 1 trajet longue distance par mois. N'a jamais entendu parler d'OSM avant RailComplete.
 - **Objectif** : « rendre service » pendant une attente, apprendre quelque chose.
 - **Contexte** : gare inconnue, réseau mobile instable, batterie à 30 %.
@@ -51,6 +53,7 @@ Navigation globale : barre basse à 3 onglets — **Gare** · **Mes contribution
 - **Besoins UX** : vocabulaire voyageur (« quai », « voie », « panneau d'arrêt »), aide illustrée, possibilité de tester sans compte, consommation batterie minimale.
 
 ### P3 — Bernard, 58 ans, contributeur OSM aguerri (mappeur ferroviaire)
+
 - Retraité, 40 000 modifications OSM, connaît OpenRailwayMap et les tags `railway=*`.
 - **Objectif** : compléter vite et proprement, depuis chez lui sur l'ortho, puis vérifier sur place.
 - **Contexte** : tablette ou téléphone, sessions longues, à distance comme sur le terrain.
@@ -64,25 +67,29 @@ Navigation globale : barre basse à 3 onglets — **Gare** · **Mes contribution
 Notation : `E#` renvoie aux écrans de la section 3.
 
 ### 2.1 Première ouverture + connexion OSM
+
 1. **E1 Bienvenue** : 3 cartes défilables (À quoi ça sert · Sécurité · Vos données dans OSM). La carte Sécurité est obligatoire (bouton « J'ai compris » pour avancer).
 2. **E2 Connexion** : « Se connecter avec OpenStreetMap » (OAuth2, navigateur système) ou « Créer un compte OSM » ou « Explorer sans compte ».
 3. Retour d'OAuth → message « Connecté en tant que @pseudo » → **E3 Choisir une gare**.
-4. *Variante sans compte* : tout est possible sauf l'envoi ; les contributions restent dans la file locale ; l'invitation à se connecter apparaît sur E8.
+4. _Variante sans compte_ : tout est possible sauf l'envoi ; les contributions restent dans la file locale ; l'invitation à se connecter apparaît sur E8.
 
 Points d'attention : pas de permission GPS demandée à ce stade ; la demande apparaît seulement au premier appui sur « Gares autour de moi ».
 
 ### 2.2 Choisir une gare
+
 1. **E3** : champ de recherche (nom, commune, code UIC) en haut + bouton « Gares autour de moi » (GPS ponctuel, coupé après obtention).
 2. Résultats en liste (nom, commune, distance, mini-jauge de complétude). Gares récentes et favorites en tête si champ vide.
 3. Appui → **E4 Tableau de bord gare**. La gare devient « gare active » (mémorisée).
 4. Option « Télécharger pour hors-ligne » (taille estimée affichée) depuis E4.
 
 ### 2.3 Voir ce qui manque
+
 1. **E4** affiche 3 jauges (Quais · Voies · Pancartes) et la liste des quêtes triées par priorité (voir §4).
 2. Appui sur une quête → **E5 Carte de la gare** centrée sur l'objet concerné, ou directement **E7 Fiche objet** si la quête ne demande pas de position.
 3. Bascule « Liste / Carte » sur E4 pour voir les objets manquants sur la carte (pastilles « ? »).
 
 ### 2.4 Ajouter un objet (ex. une pancarte d'arrêt)
+
 1. Depuis E4 (quête « Positionner les pancartes du quai B ») ou depuis E5 (bouton « + Ajouter » → choix du type).
 2. **E6 Placement fin** : réticule fixe, carte glissante sur ortho, accrochage au bord de quai, loupe, indicateur de précision. Boutons de micro-déplacement (alternative au glisser). « Valider la position ».
 3. **E7 Fiche objet** : attributs (numéro/texte de la pancarte, type, côté, source). « Enregistrer ».
@@ -90,6 +97,7 @@ Points d'attention : pas de permission GPS demandée à ce stade ; la demande ap
 5. Retour E5 ; la quête se met à jour.
 
 ### 2.5 Vérifier / corriger un objet existant
+
 1. Quête « À vérifier » sur E4, ou appui sur un objet existant sur E5 → feuille basse de résumé.
 2. **E7 en mode vérification** : valeurs actuelles affichées, deux gros boutons : « C'est correct » / « Corriger ».
 3. « C'est correct » → enregistre une vérification (date de vérification, à aligner sur le rapport tags), sans modifier le reste.
@@ -97,6 +105,7 @@ Points d'attention : pas de permission GPS demandée à ce stade ; la demande ap
 5. Les valeurs modifiées sont surlignées (ancien → nouveau) avant enregistrement.
 
 ### 2.6 Envoyer / hors-ligne
+
 1. Toute saisie est d'abord enregistrée **localement** (file d'attente), qu'il y ait du réseau ou non.
 2. **E8 Envoi** : liste des modifications groupées par gare, commentaire de changeset prérempli et modifiable, source prérenseignée, bouton « Envoyer dans OpenStreetMap ».
 3. Hors-ligne : bandeau persistant « Hors-ligne — 4 modifications seront envoyées au retour du réseau ». Envoi automatique au retour du réseau **si l'utilisateur l'a autorisé** (réglage, activé par défaut), sinon notification « Prêt à envoyer ».
@@ -104,6 +113,7 @@ Points d'attention : pas de permission GPS demandée à ce stade ; la demande ap
 5. Succès → lien vers le changeset sur osm.org, compteurs mis à jour.
 
 ### 2.7 Historique de mes contributions
+
 1. **E9** : 3 sections — En attente · À revoir · Envoyées.
 2. Chaque ligne : icône objet, gare, résumé (« Quai 3 : numéro ajouté »), date, statut.
 3. Appui sur une ligne envoyée → lien changeset OSM ; sur une ligne en attente → modifier ou supprimer avant envoi.
@@ -317,26 +327,27 @@ Conventions des wireframes : largeur ~ 360 dp ; `[ Bouton ]` ; `( )` bouton rond
 - **Mode vérification** : valeurs actuelles en lecture + 2 gros boutons « C'est correct » / « Corriger ».
 - **Champs par objet (alignés sur le rapport tags § 8)** :
 
-| Objet | Question à l'écran | Tag OSM écrit | Composant |
-|---|---|---|---|
-| Quai | « Numéros des voies le long de ce quai » | `ref=1;2` | 1 à 4 jetons, préremplis avec les numéros des voies voisines |
-| Quai | « Ce quai a-t-il une lettre ou un nom ? » (facultatif) | `local_ref=A` | Champ court, majuscules |
-| Quai | (automatique, si absents) | `railway=platform`, `public_transport=platform`, `train=yes` | Ajoutés, jamais supprimés |
-| Voie | « Numéro ou lettre affiché en gare » | `railway:track_ref=A` | Champ court ; « Voie » ou « V » retirés automatiquement |
-| Voie | « Le numéro change-t-il le long de ce tronçon ? » | aucun (Note OSM si oui) | Oui / Non |
-| Pancarte | « Quel panneau voyez-vous ? » | `railway:signal:stop=FR:passenger_stop` + sous-clé de catégorie | **Grille de vignettes (v0.3)** : TT, **n V**, **US / UM**, L…, Z57, Z50, TGV, UFR, Train long/court/tous, Autre |
-| Pancarte | Vignette « n V » : « Nombre de véhicules écrit sur le panneau » | `…:conventional=FR:vehicle_number` + `…:for=vehicles` + `…:number=6` | Puces 3, 4, 5, 6, 8, 10 + « Autre… » (ex. RER C 4V/6V/8V, RER D 5V/10V) ; série facultative → `…:trainset` |
-| Pancarte | Vignette « US / UM » : UM1, UM2, « 72500 US »… | **À valider** : le schéma 2026 ne prévoit `for=single_unit/multiple_unit` que sous Z57, Z50 et TGV. Piste : `for` + `unit_number` + `trainset=X72500`, à confirmer avec l'auteur du schéma (Noeld) sur le forum OSM France avant développement | Puces US / UM, numéro 1/2/3, série facultative |
-| Pancarte | Précision selon la vignette (variante EAS/TTL, longueur, RBT…) | `…:for`, `…:length`, `…:reversal` | Puces |
-| Pancarte | « Les trains qui lisent ce panneau vont vers… » | `railway:signal:direction=forward/backward` (calculé d'après le sens du way) | 2 grandes flèches nommées par les gares extrêmes |
-| Pancarte | « Le panneau est… » (vu du conducteur) | `railway:signal:position=left/right/in_track/ground` | Puces Gauche / Droite / Entre les rails / Au sol |
-| Pancarte | « Un numéro sur une petite plaque ? » (facultatif) | `ref` | Champ court |
+| Objet    | Question à l'écran                                              | Tag OSM écrit                                                                                                                                                                                                                                  | Composant                                                                                                       |
+| -------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Quai     | « Numéros des voies le long de ce quai »                        | `ref=1;2`                                                                                                                                                                                                                                      | 1 à 4 jetons, préremplis avec les numéros des voies voisines                                                    |
+| Quai     | « Ce quai a-t-il une lettre ou un nom ? » (facultatif)          | `local_ref=A`                                                                                                                                                                                                                                  | Champ court, majuscules                                                                                         |
+| Quai     | (automatique, si absents)                                       | `railway=platform`, `public_transport=platform`, `train=yes`                                                                                                                                                                                   | Ajoutés, jamais supprimés                                                                                       |
+| Voie     | « Numéro ou lettre affiché en gare »                            | `railway:track_ref=A`                                                                                                                                                                                                                          | Champ court ; « Voie » ou « V » retirés automatiquement                                                         |
+| Voie     | « Le numéro change-t-il le long de ce tronçon ? »               | aucun (Note OSM si oui)                                                                                                                                                                                                                        | Oui / Non                                                                                                       |
+| Pancarte | « Quel panneau voyez-vous ? »                                   | `railway:signal:stop=FR:passenger_stop` + sous-clé de catégorie                                                                                                                                                                                | **Grille de vignettes (v0.3)** : TT, **n V**, **US / UM**, L…, Z57, Z50, TGV, UFR, Train long/court/tous, Autre |
+| Pancarte | Vignette « n V » : « Nombre de véhicules écrit sur le panneau » | `…:conventional=FR:vehicle_number` + `…:for=vehicles` + `…:number=6`                                                                                                                                                                           | Puces 3, 4, 5, 6, 8, 10 + « Autre… » (ex. RER C 4V/6V/8V, RER D 5V/10V) ; série facultative → `…:trainset`      |
+| Pancarte | Vignette « US / UM » : UM1, UM2, « 72500 US »…                  | **À valider** : le schéma 2026 ne prévoit `for=single_unit/multiple_unit` que sous Z57, Z50 et TGV. Piste : `for` + `unit_number` + `trainset=X72500`, à confirmer avec l'auteur du schéma (Noeld) sur le forum OSM France avant développement | Puces US / UM, numéro 1/2/3, série facultative                                                                  |
+| Pancarte | Précision selon la vignette (variante EAS/TTL, longueur, RBT…)  | `…:for`, `…:length`, `…:reversal`                                                                                                                                                                                                              | Puces                                                                                                           |
+| Pancarte | « Les trains qui lisent ce panneau vont vers… »                 | `railway:signal:direction=forward/backward` (calculé d'après le sens du way)                                                                                                                                                                   | 2 grandes flèches nommées par les gares extrêmes                                                                |
+| Pancarte | « Le panneau est… » (vu du conducteur)                          | `railway:signal:position=left/right/in_track/ground`                                                                                                                                                                                           | Puces Gauche / Droite / Entre les rails / Au sol                                                                |
+| Pancarte | « Un numéro sur une petite plaque ? » (facultatif)              | `ref`                                                                                                                                                                                                                                          | Champ court                                                                                                     |
 
-  **Source** : écrite au niveau du changeset (`source=survey` ou `imagery_used=BDOrtho IGN`), comme StreetComplete. Pas de question à l'utilisateur : l'appli sait s'il est sur place.
-  **Vérification** (« C'est correct ») : écrit `check_date=AAAA-MM-JJ` sur l'objet.
-  **Jamais demandé** : PK, identifiants SNCF Réseau.
-  **À ne pas confondre** : la plaque à **lettre seule** (A, B, R…) est un repère de quai voyageur (`railway=platform_marker`), hors MVP. L'aide « Où trouver ce panneau ? » montre la différence.
-  **Ancien format** : une pancarte en `FR:ARRET_*` s'affiche « ancien format » ; conversion proposée seulement si l'utilisateur confirme sur place qu'elle existe toujours.
+**Source** : écrite au niveau du changeset (`source=survey` ou `imagery_used=BDOrtho IGN`), comme StreetComplete. Pas de question à l'utilisateur : l'appli sait s'il est sur place.
+**Vérification** (« C'est correct ») : écrit `check_date=AAAA-MM-JJ` sur l'objet.
+**Jamais demandé** : PK, identifiants SNCF Réseau.
+**À ne pas confondre** : la plaque à **lettre seule** (A, B, R…) est un repère de quai voyageur (`railway=platform_marker`), hors MVP. L'aide « Où trouver ce panneau ? » montre la différence.
+**Ancien format** : une pancarte en `FR:ARRET_*` s'affiche « ancien format » ; conversion proposée seulement si l'utilisateur confirme sur place qu'elle existe toujours.
+
 - **Composants** : champs larges (≥ 56 dp), puces, sélecteurs segmentés, bouton principal collant en bas, lien « Voir les tags OSM » (replié, pour P3).
 - **Actions** : Enregistrer · C'est correct · Corriger · Déplacer (→ E6) · Signaler disparu · Annuler.
 - **États** : validation (message sous le champ, jamais par la couleur seule : icône + texte) ; donnée existante non standard (« Valeur actuelle inhabituelle : "3/4" — la conserver ? ») ; hors-ligne (aucun impact, enregistrement local) ; objet modifié par un autre entre-temps (bandeau « Cet objet a changé dans OSM — recharger »).
@@ -499,22 +510,24 @@ Conventions des wireframes : largeur ~ 360 dp ; `[ Bouton ]` ; `( )` bouton rond
 ## 4. Système de quêtes et indicateurs de complétude
 
 ### 4.1 Définition d'une quête
+
 Une quête = **un manque ou un doute détecté automatiquement** dans les données OSM de la gare, formulé en langage voyageur, regroupé par type et par quai.
 
-| Quête | Condition de détection (à aligner sur le rapport tags) | Formulation | Écran ouvert |
-|---|---|---|---|
-| Q0 Quais absents | Aucun `railway=platform`/`public_transport=platform` dans l'emprise de la gare | « Aucun quai cartographié » | **E11** |
-| Q1 Numéro de quai | Quai sans `ref` | « 2 quais sans numéro » | E5 centré → E7 (sur place) |
-| Q2 Numéro de voie | `railway=rail` longeant un quai, sans `railway:track_ref` | « 5 voies sans numéro » | E5 centré → E7 (sur place) |
-| Q3 Lien quai–voie | `ref` du quai ≠ `railway:track_ref` des voies adjacentes | « Quai A : numéros à vérifier » | E7 |
-| Q4 Pancartes d'arrêt | Tronçon de voie le long d'un quai sans nœud `railway:signal:stop` | « Quai B : pancartes à relever » | E6 (série, sur place) |
-| Q5 Pancarte incomplète | Pancarte sans `railway:signal:direction`, ou en ancien format `FR:ARRET_*` | « 3 pancartes à compléter » | E7 (sur place) |
-| Q6 Vérification | Objet sans `check_date` ou `check_date` > 2 ans | « 3 objets à vérifier » | E7 (vérif.) |
-| Q7 Incohérence | Deux voies de la gare avec le même `railway:track_ref`, valeur non standard (« Voie 1 » dans `name`) | « Deux voies portent le numéro 2 » | E7 |
+| Quête                  | Condition de détection (à aligner sur le rapport tags)                                               | Formulation                        | Écran ouvert               |
+| ---------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------- | -------------------------- |
+| Q0 Quais absents       | Aucun `railway=platform`/`public_transport=platform` dans l'emprise de la gare                       | « Aucun quai cartographié »        | **E11**                    |
+| Q1 Numéro de quai      | Quai sans `ref`                                                                                      | « 2 quais sans numéro »            | E5 centré → E7 (sur place) |
+| Q2 Numéro de voie      | `railway=rail` longeant un quai, sans `railway:track_ref`                                            | « 5 voies sans numéro »            | E5 centré → E7 (sur place) |
+| Q3 Lien quai–voie      | `ref` du quai ≠ `railway:track_ref` des voies adjacentes                                             | « Quai A : numéros à vérifier »    | E7                         |
+| Q4 Pancartes d'arrêt   | Tronçon de voie le long d'un quai sans nœud `railway:signal:stop`                                    | « Quai B : pancartes à relever »   | E6 (série, sur place)      |
+| Q5 Pancarte incomplète | Pancarte sans `railway:signal:direction`, ou en ancien format `FR:ARRET_*`                           | « 3 pancartes à compléter »        | E7 (sur place)             |
+| Q6 Vérification        | Objet sans `check_date` ou `check_date` > 2 ans                                                      | « 3 objets à vérifier »            | E7 (vérif.)                |
+| Q7 Incohérence         | Deux voies de la gare avec le même `railway:track_ref`, valeur non standard (« Voie 1 » dans `name`) | « Deux voies portent le numéro 2 » | E7                         |
 
 Les quêtes marquées « sur place » s'affichent à distance avec un cadenas et la mention « À faire en gare ».
 
 ### 4.2 Priorisation (ordre d'affichage sur E4)
+
 1. Incohérences (Q7) — impact fort sur OSRD.
 2. Numéros de quais (Q1) puis de voies (Q2) — prérequis aux pancartes.
 3. Liens quai–voie (Q3).
@@ -524,12 +537,14 @@ Les quêtes marquées « sur place » s'affichent à distance avec un cadenas et
 Si l'utilisateur est **sur place** (GPS récent dans la gare), les quêtes « sur place » (pancartes, numéros affichés) remontent ; **à distance**, les quêtes faisables sur ortho (lien quai–voie, positionnement d'objets visibles) remontent, avec la mention « Vérifiable sur l'image aérienne ».
 
 ### 4.3 Indicateurs de complétude
+
 - Par type : **compte en clair** « 4/6 quais numérotés » + jauge segmentée (1 segment par objet jusqu'à 12, sinon proportionnelle). Jamais de pourcentage seul.
 - Pancartes : dénominateur = quais (« 2 quais sur 6 ont leurs pancartes »), car le nombre réel de pancartes est inconnu tant que personne ne les a relevées.
 - Gare : 3 états textuels, avec icône : « À compléter » · « Presque complète » (tout Q1–Q3 fait) · « Complète » (Q1–Q5 faits, aucune incohérence). Affichés dans les résultats de E3.
 - Fraîcheur : « Dernière vérification : il y a 3 mois ».
 
 ### 4.4 Motivation (sobre)
+
 - Retour immédiat après chaque saisie (bandeau + jauge qui se met à jour, sans animation).
 - Proposition « Suivante sur ce quai » pour enchaîner.
 - Compteurs personnels sur E9. Pas de classement ni de badges au MVP (voir question ouverte 4).
@@ -542,52 +557,56 @@ Si l'utilisateur est **sur place** (GPS récent dans la gare), les quêtes « su
 
 Thème clair (fond `#FFFFFF`) :
 
-| Rôle | Couleur | Contraste sur fond |
-|---|---|---|
-| Texte principal | `#1A1D21` | 16,9:1 |
-| Texte secondaire | `#4A515B` | 8,0:1 |
-| Primaire (boutons, liens) | `#0B4F9C` (texte blanc dessus : 8,0:1) | 8,0:1 |
-| Objet Quai | `#00707A` (sarcelle) | 5,8:1 |
-| Objet Voie | `#6A3FB5` (violet) | 7,0:1 |
-| Objet Pancarte | `#A34A00` (orange brûlé) | 5,9:1 |
-| État complet | `#1E7A34` | 5,4:1 |
-| État manquant | `#8A5A00` | 5,9:1 |
-| Danger / sécurité | `#B3261E` | 6,5:1 |
+| Rôle                      | Couleur                                | Contraste sur fond |
+| ------------------------- | -------------------------------------- | ------------------ |
+| Texte principal           | `#1A1D21`                              | 16,9:1             |
+| Texte secondaire          | `#4A515B`                              | 8,0:1              |
+| Primaire (boutons, liens) | `#0B4F9C` (texte blanc dessus : 8,0:1) | 8,0:1              |
+| Objet Quai                | `#00707A` (sarcelle)                   | 5,8:1              |
+| Objet Voie                | `#6A3FB5` (violet)                     | 7,0:1              |
+| Objet Pancarte            | `#A34A00` (orange brûlé)               | 5,9:1              |
+| État complet              | `#1E7A34`                              | 5,4:1              |
+| État manquant             | `#8A5A00`                              | 5,9:1              |
+| Danger / sécurité         | `#B3261E`                              | 6,5:1              |
 
 Thème sombre (fond `#121417`, défaut si système sombre ; recommandé pour l'économie d'énergie sur OLED) :
 
-| Rôle | Couleur | Contraste sur fond |
-|---|---|---|
-| Texte principal | `#ECEEF1` | 15,9:1 |
-| Texte secondaire | `#AEB6C0` | 9,0:1 |
-| Primaire | `#8CB8FF` (texte `#121417` dessus : 9,2:1) | 9,2:1 |
-| Quai / Voie / Pancarte | `#4FC7CF` / `#B79CFF` / `#FFA45C` | 9,1 / 8,1 / 9,4:1 |
-| Complet / Manquant / Danger | `#6FD48A` / `#F2C14E` / `#FF8A80` | 10,1 / 11,0 / 8,1:1 |
+| Rôle                        | Couleur                                    | Contraste sur fond  |
+| --------------------------- | ------------------------------------------ | ------------------- |
+| Texte principal             | `#ECEEF1`                                  | 15,9:1              |
+| Texte secondaire            | `#AEB6C0`                                  | 9,0:1               |
+| Primaire                    | `#8CB8FF` (texte `#121417` dessus : 9,2:1) | 9,2:1               |
+| Quai / Voie / Pancarte      | `#4FC7CF` / `#B79CFF` / `#FFA45C`          | 9,1 / 8,1 / 9,4:1   |
+| Complet / Manquant / Danger | `#6FD48A` / `#F2C14E` / `#FF8A80`          | 10,1 / 11,0 / 8,1:1 |
 
 Règles :
+
 - **Sur l'ortho**, les couleurs seules ne suffisent pas (sarcelle sur ballast gris ≈ 1,3:1) : tout tracé ou pictogramme sur carte porte un **halo** blanc (clair) ou noir (sombre) de 2 px pour garantir ≥ 3:1 (WCAG 1.4.11).
 - Réticule : jaune `#FFD400` + halo noir (14,7:1), visible sur toutes les textures.
 - Mode « Plein soleil » : texte principal noir pur, traits ×1,5, ortho légèrement désaturée/éclaircie pour faire ressortir les tracés.
 - Aucune information portée par la couleur seule : toujours icône ou texte (✓, ?, !).
 
 ### 5.2 Typographie
+
 - **Atkinson Hyperlegible** (décision v0.2) (lisibilité, distinction 1/l/I, 0/O — utile pour les numéros de voie) ; repli système (`system-ui`).
 - Échelle (sp, suit la taille système, testée à 200 %) : Titre 24/32 gras · Sous-titre 18/24 semi-gras · Corps 16/24 · Légende 14/20 (minimum).
 - Numéros de quai/voie/pancarte : chiffres tabulaires, gras, ≥ 20 sp dans les fiches.
 
 ### 5.3 Iconographie des 3 objets
+
 Pictogrammes simples, trait 2 px, lisibles à 24 dp, chacun avec sa couleur **et** une forme distincte :
 
-| Objet | Pictogramme | Forme du marqueur sur carte |
-|---|---|---|
-| Quai | Rectangle allongé avec bord épais côté voie (`▭`) | Pastille **carrée** au centre du quai, contenant le numéro (« B ») ou « ? » |
-| Voie | Deux rails + traverses (`═`) | Pastille **ronde** sur l'axe, contenant le numéro (« 2 ») ou « ? » |
-| Pancarte d'arrêt | Panneau carré sur mât, avec chiffre (`⚑`) — s'inspirer de la vraie pancarte (fond blanc, chiffre noir) | **Losange/panneau** sur le bord de quai, contenant le texte (« 8 ») |
+| Objet            | Pictogramme                                                                                            | Forme du marqueur sur carte                                                 |
+| ---------------- | ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| Quai             | Rectangle allongé avec bord épais côté voie (`▭`)                                                      | Pastille **carrée** au centre du quai, contenant le numéro (« B ») ou « ? » |
+| Voie             | Deux rails + traverses (`═`)                                                                           | Pastille **ronde** sur l'axe, contenant le numéro (« 2 ») ou « ? »          |
+| Pancarte d'arrêt | Panneau carré sur mât, avec chiffre (`⚑`) — s'inspirer de la vraie pancarte (fond blanc, chiffre noir) | **Losange/panneau** sur le bord de quai, contenant le texte (« 8 »)         |
 
 États superposés en coin du marqueur : ✓ complet · ? manquant · ! à vérifier/conflit · ⏱ en attente d'envoi.
 Autres icônes : jeu standard sous licence libre (ex. Material Symbols ou Lucide), trait homogène.
 
 ### 5.4 Ton rédactionnel
+
 - **Vouvoiement**, phrases courtes, verbes d'action (« Placez », « Vérifiez »).
 - **Vocabulaire voyageur** à l'écran (« numéro du quai », « panneau d'arrêt ») ; termes OSM (« changeset », « tag ») seulement en mode expert ou entre parenthèses la première fois.
 - Rassurant sur l'erreur : « Pas d'inquiétude, vous pourrez corriger avant l'envoi. »
