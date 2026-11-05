@@ -1,0 +1,101 @@
+/* Jetons de design railcomplete — voir ux-spec.md § 5 */
+:root {
+	color-scheme: light dark;
+	--bg: #ffffff;
+	--surface: #f3f5f8;
+	--border: #d5dae1;
+	--text: #1a1d21;
+	--text-2: #4a515b;
+	--primary: #0b4f9c;
+	--on-primary: #ffffff;
+	--quai: #00707a;
+	--voie: #6a3fb5;
+	--pancarte: #a34a00;
+	--ok: #1e7a34;
+	--missing: #8a5a00;
+	--danger: #b3261e;
+	--radius: 14px;
+	--font: 'Atkinson Hyperlegible', system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--bg: #121417;
+		--surface: #1c1f24;
+		--border: #3a4049;
+		--text: #eceef1;
+		--text-2: #aeb6c0;
+		--primary: #8cb8ff;
+		--on-primary: #121417;
+		--quai: #4fc7cf;
+		--voie: #b79cff;
+		--pancarte: #ffa45c;
+		--ok: #6fd48a;
+		--missing: #f2c14e;
+		--danger: #ff8a80;
+	}
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--text);
+	font-family: var(--font);
+	font-size: 100%;
+	line-height: 1.5;
+}
+
+a {
+	color: var(--primary);
+}
+
+:focus-visible {
+	outline: 3px solid var(--primary);
+	outline-offset: 2px;
+}
+
+.btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	width: 100%;
+	min-height: 56px;
+	padding: 0 20px;
+	border: 0;
+	border-radius: var(--radius);
+	background: var(--primary);
+	color: var(--on-primary);
+	font: 700 1.125rem var(--font);
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.btn-secondary {
+	background: transparent;
+	color: var(--primary);
+	border: 2px solid var(--primary);
+}
+
+.visually-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	* {
+		transition: none !important;
+		animation: none !important;
+	}
+}
