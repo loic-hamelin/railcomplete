@@ -11,10 +11,13 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  deployments: read
 
+# Une publication à la fois, sans interrompre celle en cours : interrompre une publication
+# GitHub Pages peut la laisser bloquée « en cours » et faire échouer les suivantes.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -58,5 +61,23 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # Si une publication précédente est restée bloquée « en cours » chez GitHub Pages,
+      # on l'annule avant de publier (sinon GitHub refuse la nouvelle publication).
+      - name: Débloquer une publication précédente
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for sha in $(gh api "repos/${{ github.repository }}/deployments?environment=github-pages&per_page=5" --jq '.[].sha'); do
+            [ "$sha" = "${{ github.sha }}" ] && continue
+            status=$(gh api "repos/${{ github.repository }}/pages/deployments/$sha" --jq '.status' 2>/dev/null || true)
+            case "$status" in
+              deployment_queued|deployment_in_progress|syncing_files|updating_pages|deployment_cancelled_pending)
+                echo "Annulation de la publication bloquée $sha ($status)"
+                gh api -X POST "repos/${{ github.repository }}/pages/deployments/$sha/cancel" || true ;;
+            esac
+          done
       - id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          # GitHub Pages est parfois lent : 20 minutes au lieu de 10.
+          timeout: 1200000
