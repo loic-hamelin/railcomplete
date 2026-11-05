@@ -149,7 +149,7 @@
 			<h1>L'application arrive bientôt</h1>
 			<p>
 				railcomplete est en cours de développement. Le code est libre et les premières gares
-				pourront être complétées dans les prochains mois.
+				pourront être complétées bientôt.
 			</p>
 		</section>
 		<footer class="actions">

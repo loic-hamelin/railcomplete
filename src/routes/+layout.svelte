@@ -13,6 +13,10 @@
 <svelte:head>
 	<link rel="icon" href={favicon} />
 	<meta name="theme-color" content="#0B4F9C" />
+	<link rel="manifest" href="/manifest.webmanifest" />
+	<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+	<meta name="apple-mobile-web-app-title" content="railcomplete" />
+	<meta name="mobile-web-app-capable" content="yes" />
 	<meta
 		name="description"
 		content="railcomplete : complétez les données ferroviaires des gares dans OpenStreetMap."

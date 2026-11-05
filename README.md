@@ -8,7 +8,8 @@ Site : <https://railcomplete.org>
 
 ## État
 
-Lot 0a : page d'accueil (présentation et consignes de sécurité) et page « À propos », publiées sur railcomplete.org.
+- Lot 0a : page d'accueil (présentation et consignes de sécurité) et page « À propos », publiées sur railcomplete.org.
+- Lot 0b : appli installable (manifeste, icônes), ouverture sans réseau (service worker), garde-fous automatiques (tests, accessibilité, budget de poids).
 
 ## Développer sur son ordinateur
 
@@ -20,11 +21,15 @@ npm run dev        # lance le site sur http://localhost:5173
 npm run check      # vérifie les types
 npm run lint       # vérifie la mise en forme et le code
 npm run build      # construit le site statique dans build/
+npm run budget     # vérifie le budget de poids (après build)
+npm run test:e2e   # tests de bout en bout : parcours, accessibilité, hors-ligne (après build)
 ```
+
+Première fois pour les tests : `npx playwright install chromium`.
 
 ## Publication
 
-Chaque envoi sur la branche `main` déclenche le workflow `.github/workflows/deploy.yml`, qui vérifie, construit et publie le site sur GitHub Pages. Le fichier `static/CNAME` relie le site au domaine `railcomplete.org`.
+Chaque envoi sur la branche `main` déclenche le workflow `.github/workflows/deploy.yml`, qui vérifie (types, mise en forme, lint), construit, contrôle le budget de poids, lance les tests de bout en bout, puis publie le site sur GitHub Pages. Si une étape échoue, rien n'est publié. Le fichier `static/CNAME` relie le site au domaine `railcomplete.org`.
 
 ## Documentation
 

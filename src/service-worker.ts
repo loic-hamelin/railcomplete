@@ -1,0 +1,70 @@
+/// <reference types="@sveltejs/kit" />
+/// <reference no-default-lib="true"/>
+/// <reference lib="esnext" />
+/// <reference lib="webworker" />
+
+// Service worker de railcomplete (lot 0b) : met en cache l'« enveloppe » de l'appli
+// (pages, scripts, styles, polices, icônes) pour qu'elle s'ouvre sans réseau.
+// Les données OSM et les tuiles IGN seront gérées à part (lot 4).
+
+import { assets, immutable, prerendered } from '$app/manifest';
+import { version } from '$app/env';
+
+const sw = self as unknown as ServiceWorkerGlobalScope;
+const CACHE = `app-${version}`;
+// Les chemins du manifeste sont relatifs à la racine du site : on les rend absolus (« /… »).
+const toPath = (p: string) => new URL(p, sw.location.origin + '/').pathname;
+const ASSETS = [...immutable, ...assets, ...prerendered]
+	.map(({ path }) => toPath(path))
+	// Les anciennes polices .woff ne servent qu'aux navigateurs trop vieux pour l'appli.
+	.filter((p) => !p.endsWith('.woff') && !p.endsWith('/CNAME'));
+
+sw.addEventListener('install', (event) => {
+	event.waitUntil(
+		caches
+			.open(CACHE)
+			.then((cache) => cache.addAll(ASSETS))
+			.then(() => sw.skipWaiting())
+	);
+});
+
+sw.addEventListener('activate', (event) => {
+	// Supprime les caches des versions précédentes.
+	event.waitUntil(
+		caches
+			.keys()
+			.then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+			.then(() => sw.clients.claim())
+	);
+});
+
+sw.addEventListener('fetch', (event) => {
+	const { request } = event;
+	if (request.method !== 'GET') return;
+	const url = new URL(request.url);
+	// Seules les ressources du site passent par ce cache (pas l'API OSM ni l'IGN).
+	if (url.origin !== sw.location.origin) return;
+
+	event.respondWith(
+		(async () => {
+			const cache = await caches.open(CACHE);
+			// Fichiers de l'appli : toujours depuis le cache (ils changent de nom à chaque version).
+			if (ASSETS.includes(url.pathname)) {
+				const cached = await cache.match(url.pathname);
+				if (cached) return cached;
+			}
+			// Le reste : réseau d'abord, cache en secours, puis page d'accueil hors-ligne.
+			try {
+				const response = await fetch(request);
+				if (response.ok && response.type === 'basic') cache.put(request, response.clone());
+				return response;
+			} catch {
+				const cached =
+					(await cache.match(request)) ??
+					(request.mode === 'navigate' ? await cache.match('/') : undefined);
+				if (cached) return cached;
+				return new Response('Hors-ligne', { status: 503, statusText: 'Hors-ligne' });
+			}
+		})()
+	);
+});
