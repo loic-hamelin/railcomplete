@@ -1,3 +1,3 @@
-// Réglages publics du site. À compléter quand le dépôt GitHub existe.
+// Réglages publics du site.
 export const SITE_URL = 'https://railcomplete.org';
-export const REPO_URL = 'https://github.com/COMPTE_GITHUB/railcomplete';
+export const REPO_URL = 'https://github.com/loic-hamelin/railcomplete';
