@@ -143,8 +143,13 @@ export function analyzeStation(
 	const railPts = new Map(rails.map((w) => [w.id, nodePts(w).map(P)]));
 
 	// ---- Pancartes d'arrêt dans l'emprise ----
+	// Emprise élargie de 50 m : une pancarte se trouve souvent un peu avant le bout du quai.
+	const m = THRESHOLDS.stopSignMarginM;
+	const dLat = m / 111_320,
+		dLon = m / (111_320 * Math.cos((((bbox[1] + bbox[3]) / 2) * Math.PI) / 180));
+	const wide: BBox = [bbox[0] - dLon, bbox[1] - dLat, bbox[2] + dLon, bbox[3] + dLat];
 	const stopSigns = [...data.nodes.values()].filter(
-		(n) => isStopSign(n.tags) && inBBox(bbox, n.lon, n.lat)
+		(n) => isStopSign(n.tags) && inBBox(wide, n.lon, n.lat)
 	);
 	const stopSignWays = new Map(stopSigns.map((n) => [n.id, data.waysOfNode.get(n.id) ?? []]));
 

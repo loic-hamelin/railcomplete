@@ -12,9 +12,11 @@ export interface CachedStation {
 
 let db: Promise<IDBPDatabase> | undefined;
 function open() {
-	db ??= openDB('railcomplete', 1, {
-		upgrade(d) {
-			d.createObjectStore('stations', { keyPath: 'id' });
+	db ??= openDB('railcomplete', 2, {
+		upgrade(d, oldVersion) {
+			if (oldVersion < 1) d.createObjectStore('stations', { keyPath: 'id' });
+			// Lot 2 : modifications saisies, en attente d'envoi vers OpenStreetMap.
+			if (oldVersion < 2) d.createObjectStore('edits', { keyPath: 'id' });
 		}
 	});
 	return db;
@@ -34,6 +36,21 @@ export async function putCachedStation(entry: CachedStation) {
 	} catch {
 		/* sans cache */
 	}
+}
+
+export async function getAllEdits<T>(): Promise<T[]> {
+	try {
+		return (await (await open()).getAll('edits')) as T[];
+	} catch {
+		return [];
+	}
+}
+export async function putEdit(edit: { id: string }) {
+	// Pas de repli silencieux ici : perdre une saisie doit se voir.
+	await (await open()).put('edits', edit);
+}
+export async function deleteEdit(id: string) {
+	await (await open()).delete('edits', id);
 }
 
 // Préférences légères (gares récentes, présentation vue) : localStorage, protégé.

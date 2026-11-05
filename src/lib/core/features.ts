@@ -19,6 +19,8 @@ export interface FeatureProps {
 	title: string;
 	detail: string;
 	quests: string;
+	/** Modifié sur ce téléphone, pas encore envoyé. */
+	edited?: boolean;
 }
 
 type Geometry =

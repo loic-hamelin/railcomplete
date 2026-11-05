@@ -74,7 +74,7 @@
 			const p = f.properties;
 			const el = document.createElement('button');
 			el.type = 'button';
-			el.className = `rc-badge ${p.kind} ${p.status}`;
+			el.className = `rc-badge ${p.kind} ${p.status}${p.edited ? ' edited' : ''}`;
 			el.textContent = p.status === 'alert' && p.label !== '?' ? `${p.label} !` : p.label;
 			el.setAttribute('aria-label', `${p.title}. ${p.detail}`);
 			el.addEventListener('click', (e) => {
@@ -340,7 +340,11 @@
 		border-color: #fff;
 		color: #fff;
 	}
-	:global(.rc-far .rc-badge.ok) {
+	:global(.rc-badge.edited) {
+		outline: 3px dashed #0b4f9c;
+		outline-offset: 2px;
+	}
+	:global(.rc-far .rc-badge.ok:not(.edited)) {
 		display: none;
 	}
 	:global(.rc-me) {

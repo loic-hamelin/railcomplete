@@ -1,16 +1,21 @@
 <script lang="ts">
-	// E4 — Tableau de bord d'une gare : jauges de complétude et quêtes (lecture seule au lot 1).
+	// E4 — Tableau de bord d'une gare : jauges de complétude et quêtes, saisies locales comprises.
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import BottomNav from '#lib/BottomNav.svelte';
 	import Icon from '#lib/Icon.svelte';
 	import { current, openStation } from '#lib/current.svelte.js';
+	import { editsOf, loadEdits, pending } from '#lib/edits.svelte.js';
 	import { groupQuests, type Kind } from '#lib/questText.js';
+	import { stationView } from '#lib/view.js';
 	import { onMount, untrack } from 'svelte';
 
 	// Page statique : l'identifiant de la gare n'est lu que dans le navigateur.
 	let mounted = $state(false);
-	onMount(() => (mounted = true));
+	onMount(() => {
+		mounted = true;
+		loadEdits();
+	});
 	const id = $derived(mounted ? (page.url.searchParams.get('id') ?? '') : '');
 	$effect(() => {
 		// Ne dépend que de l'identifiant : openStation lit et modifie l'état partagé.
@@ -20,7 +25,12 @@
 
 	const st = $derived(current.value);
 	const ready = $derived(st.status === 'ready' ? st : undefined);
-	const groups = $derived(ready ? groupQuests(ready.analysis) : []);
+	const myEdits = $derived(id ? editsOf(id) : []);
+	const view = $derived(
+		ready && pending.loaded ? stationView(ready.station, ready.elements, myEdits) : undefined
+	);
+	const analysis = $derived(view?.analysis ?? ready?.analysis);
+	const groups = $derived(analysis ? groupQuests(analysis) : []);
 	const station = $derived(st.status === 'idle' ? undefined : st.station);
 
 	const gauges = $derived(
@@ -30,19 +40,19 @@
 						kind: 'quai' as const,
 						label: 'Quais',
 						unit: 'numérotés',
-						...ready.analysis.completeness.platforms
+						...analysis!.completeness.platforms
 					},
 					{
 						kind: 'voie' as const,
 						label: 'Voies',
 						unit: 'numérotées',
-						...ready.analysis.completeness.tracks
+						...analysis!.completeness.tracks
 					},
 					{
 						kind: 'pancarte' as const,
 						label: 'Pancartes',
 						unit: 'côtés relevés',
-						...ready.analysis.completeness.stopSigns
+						...analysis!.completeness.stopSigns
 					}
 				]
 			: []
@@ -91,8 +101,18 @@
 
 	<main>
 		<p class="demo" role="note">
-			Version de découverte : vous pouvez consulter les gares. La saisie arrive bientôt.
+			Version d’essai : vos saisies restent sur ce téléphone. L’envoi vers OpenStreetMap arrive
+			bientôt.
 		</p>
+		{#if myEdits.length}
+			<a class="pending" href={resolve('/contributions')}>
+				<Icon name="download" size={20} />
+				<span
+					>{myEdits.length} saisie{myEdits.length > 1 ? 's' : ''} en attente d’envoi dans cette gare</span
+				>
+				<Icon name="chevron" size={18} />
+			</a>
+		{/if}
 
 		{#if !mounted}
 			<p class="note" role="status">Chargement…</p>
@@ -235,6 +255,22 @@
 	.note {
 		margin: 0;
 		color: var(--text-2);
+	}
+	.pending {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		min-height: 52px;
+		padding: 8px 14px;
+		border-radius: var(--radius);
+		background: var(--bg);
+		border: 2px solid var(--primary);
+		color: var(--primary);
+		font-weight: 700;
+		text-decoration: none;
+	}
+	.pending span {
+		flex-grow: 1;
 	}
 	.card {
 		margin: 0;

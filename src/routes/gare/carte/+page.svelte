@@ -1,15 +1,21 @@
 <script lang="ts">
-	// E5 — Carte de la gare (lecture seule au lot 1).
+	// E5 — Carte de la gare, avec les saisies locales (lot 2).
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import Icon from '#lib/Icon.svelte';
-	import { buildFeatures, type FeatureProps } from '#lib/core/features.js';
+	import type { FeatureProps } from '#lib/core/features.js';
 	import { current, openStation } from '#lib/current.svelte.js';
+	import { editsOf, loadEdits, pending } from '#lib/edits.svelte.js';
+	import { canSurvey, checkOnSite, where } from '#lib/onsite.svelte.js';
+	import { stationView } from '#lib/view.js';
 	import StationMap from '#lib/map/StationMap.svelte';
 	import { onMount, untrack } from 'svelte';
 
 	let mounted = $state(false);
-	onMount(() => (mounted = true));
+	onMount(() => {
+		mounted = true;
+		loadEdits();
+	});
 	const id = $derived(mounted ? (page.url.searchParams.get('id') ?? '') : '');
 	const focus = $derived(mounted ? (page.url.searchParams.get('focus') ?? undefined) : undefined);
 	$effect(() => {
@@ -19,10 +25,30 @@
 	});
 
 	const st = $derived(current.value);
-	const ready = $derived(st.status === 'ready' ? st : undefined);
-	const data = $derived(
-		ready ? buildFeatures(ready.elements, ready.analysis, ready.station.bbox) : undefined
+	const ready = $derived(st.status === 'ready' && st.station.id === id ? st : undefined);
+	const view = $derived(
+		ready && pending.loaded ? stationView(ready.station, ready.elements, editsOf(id)) : undefined
 	);
+	const data = $derived.by(() => {
+		if (!view) return undefined;
+		const fc = view.features();
+		for (const f of fc.features) f.properties.edited = view.edited.has(f.properties.osm);
+		return fc;
+	});
+	const survey = $derived(canSurvey(id));
+	// Point de départ du placement d'une pancarte : la voie sélectionnée, sinon le centre de la gare.
+	const placeHref = $derived.by(() => {
+		const f = data?.features.find((x) => x.properties.osm === selected?.osm);
+		const ll =
+			f?.anchor ??
+			(f?.geometry.type === 'LineString'
+				? f.geometry.coordinates[Math.floor(f.geometry.coordinates.length / 2)]
+				: undefined);
+		return resolve(
+			`/gare/placer?id=${encodeURIComponent(id)}${ll ? `&lon=${ll[0].toFixed(7)}&lat=${ll[1].toFixed(7)}` : ''}`
+		);
+	});
+	const isLocal = (osm: string) => osm.startsWith('node/-');
 	const visible = $state({ quai: true, voie: true, pancarte: true });
 	let selected = $state<FeatureProps | undefined>();
 	let mapRef = $state<{ locate: () => void }>();
@@ -68,6 +94,18 @@
 				<Icon name="back" />
 			</a>
 			<h1>{ready?.station.name ?? 'Carte'}</h1>
+			{#if ready}
+				<button
+					class="where"
+					class:on={survey}
+					type="button"
+					onclick={() => checkOnSite(ready.station)}
+				>
+					<Icon name={survey ? 'locate' : 'lock'} size={16} />
+					{survey ? 'Sur place' : where.status === 'checking' ? 'Localisation…' : 'À distance'}
+					<span class="visually-hidden">, vérifier ma position</span>
+				</button>
+			{/if}
 		</div>
 		<div class="filters" role="group" aria-label="Objets affichés">
 			{#each filters as f (f.k)}
@@ -89,6 +127,9 @@
 		<p class="status error" role="alert">{st.message}</p>
 	{/if}
 
+	{#if ready && !selected}
+		<a class="add" href={placeHref}><Icon name="pancarte" size={20} />Ajouter une pancarte</a>
+	{/if}
 	{#if ready}
 		<button class="locate" type="button" aria-label="Me localiser" onclick={() => mapRef?.locate()}>
 			<Icon name="locate" />
@@ -117,10 +158,28 @@
 					{#each selected.quests.split(',') as q (q)}<li>{QUEST_TEXT[q] ?? q}</li>{/each}
 				</ul>
 			{/if}
-			<p class="soon">La saisie depuis l’appli arrive bientôt.</p>
-			<a class="osm" href={`https://www.openstreetmap.org/${selected.osm}`} rel="external">
-				Voir sur OpenStreetMap
-			</a>
+			{#if selected.edited}
+				<p class="soon">
+					<Icon name="download" size={16} /> Modifié sur ce téléphone, en attente d’envoi.
+				</p>
+			{/if}
+			{#if isLocal(selected.osm)}
+				<a class="btn btn-secondary" href={resolve('/contributions')}>Voir mes contributions</a>
+			{:else}
+				<div class="actions">
+					<a
+						class="btn"
+						href={resolve(`/gare/saisie?id=${encodeURIComponent(id)}&osm=${selected.osm}`)}
+						>{selected.status === 'ok' ? 'Vérifier ou corriger' : 'Renseigner'}</a
+					>
+					{#if selected.kind === 'voie'}
+						<a class="btn btn-secondary" href={placeHref}>Pancarte ici</a>
+					{/if}
+				</div>
+				<a class="osm" href={`https://www.openstreetmap.org/${selected.osm}`} rel="external">
+					Voir sur OpenStreetMap
+				</a>
+			{/if}
 		</section>
 	{/if}
 </div>
@@ -210,6 +269,47 @@
 	}
 	.status.error {
 		border: 2px solid var(--danger);
+	}
+	.where {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		margin-left: auto;
+		min-height: 36px;
+		padding: 0 10px;
+		border: 2px solid var(--border);
+		border-radius: 18px;
+		background: var(--bg);
+		color: var(--text-2);
+		font: 700 0.8125rem var(--font);
+		cursor: pointer;
+	}
+	.where.on {
+		border-color: var(--ok);
+		color: var(--ok);
+	}
+	.add {
+		position: absolute;
+		right: 16px;
+		bottom: calc(24px + env(safe-area-inset-bottom));
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		min-height: 52px;
+		padding: 0 18px;
+		border-radius: 26px;
+		background: var(--primary);
+		color: var(--on-primary);
+		font-weight: 700;
+		text-decoration: none;
+		box-shadow: 0 2px 8px rgb(0 0 0 / 0.3);
+	}
+	.actions {
+		display: flex;
+		gap: 8px;
+	}
+	.actions .btn {
+		min-height: 52px;
 	}
 	.locate {
 		position: absolute;
