@@ -4,7 +4,7 @@
 	import { page } from '$app/state';
 	import Icon from '#lib/Icon.svelte';
 	import { account, configured, login, signedIn } from '#lib/auth.svelte.js';
-	import type { Edit } from '#lib/core/edits.js';
+	import { editKey, type Edit } from '#lib/core/edits.js';
 	import { openStation } from '#lib/current.svelte.js';
 	import { editsOf, loadEdits, pending, removeEdit, updateEdits } from '#lib/edits.svelte.js';
 	import { sendStation, sending, type SendResult } from '#lib/send.svelte.js';
@@ -50,9 +50,9 @@
 		closing: 'Fermeture…'
 	};
 	const icon = (e: Edit) =>
-		e.kind === 'node' || e.target.startsWith('node/')
+		e.kind === 'node' || (e.kind === 'tags' && e.target.startsWith('node/'))
 			? 'pancarte'
-			: e.summary.startsWith('Quai')
+			: e.kind === 'way' || e.summary.startsWith('Quai')
 				? 'quai'
 				: 'voie';
 
@@ -66,7 +66,9 @@
 		await updateEdits([
 			e.kind === 'tags'
 				? { ...e, conflict: undefined, version: undefined, base: undefined }
-				: { ...e, conflict: undefined, wayVersion: undefined }
+				: e.kind === 'node'
+					? { ...e, conflict: undefined, wayVersion: undefined }
+					: { ...e, conflict: undefined }
 		]);
 	}
 </script>
@@ -157,7 +159,7 @@
 							<span class="acts">
 								<a
 									href={resolve(
-										`/gare/saisie?id=${encodeURIComponent(id)}&osm=${e.kind === 'tags' ? e.target : `way/${e.way}`}`
+										`/gare/saisie?id=${encodeURIComponent(id)}&osm=${e.kind === 'node' ? `way/${e.way}` : editKey(e)}`
 									)}>Ouvrir</a
 								>
 								<button type="button" onclick={() => retry(e)}>Garder</button>

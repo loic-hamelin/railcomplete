@@ -2,11 +2,12 @@
 // à jour, détection des conflits, et fabrication des documents XML (changeset, osmChange).
 // Code pur, testé sans réseau.
 
-import type { Edit, NewNodeEdit, TagEdit } from './edits';
+import type { Edit, NewNodeEdit, NewWayEdit, TagEdit } from './edits';
 import type { BBox, OsmElement, OsmNode, OsmRelation, OsmWay, Tags } from './osm';
 
 export interface Plan {
-	create: OsmNode[];
+	/** Objets à créer : nœuds d'abord, puis ways (quais dessinés). */
+	create: (OsmNode | OsmWay)[];
 	modify: OsmElement[];
 	/** Saisies qui partent dans ce changeset. */
 	sent: string[];
@@ -23,6 +24,8 @@ export function elementsToFetch(edits: Edit[]) {
 		relations = new Set<number>();
 	for (const e of edits) {
 		if (e.kind === 'node') ways.add(e.way);
+		else if (e.kind === 'way')
+			continue; // quai dessiné : rien à relire, tout est nouveau
 		else {
 			const [type, id] = e.target.split('/');
 			(type === 'node' ? nodes : type === 'way' ? ways : relations).add(Number(id));
@@ -89,6 +92,21 @@ export function planUpload(edits: Edit[], fresh: OsmElement[]): Plan {
 		modified.add(key(w));
 		plan.sent.push(ed.id);
 	}
+
+	// Quais dessinés : nœuds puis way fermé, tous nouveaux.
+	const newWays: OsmWay[] = [];
+	for (const ed of edits.filter((e): e is NewWayEdit => e.kind === 'way')) {
+		if (ed.nodes.length < 3) {
+			plan.conflicts.push({ id: ed.id, reason: 'Contour du quai incomplet.' });
+			continue;
+		}
+		for (const n of ed.nodes) plan.create.push({ type: 'node', id: n.id, lat: n.lat, lon: n.lon });
+		const ids = ed.nodes.map((n) => n.id);
+		newWays.push({ type: 'way', id: ed.tempId, nodes: [...ids, ids[0]], tags: ed.tags });
+		plan.sent.push(ed.id);
+	}
+	// Les ways créés viennent après tous les nœuds créés (ordre exigé par l'API).
+	plan.create.push(...newWays);
 
 	plan.modify = [...modified].map((k) => byKey.get(k)!);
 	return plan;

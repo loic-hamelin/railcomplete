@@ -48,7 +48,22 @@ export interface NewNodeEdit extends EditBase {
 	summary: string;
 }
 
-export type Edit = TagEdit | NewNodeEdit;
+/** Nouveau quai dessiné (E11) : contour fermé de nœuds nouveaux, jamais partagés avec une voie. */
+export interface NewWayEdit extends EditBase {
+	kind: 'way';
+	/** Identifiant négatif provisoire du way. */
+	tempId: number;
+	/** Nœuds du contour, dans l'ordre, sans répéter le premier (identifiants négatifs). */
+	nodes: { id: number; lon: number; lat: number }[];
+	tags: Tags;
+	summary: string;
+}
+
+export type Edit = TagEdit | NewNodeEdit | NewWayEdit;
+
+/** Clé de l'objet principal d'une saisie (« way/-3 », « node/-1 », « way/123 »). */
+export const editKey = (e: Edit): ElementKey =>
+	e.kind === 'tags' ? e.target : e.kind === 'node' ? `node/${e.tempId}` : `way/${e.tempId}`;
 
 export const newEditId = () =>
 	`${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -70,6 +85,16 @@ export function applyEdits(elements: OsmElement[], edits: Edit[]): OsmElement[] 
 				else tags[k] = v;
 			}
 			out.set(ed.target, { ...e, tags } as OsmElement);
+		} else if (ed.kind === 'way') {
+			for (const n of ed.nodes)
+				out.set(`node/${n.id}`, { type: 'node', id: n.id, lon: n.lon, lat: n.lat });
+			const ids = ed.nodes.map((n) => n.id);
+			out.set(`way/${ed.tempId}`, {
+				type: 'way',
+				id: ed.tempId,
+				nodes: [...ids, ids[0]],
+				tags: ed.tags
+			});
 		} else {
 			const w = out.get(`way/${ed.way}`) as OsmWay | undefined;
 			if (!w) continue;

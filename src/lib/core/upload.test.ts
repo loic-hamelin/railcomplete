@@ -128,3 +128,29 @@ describe('XML', () => {
 		});
 	});
 });
+
+describe('quai dessiné', () => {
+	const drawn: Edit = {
+		kind: 'way',
+		id: 'w1',
+		station: 's',
+		createdAt: 0,
+		tempId: -10,
+		nodes: [
+			{ id: -11, lon: 5.0, lat: 46.0 },
+			{ id: -12, lon: 5.001, lat: 46.0 },
+			{ id: -13, lon: 5.001, lat: 46.0001 }
+		],
+		tags: { railway: 'platform', public_transport: 'platform', train: 'yes', area: 'yes' },
+		summary: 'Quai dessiné'
+	};
+	it('crée les nœuds puis le way fermé, sans rien relire', () => {
+		expect(elementsToFetch([drawn])).toEqual({ nodes: [], ways: [], relations: [] });
+		const p = planUpload([drawn], []);
+		expect(p.sent).toEqual(['w1']);
+		const xml = osmChangeXml(5, p);
+		expect(xml.indexOf('<node id="-13"')).toBeLessThan(xml.indexOf('<way id="-10"'));
+		expect(xml).toContain('<nd ref="-11"/><nd ref="-12"/><nd ref="-13"/><nd ref="-11"/>');
+		expect(xml).toContain('<tag k="railway" v="platform"/>');
+	});
+});

@@ -31,11 +31,13 @@
 	const icon = (e: Edit) =>
 		e.kind === 'node'
 			? 'pancarte'
-			: e.target.startsWith('node/')
-				? 'pancarte'
-				: e.summary.startsWith('Quai')
-					? 'quai'
-					: 'voie';
+			: e.kind === 'way'
+				? 'quai'
+				: e.target.startsWith('node/')
+					? 'pancarte'
+					: e.summary.startsWith('Quai')
+						? 'quai'
+						: 'voie';
 	const when = (t: number) =>
 		new Date(t).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
 </script>

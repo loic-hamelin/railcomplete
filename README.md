@@ -14,6 +14,7 @@ Site : <https://stationcomplete.org>
 - Lot 2 : saisie locale des numéros de quais et de voies et des pancartes d'arrêt (placement fin, schéma FR:passenger_stop).
 - Lot 3 : connexion au compte OpenStreetMap (OAuth2 PKCE) et envoi d'un changeset par gare, résilient aux coupures et aux conflits. Envoi ouvert sur le serveur de test uniquement (production au lot 6).
 - Lot 4 : hors-ligne — téléchargement d'une gare (données + photos aériennes, taille affichée), consultation et saisie sans réseau, envoi programmé qui part tout seul au retour du réseau, gestion des gares téléchargées.
+- Lot 5 : dessin d'un quai absent d'OSM (polygone au réticule, accrochage parallèle à 1,5 m de l'axe de la voie, contrôles de forme), puis numérotation et envoi.
 
 ## Développer sur son ordinateur
 

@@ -161,7 +161,7 @@ export async function sendStation(
 			survey: sentEdits.some(
 				(e) => e.kind === 'node' || !Object.keys(e.tags).every((k) => k === 'check_date')
 			),
-			imagery: sentEdits.some((e) => e.kind === 'node')
+			imagery: sentEdits.some((e) => e.kind !== 'tags')
 		});
 
 		sending.step = 'opening';
@@ -190,7 +190,10 @@ export async function sendStation(
 				const target = conflictTarget(e.body);
 				const hit = sentEdits.filter(
 					(ed) =>
-						!target || (ed.kind === 'tags' ? ed.target === target : `way/${ed.way}` === target)
+						!target ||
+						(ed.kind === 'tags'
+							? ed.target === target
+							: ed.kind === 'node' && `way/${ed.way}` === target)
 				);
 				await updateEdits(
 					hit.map((ed) => ({ ...ed, conflict: 'Modifié sur OpenStreetMap pendant l’envoi.' }))

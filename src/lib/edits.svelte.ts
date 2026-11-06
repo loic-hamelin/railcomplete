@@ -2,7 +2,7 @@
 // Stockées dans IndexedDB : elles survivent à la fermeture de l'appli et au mode avion.
 
 import { deleteEdit, getAllEdits, putEdit, readPref, writePref } from './cache.js';
-import type { Edit } from './core/edits.js';
+import { editKey, type Edit } from './core/edits.js';
 import { server } from './osmserver.svelte.js';
 
 export const pending = $state<{ list: Edit[]; loaded: boolean }>({ list: [], loaded: false });
@@ -24,10 +24,25 @@ export const editsOf = (station: string) => mine().filter((e) => e.station === s
 export async function saveEdit(edit: Edit) {
 	await loadEdits();
 	edit = { ...edit, server: server.id };
+	// Tags saisis sur un objet pas encore envoyé (pancarte posée, quai dessiné) : on les range
+	// directement dans la saisie qui le crée, l'objet n'existant pas encore sur le serveur.
+	if (edit.kind === 'tags' && Number(edit.target.split('/')[1]) < 0) {
+		const tags = edit.tags;
+		const target = edit.target;
+		const creator = pending.list.find((e) => e.kind !== 'tags' && editKey(e) === target);
+		if (!creator || creator.kind === 'tags') return;
+		const merged: Record<string, string> = { ...creator.tags };
+		for (const [k, v] of Object.entries(tags)) {
+			if (v === null || v === '') delete merged[k];
+			else merged[k] = v;
+		}
+		const summary = edit.summary.startsWith('Quai') ? `${edit.summary} (dessiné)` : creator.summary;
+		edit = { ...creator, tags: merged, summary };
+	}
 	const same = pending.list.find((e) =>
 		edit.kind === 'tags'
 			? e.kind === 'tags' && e.target === edit.target
-			: e.kind === 'node' && e.tempId === edit.tempId
+			: e.kind === edit.kind && e.tempId === edit.tempId
 	);
 	if (same && same.kind === 'tags' && edit.kind === 'tags') {
 		// Fusion : la nouvelle saisie complète la précédente sur le même objet.

@@ -234,9 +234,11 @@
 						<li>
 							<a
 								class="quest {g.kind}"
-								href={resolve(
-									`/gare/carte?${mapQuery(target ? `${target.type}/${target.id}` : undefined)}`
-								)}
+								href={g.id === 'Q0'
+									? resolve(`/gare/dessiner?id=${encodeURIComponent(id)}`)
+									: resolve(
+											`/gare/carte?${mapQuery(target ? `${target.type}/${target.id}` : undefined)}`
+										)}
 							>
 								<Icon name={iconOf[g.kind]} size={26} />
 								<span class="q-text">
@@ -251,6 +253,11 @@
 						</li>
 					{/each}
 				</ul>
+			{/if}
+			{#if analysis?.platforms.length}
+				<a class="draw" href={resolve(`/gare/dessiner?id=${encodeURIComponent(id)}`)}>
+					<Icon name="quai" size={20} /> Un quai manque sur la carte ? Le dessiner</a
+				>
 			{/if}
 			<p class="attribution">© contributeurs OpenStreetMap, ODbL</p>
 		{/if}
@@ -520,6 +527,13 @@
 		display: flex;
 		align-items: center;
 		gap: 4px;
+	}
+	.draw {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		min-height: 48px;
+		font-weight: 700;
 	}
 	.attribution {
 		margin: 8px 0 0;
