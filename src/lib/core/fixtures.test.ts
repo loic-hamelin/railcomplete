@@ -40,3 +40,17 @@ describe('gares de référence', () => {
 			expect(f.features.length).toBe(a.platforms.length + a.tracks.length + a.stopSigns.length);
 		});
 });
+
+describe('copie de gare pour le serveur de test', () => {
+	it('reste petite : voies le long des quais seulement, coupées et simplifiées', async () => {
+		const { copyForTest } = await import('./upload');
+		const m = mesures.find((x) => x.name === 'Ambérieu-en-Bugey')!;
+		const els = JSON.parse(readFileSync(m.fichier, 'utf8')).elements as OsmElement[];
+		const rails = new Set(analyzeStation(els, m.bbox).tracks.map((t) => t.way));
+		const copy = copyForTest(els, m.bbox, { rails });
+		expect(copy.length).toBeLessThan(200);
+		expect(copy.every((e) => e.id < 0)).toBe(true);
+		// Une fois recopiée, la gare garde ses 4 quais.
+		expect(analyzeStation(copy, m.bbox).platforms).toHaveLength(4);
+	});
+});

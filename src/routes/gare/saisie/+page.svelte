@@ -317,6 +317,11 @@
 						>
 							{where.status === 'checking' ? 'Localisation…' : 'Je suis dans la gare'}
 						</button>
+						<p class="small">
+							Pour essayer depuis chez vous : <a href={resolve('/reglages')}
+								>mode démonstration ou serveur de test</a
+							>.
+						</p>
 						{#if where.status === 'away'}<p class="small">
 								Votre position est hors de la gare. Vous pouvez seulement vérifier.
 							</p>{:else if where.status === 'denied'}<p class="small">

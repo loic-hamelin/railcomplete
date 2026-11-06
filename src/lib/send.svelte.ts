@@ -212,7 +212,8 @@ export async function sendStation(
 				return {
 					sent: 0,
 					conflicts: 0,
-					error: 'OpenStreetMap limite le nombre d’envois. Réessayez dans quelques minutes.'
+					error:
+						'OpenStreetMap limite le nombre de modifications par heure (surtout pour les comptes récents). Vos saisies sont conservées : réessayez dans une heure.'
 				};
 			if (e.status === 401 || e.status === 403)
 				return { sent: 0, conflicts: 0, error: 'Votre connexion a expiré : reconnectez-vous.' };

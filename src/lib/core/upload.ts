@@ -3,7 +3,7 @@
 // Code pur, testé sans réseau.
 
 import type { Edit, NewNodeEdit, TagEdit } from './edits';
-import type { OsmElement, OsmNode, OsmRelation, OsmWay, Tags } from './osm';
+import type { BBox, OsmElement, OsmNode, OsmRelation, OsmWay, Tags } from './osm';
 
 export interface Plan {
 	create: OsmNode[];
@@ -152,31 +152,96 @@ export function osmCreateXml(changeset: number, elements: OsmElement[]) {
 /**
  * Copie, avec des identifiants provisoires, des quais, des voies et des pancartes d'une gare
  * (relations exclues). Sert uniquement à préparer une gare d'essai sur le serveur de test.
+ * Les voies sont coupées à l'emprise de la gare (+ marge) : le serveur limite le nombre de
+ * modifications par heure pour les comptes récents, la copie doit rester petite.
  */
-export function copyForTest(elements: OsmElement[]): OsmElement[] {
+export function copyForTest(
+	elements: OsmElement[],
+	bbox?: BBox,
+	opts: { marginM?: number; rails?: Set<number>; toleranceM?: number } = {}
+): OsmElement[] {
+	const marginM = opts.marginM ?? 30;
 	const nodes = new Map<number, OsmNode>();
 	for (const e of elements) if (e.type === 'node') nodes.set(e.id, e as OsmNode);
-	const ways = elements.filter(
-		(e): e is OsmWay =>
-			e.type === 'way' &&
-			(e.tags?.railway === 'rail' ||
-				e.tags?.railway === 'platform' ||
-				e.tags?.public_transport === 'platform')
-	);
+	let inside: (n: OsmNode) => boolean = () => true;
+	if (bbox) {
+		const dLat = marginM / 111_320;
+		const dLon = marginM / (111_320 * Math.cos((((bbox[1] + bbox[3]) / 2) * Math.PI) / 180));
+		inside = (n) =>
+			n.lon >= bbox[0] - dLon &&
+			n.lon <= bbox[2] + dLon &&
+			n.lat >= bbox[1] - dLat &&
+			n.lat <= bbox[3] + dLat;
+	}
+	// Morceaux de voie à garder : suites de nœuds consécutifs dans l'emprise (≥ 2 nœuds).
+	const pieces: { nodes: number[]; tags?: Tags }[] = [];
+	for (const e of elements) {
+		if (e.type !== 'way') continue;
+		const w = e as OsmWay;
+		const t = w.tags ?? {};
+		if (t.railway === 'platform' || t.public_transport === 'platform') {
+			if (w.nodes.some((id) => nodes.has(id) && inside(nodes.get(id)!)))
+				pieces.push({ nodes: w.nodes.filter((id) => nodes.has(id)), tags: t });
+		} else if (t.railway === 'rail' && (!opts.rails || opts.rails.has(w.id))) {
+			let run: number[] = [];
+			const flush = () => {
+				if (run.length >= 2) pieces.push({ nodes: run, tags: t });
+				run = [];
+			};
+			for (const id of w.nodes) {
+				const n = nodes.get(id);
+				if (n && inside(n)) run.push(id);
+				else flush();
+			}
+			flush();
+		}
+	}
+	// Simplification du tracé (Douglas-Peucker) : on garde les extrémités et les nœuds avec tags.
+	const tol = opts.toleranceM ?? 0.5;
+	const lat0 = bbox ? (bbox[1] + bbox[3]) / 2 : 46;
+	const kx = 111_320 * Math.cos((lat0 * Math.PI) / 180),
+		ky = 111_320;
+	const simplify = (ids: number[]): number[] => {
+		if (ids.length <= 2 || tol <= 0) return ids;
+		const P = ids.map((id) => nodes.get(id)!);
+		const keep = new Set<number>([0, ids.length - 1]);
+		P.forEach((n, i) => n.tags && Object.keys(n.tags).length && keep.add(i));
+		const anchors = [...keep].sort((a, b) => a - b);
+		const dp = (a: number, b: number) => {
+			const ax = P[a].lon * kx,
+				ay = P[a].lat * ky,
+				bx = P[b].lon * kx,
+				by = P[b].lat * ky;
+			const L = Math.hypot(bx - ax, by - ay) || 1;
+			let worst = -1,
+				wd = tol;
+			for (let i = a + 1; i < b; i++) {
+				const d = Math.abs((bx - ax) * (ay - P[i].lat * ky) - (ax - P[i].lon * kx) * (by - ay)) / L;
+				if (d > wd) [wd, worst] = [d, i];
+			}
+			if (worst > 0) {
+				keep.add(worst);
+				dp(a, worst);
+				dp(worst, b);
+			}
+		};
+		for (let i = 0; i + 1 < anchors.length; i++) dp(anchors[i], anchors[i + 1]);
+		return ids.filter((_, i) => keep.has(i));
+	};
+	for (const p of pieces) if (p.tags?.railway === 'rail') p.nodes = simplify(p.nodes);
 	const ids = new Map<number, number>();
 	let next = -1;
 	const out: OsmElement[] = [];
-	for (const w of ways)
-		for (const id of w.nodes)
-			if (!ids.has(id) && nodes.has(id)) {
+	for (const p of pieces)
+		for (const id of p.nodes)
+			if (!ids.has(id)) {
 				ids.set(id, next--);
 				const n = nodes.get(id)!;
 				out.push({ type: 'node', id: ids.get(id)!, lat: n.lat, lon: n.lon, tags: n.tags });
 			}
-	for (const w of ways) {
-		const nd = w.nodes.filter((id) => ids.has(id)).map((id) => ids.get(id)!);
-		if (nd.length >= 2) out.push({ type: 'way', id: next--, nodes: nd, tags: w.tags });
-	}
+	for (const p of pieces)
+		if (p.nodes.length >= 2)
+			out.push({ type: 'way', id: next--, nodes: p.nodes.map((id) => ids.get(id)!), tags: p.tags });
 	return out;
 }
 

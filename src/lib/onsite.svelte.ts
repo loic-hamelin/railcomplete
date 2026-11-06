@@ -3,6 +3,7 @@
 // sauf en mode démonstration. Le GPS n'est jamais suivi en continu (sobriété).
 
 import { settings } from './edits.svelte.js';
+import { server } from './osmserver.svelte.js';
 import { isOnSite, type Station } from './stations.js';
 
 type Status = 'unknown' | 'checking' | 'onsite' | 'away' | 'denied';
@@ -32,7 +33,8 @@ export function checkOnSite(station: Station) {
 
 /** Peut-on saisir ce qui se lit sur le terrain dans cette gare ? */
 export function canSurvey(stationId: string) {
-	if (settings.demo) return true;
+	// Serveur de test : tout y est fictif, la règle « sur place » ne s'applique pas.
+	if (settings.demo || server.id === 'dev') return true;
 	return (
 		where.status === 'onsite' &&
 		where.station === stationId &&
