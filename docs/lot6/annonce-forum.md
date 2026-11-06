@@ -24,7 +24,7 @@ Quelques principes :
 - l'appli ne supprime rien et ne touche qu'aux clés ci-dessus ; si un objet a changé entre-temps, la saisie est mise de côté au lieu d'écraser le travail d'un autre ;
 - un interrupteur me permet de suspendre tous les envois en quelques minutes en cas de problème.
 
-Tout est décrit sur la page wiki [FR:Stationcomplete](https://wiki.openstreetmap.org/wiki/FR:Stationcomplete).
+Tout est décrit sur [la page wiki de stationcomplete](https://wiki.openstreetmap.org/wiki/User:LoicHam/Stationcomplete).
 
 **Pilote.** Pendant quelques semaines, 3 à 5 testeurs vont l'utiliser dans quelques gares. Seuls leurs comptes pourront envoyer vers OSM pendant cette phase, et leurs changesets seront relus. L'ouverture à tous viendra ensuite, si tout se passe bien.
 

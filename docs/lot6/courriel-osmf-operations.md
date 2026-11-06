@@ -13,7 +13,7 @@ La politique d'usage de l'API demande d'en parler aux administrateurs avant de l
 
 Hello,
 
-I am about to open **stationcomplete** (https://stationcomplete.org), a free and open-source (GPL-3.0) mobile web app that helps volunteers complete railway station data in France: platform numbers, local track numbers, train stop signs, and missing platforms. Source code: https://github.com/loic-hamelin/stationcomplete. Documentation: https://wiki.openstreetmap.org/wiki/FR:Stationcomplete
+I am about to open **stationcomplete** (https://stationcomplete.org), a free and open-source (GPL-3.0) mobile web app that helps volunteers complete railway station data in France: platform numbers, local track numbers, train stop signs, and missing platforms. Source code: https://github.com/loic-hamelin/stationcomplete. Documentation: https://wiki.openstreetmap.org/wiki/User:LoicHam/Stationcomplete
 
 Following the API usage policy, here is how it uses the API:
 

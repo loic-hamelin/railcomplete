@@ -13,7 +13,7 @@
 ## Avant de commencer (Loïc)
 
 - [ ] Application OAuth de production déclarée, Client ID intégré à l'appli.
-- [ ] Page wiki FR:Stationcomplete publiée.
+- [ ] Page wiki publiée (User:LoicHam/Stationcomplete ; à renommer en FR:Stationcomplete quand le compte wiki sera confirmé).
 - [ ] Annonce publiée sur le forum OSM France.
 - [ ] Message envoyé aux administrateurs de l'API (`courriel-osmf-operations.md`).
 - [ ] Pseudos OSM des testeurs ajoutés dans `pilotUsers` (`static/config.json`).
