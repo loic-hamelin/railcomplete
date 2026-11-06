@@ -175,7 +175,7 @@ async function communes(stations) {
 	const todo = stations.filter((s) => !cache[s.id]);
 	if (!offline && todo.length) {
 		console.log(`Géocodage de ${todo.length} gares nouvelles…`);
-		const ua = { 'User-Agent': 'railcomplete-stations (+https://railcomplete.org)' };
+		const ua = { 'User-Agent': 'stationcomplete-stations (+https://stationcomplete.org)' };
 		for (let i = 0; i < todo.length; i += 5) {
 			await Promise.all(
 				todo.slice(i, i + 5).map(async (s) => {

@@ -39,7 +39,7 @@
 	});
 </script>
 
-<svelte:head><title>Connexion — railcomplete</title></svelte:head>
+<svelte:head><title>Connexion — stationcomplete</title></svelte:head>
 
 <main class="screen">
 	<header><Logo /></header>
@@ -51,7 +51,7 @@
 			<ul>
 				<li>Publiées sous votre pseudo, sous licence libre ODbL.</li>
 				<li>Rien n’est envoyé sans que vous l’ayez relu.</li>
-				<li>Aucun mot de passe n’est demandé ni gardé par railcomplete.</li>
+				<li>Aucun mot de passe n’est demandé ni gardé par stationcomplete.</li>
 			</ul>
 			<p class="server">Serveur : <strong>{srv().label}</strong></p>
 			{#if error}<p class="err" role="alert">{error}</p>{/if}

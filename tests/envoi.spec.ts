@@ -94,8 +94,8 @@ test('envoyer les saisies d’une gare : un changeset, puis plus rien en attente
 	);
 
 	const create = calls.find((c) => c.path.endsWith('/changeset/create'))!;
-	expect(create.body).toContain('<tag k="created_by" v="railcomplete');
-	expect(create.body).toContain('<tag k="hashtags" v="#railcomplete"/>');
+	expect(create.body).toContain('<tag k="created_by" v="stationcomplete');
+	expect(create.body).toContain('<tag k="hashtags" v="#stationcomplete"/>');
 	const upload = calls.find((c) => c.path.endsWith('/upload'))!;
 	expect(upload.body).toContain(`<way id="${WAY}" version="${freshWay.version}" changeset="1234">`);
 	expect(upload.body).toContain('<tag k="railway:track_ref" v="13"/>');

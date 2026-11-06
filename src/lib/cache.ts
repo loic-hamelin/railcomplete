@@ -12,7 +12,7 @@ export interface CachedStation {
 
 let db: Promise<IDBPDatabase> | undefined;
 function open() {
-	db ??= openDB('railcomplete', 2, {
+	db ??= openDB('stationcomplete', 2, {
 		upgrade(d, oldVersion) {
 			if (oldVersion < 1) d.createObjectStore('stations', { keyPath: 'id' });
 			// Lot 2 : modifications saisies, en attente d'envoi vers OpenStreetMap.

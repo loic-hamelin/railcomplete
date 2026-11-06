@@ -69,7 +69,7 @@
 	] as const;
 </script>
 
-<svelte:head><title>Carte — {ready?.station.name ?? 'Gare'} — railcomplete</title></svelte:head>
+<svelte:head><title>Carte — {ready?.station.name ?? 'Gare'} — stationcomplete</title></svelte:head>
 
 <div class="screen">
 	{#if ready && data}

@@ -32,7 +32,7 @@ export const SERVERS: Record<ServerId, OsmServer> = {
 		label: 'Serveur de test OSM',
 		web: 'https://master.apis.dev.openstreetmap.org',
 		api: 'https://master.apis.dev.openstreetmap.org',
-		// Application « railcomplete (test) » déclarée par Loïc sur le serveur de test (public).
+		// Application « stationcomplete (test) » déclarée par Loïc sur le serveur de test (public).
 		clientId: '83_IZ4ufBX1cwJJJe4bkHcaxFz4xmNiyxgbIzD8BT98',
 		canUpload: true
 	}

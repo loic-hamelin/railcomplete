@@ -1,4 +1,4 @@
-# railcomplete : modèle de données OSM pour quais, voies et pancartes d'arrêt
+# stationcomplete : modèle de données OSM pour quais, voies et pancartes d'arrêt
 
 _Rapport d'analyse du 4 novembre 2026. Périmètre : gares du réseau ferré français, MVP à 3 objets._
 
@@ -79,7 +79,7 @@ ref=2
   - Denis Helfer répond que `railway:track_ref` relève de l'**infrastructure** (SNCF Réseau), alors que `ref`/`name`/`local_ref` relèvent de l'**information voyageur**, et recommande `platform_edge` pour porter la desserte ([message](https://lists.openstreetmap.org/pipermail/talk-fr/2021-October/104608.html)).
   - **Aucun consensus n'a été acté.**
 
-**Recommandation pour railcomplete (choix de conception, non normatif) :**
+**Recommandation pour stationcomplete (choix de conception, non normatif) :**
 
 - `ref` du quai = liste des numéros de voie affichés (`1;2`), conformément aux pages `platform_edge` et au rendu ORM.
 - Lettre ou nom de quai propre (« Quai A ») dans `local_ref=A`.
@@ -281,16 +281,16 @@ Modèle StreetComplete, lu dans le code :
 
 Sources : [OpenChangesetsManager.kt](https://github.com/streetcomplete/StreetComplete/blob/master/app/src/commonMain/kotlin/de/westnordost/streetcomplete/data/osm/edits/upload/changesets/OpenChangesetsManager.kt), [ElementEdit.kt](https://github.com/streetcomplete/StreetComplete/blob/master/app/src/commonMain/kotlin/de/westnordost/streetcomplete/data/osm/edits/ElementEdit.kt), [ApplicationConstants.kt](https://github.com/streetcomplete/StreetComplete/blob/master/app/src/commonMain/kotlin/de/westnordost/streetcomplete/ApplicationConstants.kt).
 
-**Proposition pour railcomplete :**
+**Proposition pour stationcomplete :**
 
 ```
-created_by=railcomplete 0.1.0
+created_by=stationcomplete 0.1.0
 comment=Ajout du numéro de voie (Gare de Xxx)      ← propre au type de saisie, éditable
 source=survey
 imagery_used=BDOrtho IGN                           ← seulement si l'imagerie a été affichée
 locale=fr-FR
-railcomplete:edit_type=track_ref                   ← calqué sur StreetComplete:quest_type
-hashtags=#railcomplete
+stationcomplete:edit_type=track_ref                   ← calqué sur StreetComplete:quest_type
+hashtags=#stationcomplete
 ```
 
 Faire un changeset par gare et par type de saisie.

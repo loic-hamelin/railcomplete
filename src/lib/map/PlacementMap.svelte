@@ -153,7 +153,7 @@
 				map.on('load', update);
 			} catch (e) {
 				failed = 'La carte ne peut pas s’afficher sur cet appareil (WebGL indisponible).';
-				console.warn('[railcomplete] carte :', e);
+				console.warn('[stationcomplete] carte :', e);
 			}
 		})();
 		return () => {

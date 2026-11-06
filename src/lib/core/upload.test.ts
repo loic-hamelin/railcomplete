@@ -104,11 +104,11 @@ describe('XML', () => {
 
 	it('changeset : tags de la gare', () => {
 		const t = changesetTags({ comment: 'Gare X', version: '0.3', survey: true, imagery: true });
-		expect(changesetXml(t)).toContain('<tag k="created_by" v="railcomplete 0.3"/>');
+		expect(changesetXml(t)).toContain('<tag k="created_by" v="stationcomplete 0.3"/>');
 		expect(t).toMatchObject({
 			source: 'survey',
 			imagery_used: 'BDOrtho IGN',
-			hashtags: '#railcomplete'
+			hashtags: '#stationcomplete'
 		});
 	});
 

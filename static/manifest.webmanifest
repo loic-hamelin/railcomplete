@@ -1,6 +1,6 @@
 {
-	"name": "railcomplete",
-	"short_name": "railcomplete",
+	"name": "stationcomplete",
+	"short_name": "stationcomplete",
 	"description": "Complétez les données ferroviaires des gares dans OpenStreetMap.",
 	"lang": "fr",
 	"dir": "ltr",

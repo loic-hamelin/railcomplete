@@ -33,7 +33,7 @@
 	}
 </script>
 
-<svelte:head><title>Réglages — railcomplete</title></svelte:head>
+<svelte:head><title>Réglages — stationcomplete</title></svelte:head>
 
 <div class="screen">
 	<main>

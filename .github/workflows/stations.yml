@@ -34,7 +34,7 @@ jobs:
         run: sudo apt-get update -q && sudo apt-get install -y -q osmium-tool
       - name: Extrait France (Geofabrik)
         run: |
-          curl -fsSL -A "railcomplete-stations (+https://railcomplete.org)" \
+          curl -fsSL -A "stationcomplete-stations (+https://stationcomplete.org)" \
             -o france.osm.pbf https://download.geofabrik.de/europe/france-latest.osm.pbf
           ls -lh france.osm.pbf
       - name: Filtrage ferroviaire et export
@@ -56,7 +56,7 @@ jobs:
         run: node scripts/fetch-fixtures.mjs
       - name: Enregistrement
         run: |
-          git config user.name "railcomplete-bot"
+          git config user.name "stationcomplete-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add static/data data tests/fixtures 2>/dev/null || true
           if git diff --cached --quiet; then

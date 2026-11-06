@@ -2,7 +2,7 @@
 	import { resolve } from '$app/paths';
 </script>
 
-<a href={resolve('/')} class="logo" aria-label="railcomplete, accueil">
+<a href={resolve('/')} class="logo" aria-label="stationcomplete, accueil">
 	<svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
 		<path
 			d="M9 3v22M19 3v22M6 8h16M6 14h16M6 20h16"
@@ -11,7 +11,7 @@
 			stroke-linecap="round"
 		/>
 	</svg>
-	railcomplete
+	stationcomplete
 </a>
 
 <style>

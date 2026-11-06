@@ -1,4 +1,4 @@
-// Connexion au compte OpenStreetMap (OAuth2 avec PKCE, sans secret ni serveur railcomplete).
+// Connexion au compte OpenStreetMap (OAuth2 avec PKCE, sans secret ni serveur stationcomplete).
 // Le jeton reste uniquement dans le stockage d'osm-auth (décision de relecture, architecture § 5).
 
 import { osmAuth } from 'osm-auth';

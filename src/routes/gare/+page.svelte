@@ -93,7 +93,7 @@
 		new Date(t).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
 </script>
 
-<svelte:head><title>{station?.name ?? 'Gare'} — railcomplete</title></svelte:head>
+<svelte:head><title>{station?.name ?? 'Gare'} — stationcomplete</title></svelte:head>
 
 <div class="screen">
 	<header>

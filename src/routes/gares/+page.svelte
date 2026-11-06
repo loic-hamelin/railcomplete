@@ -56,7 +56,7 @@
 			.join(' · ');
 </script>
 
-<svelte:head><title>Choisir une gare — railcomplete</title></svelte:head>
+<svelte:head><title>Choisir une gare — stationcomplete</title></svelte:head>
 
 <div class="screen">
 	<main>

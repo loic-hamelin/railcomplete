@@ -82,5 +82,5 @@ test('l’appli s’ouvre sans réseau après une première visite', async ({ pa
 		'Complétez les données de votre gare'
 	);
 	await page.goto('/a-propos/');
-	await expect(page.getByRole('heading', { level: 1 })).toHaveText('À propos de railcomplete');
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText('À propos de stationcomplete');
 });

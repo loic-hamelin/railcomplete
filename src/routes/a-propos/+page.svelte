@@ -5,18 +5,18 @@
 </script>
 
 <svelte:head>
-	<title>À propos — railcomplete</title>
+	<title>À propos — stationcomplete</title>
 </svelte:head>
 
 <main class="page">
 	<header><Logo /></header>
 
-	<h1>À propos de railcomplete</h1>
+	<h1>À propos de stationcomplete</h1>
 
 	<section>
 		<h2>Le projet</h2>
 		<p>
-			railcomplete aide chacun à compléter les données des gares françaises dans
+			stationcomplete aide chacun à compléter les données des gares françaises dans
 			<a href="https://www.openstreetmap.org/">OpenStreetMap</a> : numéros des quais, numéros des
 			voies et pancartes d'arrêt des trains. Ces données libres servent à tous, notamment aux outils
 			de conception ferroviaire comme <a href="https://osrd.fr/">OSRD</a>.
@@ -41,7 +41,7 @@
 			</li>
 			<li>Photographies aériennes : IGN – BD ORTHO, sous Licence Ouverte 2.0.</li>
 			<li>
-				Le code de railcomplete est libre, sous licence GPL-3.0 ou ultérieure :
+				Le code de stationcomplete est libre, sous licence GPL-3.0 ou ultérieure :
 				<a href={REPO_URL} rel="external">voir le code source</a>.
 			</li>
 		</ul>

@@ -3,7 +3,7 @@
 /// <reference lib="esnext" />
 /// <reference lib="webworker" />
 
-// Service worker de railcomplete : met en cache l'« enveloppe » de l'appli (pages, scripts,
+// Service worker de stationcomplete : met en cache l'« enveloppe » de l'appli (pages, scripts,
 // styles, polices, icônes) pour qu'elle s'ouvre sans réseau (lot 0b), et sert les photos
 // aériennes IGN des gares téléchargées (lot 4). Les données OSM sont dans IndexedDB.
 

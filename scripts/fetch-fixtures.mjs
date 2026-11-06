@@ -8,7 +8,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 
-const UA = { 'User-Agent': 'railcomplete-fixtures (+https://railcomplete.org)' };
+const UA = { 'User-Agent': 'stationcomplete-fixtures (+https://stationcomplete.org)' };
 const index = JSON.parse(readFileSync('static/data/stations-fr.json', 'utf8')).s;
 const stats = JSON.parse(readFileSync('data/stations-stats.json', 'utf8'));
 

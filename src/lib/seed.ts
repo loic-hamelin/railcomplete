@@ -32,8 +32,8 @@ export async function seedTestStation(station: Station) {
 		method: 'PUT',
 		xml: true,
 		body: changesetXml({
-			created_by: `railcomplete ${APP_VERSION}`,
-			comment: `Copie de test de la gare de ${station.name} (quais, voies, pancartes) pour essayer railcomplete`,
+			created_by: `stationcomplete ${APP_VERSION}`,
+			comment: `Copie de test de la gare de ${station.name} (quais, voies, pancartes) pour essayer stationcomplete`,
 			source: 'OpenStreetMap (copie pour essai)'
 		})
 	});

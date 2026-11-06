@@ -241,7 +241,7 @@
 						]
 					}
 				});
-				map.on('error', (e) => console.warn('[railcomplete] carte :', e.error?.message));
+				map.on('error', (e) => console.warn('[stationcomplete] carte :', e.error?.message));
 				// Au-dessous du zoom 17, seules les pastilles « à faire » ou « en alerte » restent affichées.
 				const density = () => container.classList.toggle('rc-far', (map?.getZoom() ?? 20) < 17);
 				map.on('zoomend', density);
@@ -258,7 +258,7 @@
 			} catch (e) {
 				failed =
 					'La carte ne peut pas s’afficher sur cet appareil (WebGL indisponible). Utilisez la liste.';
-				console.warn('[railcomplete] carte :', e);
+				console.warn('[stationcomplete] carte :', e);
 			}
 		})();
 		return () => {

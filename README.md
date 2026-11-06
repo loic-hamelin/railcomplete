@@ -1,14 +1,14 @@
-# railcomplete
+# stationcomplete
 
 Application web mobile (PWA) pour compléter, dans [OpenStreetMap](https://www.openstreetmap.org/), les données ferroviaires des gares françaises : numéros des quais, numéros des voies, pancartes d'arrêt des trains.
 
-Site : <https://railcomplete.org>
+Site : <https://stationcomplete.org>
 
 > **Sécurité** : restez toujours derrière la ligne de sécurité. Tout se fait depuis le quai ou à distance, sur la photo aérienne.
 
 ## État
 
-- Lot 0a : page d'accueil (présentation et consignes de sécurité) et page « À propos », publiées sur railcomplete.org.
+- Lot 0a : page d'accueil (présentation et consignes de sécurité) et page « À propos », publiées sur stationcomplete.org.
 - Lot 0b : appli installable (manifeste, icônes), ouverture sans réseau (service worker), garde-fous automatiques (tests, accessibilité, budget de poids).
 - Lot 1 : recherche d'une gare, tableau de bord (complétude, quêtes), carte sur la photo aérienne IGN.
 - Lot 2 : saisie locale des numéros de quais et de voies et des pancartes d'arrêt (placement fin, schéma FR:passenger_stop).
@@ -33,7 +33,7 @@ Première fois pour les tests : `npx playwright install chromium`.
 
 ## Publication
 
-Chaque envoi sur la branche `main` déclenche le workflow `.github/workflows/deploy.yml`, qui vérifie (types, mise en forme, lint), construit, contrôle le budget de poids, lance les tests de bout en bout, puis publie le site sur GitHub Pages. Si une étape échoue, rien n'est publié. Le fichier `static/CNAME` relie le site au domaine `railcomplete.org`.
+Chaque envoi sur la branche `main` déclenche le workflow `.github/workflows/deploy.yml`, qui vérifie (types, mise en forme, lint), construit, contrôle le budget de poids, lance les tests de bout en bout, puis publie le site sur GitHub Pages. Si une étape échoue, rien n'est publié. Le fichier `static/CNAME` relie le site au domaine `stationcomplete.org`.
 
 ## Documentation
 

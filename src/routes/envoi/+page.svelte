@@ -71,7 +71,7 @@
 	}
 </script>
 
-<svelte:head><title>Relire et envoyer — railcomplete</title></svelte:head>
+<svelte:head><title>Relire et envoyer — stationcomplete</title></svelte:head>
 
 <div class="screen">
 	<header>
@@ -178,7 +178,7 @@
 					<textarea rows="3" maxlength="255" bind:value={comment}></textarea>
 				</label>
 				<p class="hint">
-					Visible par tous sur OpenStreetMap, avec votre pseudo et la mention #railcomplete.
+					Visible par tous sur OpenStreetMap, avec votre pseudo et la mention #stationcomplete.
 				</p>
 			{/if}
 		{/if}

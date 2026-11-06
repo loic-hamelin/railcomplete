@@ -135,7 +135,7 @@ export function osmChangeXml(changeset: number, plan: Pick<Plan, 'create' | 'mod
 	const create = plan.create.map((e) => elementXml(e, changeset, true)).join('');
 	const modify = plan.modify.map((e) => elementXml(e, changeset, false)).join('');
 	return (
-		`<osmChange version="0.6" generator="railcomplete">` +
+		`<osmChange version="0.6" generator="stationcomplete">` +
 		(create ? `<create>${create}</create>` : '') +
 		(modify ? `<modify>${modify}</modify>` : '') +
 		`</osmChange>`
@@ -144,7 +144,7 @@ export function osmChangeXml(changeset: number, plan: Pick<Plan, 'create' | 'mod
 
 /** osmChange de création seule (copie d'une gare vers le serveur de test). */
 export function osmCreateXml(changeset: number, elements: OsmElement[]) {
-	return `<osmChange version="0.6" generator="railcomplete"><create>${elements
+	return `<osmChange version="0.6" generator="stationcomplete"><create>${elements
 		.map((e) => elementXml(e, changeset, true))
 		.join('')}</create></osmChange>`;
 }
@@ -295,9 +295,9 @@ export function changesetTags(o: {
 	locale?: string;
 }): Tags {
 	const t: Tags = {
-		created_by: `railcomplete ${o.version}`,
+		created_by: `stationcomplete ${o.version}`,
 		comment: o.comment.trim().slice(0, 255),
-		hashtags: '#railcomplete',
+		hashtags: '#stationcomplete',
 		locale: o.locale ?? 'fr'
 	};
 	if (o.survey) t.source = 'survey';

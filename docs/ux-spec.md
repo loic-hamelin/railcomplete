@@ -1,4 +1,4 @@
-# RailComplete — Spécification UX du MVP
+# StationComplete — Spécification UX du MVP
 
 > Document de travail pour produire les maquettes visuelles. Version 0.3 — 2026-11-05 (maquettes validées par Loïc, avec pancartes nV et US/UM et dessin de quai en polygone).
 > À valider par Loïc avant tout développement.
@@ -46,7 +46,7 @@ Navigation globale : barre basse à 3 onglets — **Gare** · **Mes contribution
 
 ### P2 — Amina, 27 ans, voyageuse occasionnelle curieuse
 
-- Chargée de communication, 1 trajet longue distance par mois. N'a jamais entendu parler d'OSM avant RailComplete.
+- Chargée de communication, 1 trajet longue distance par mois. N'a jamais entendu parler d'OSM avant StationComplete.
 - **Objectif** : « rendre service » pendant une attente, apprendre quelque chose.
 - **Contexte** : gare inconnue, réseau mobile instable, batterie à 30 %.
 - **Frustrations** : jargon (« ref », « changeset »), création de compte longue.
@@ -380,7 +380,7 @@ Conventions des wireframes : largeur ~ 360 dp ; `[ Bouton ]` ; `( )` bouton rond
 ### E8 — Envoi (file d'attente)
 
 - **Objectif** : relire et publier les modifications dans OSM, gérer hors-ligne et conflits.
-- **Contenu** : modifications groupées par gare (1 changeset par gare), commentaire de changeset prérempli (« Numéros de quais et pancartes d'arrêt, gare d'Ambérieu-en-Bugey — via RailComplete »), source, état réseau.
+- **Contenu** : modifications groupées par gare (1 changeset par gare), commentaire de changeset prérempli (« Numéros de quais et pancartes d'arrêt, gare d'Ambérieu-en-Bugey — via StationComplete »), source, état réseau.
 - **Composants** : liste de modifications (icône, résumé, ancien → nouveau, supprimer), champ commentaire, bouton principal « Envoyer dans OSM », interrupteur « Envoyer automatiquement au retour du réseau ».
 - **Actions** : envoyer, modifier/supprimer une modification, résoudre un conflit, se connecter (si sans compte).
 - **États** : vide (« Rien à envoyer. Vos contributions apparaîtront ici. ») ; envoi en cours (barre de progression + « Envoi 2/5… ») ; succès (« Envoyé ✓ — voir le changeset ↗ ») ; erreur (« Envoi interrompu, vos modifications sont conservées — Réessayer ») ; hors-ligne (bouton remplacé par « En attente du réseau », bandeau) ; non connecté (« Connectez-vous à OSM pour publier ») ; conflit (ligne marquée « À revoir » → comparaison Votre version / Version OSM, choix « Garder la mienne » / « Garder OSM »).
@@ -399,7 +399,7 @@ Conventions des wireframes : largeur ~ 360 dp ; `[ Bouton ]` ; `( )` bouton rond
 │ Commentaire (public)         │
 │ ┌──────────────────────────┐ │
 │ │Numéros de quais, gare    │ │
-│ │d'Ambérieu — RailComplete │ │
+│ │d'Ambérieu — StationComplete │ │
 │ └──────────────────────────┘ │
 │ Envoi auto au retour  [■■ ON]│
 │ ┌──────────────────────────┐ │

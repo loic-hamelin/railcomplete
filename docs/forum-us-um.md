@@ -6,7 +6,7 @@
 
 Bonjour à toutes et à tous,
 
-Je prépare **railcomplete**, une application web libre de contribution citoyenne. Depuis le quai, des voyageurs y complètent trois informations des gares françaises : numéros de quais, numéros de voies et pancartes d'arrêt. Numéros et pancartes sont **relevés sur place**. Chaque modification est **saisie et validée individuellement par une personne**, avec son propre compte OSM, gare par gare. Il n'y a **aucune édition automatisée**.
+Je prépare **stationcomplete**, une application web libre de contribution citoyenne. Depuis le quai, des voyageurs y complètent trois informations des gares françaises : numéros de quais, numéros de voies et pancartes d'arrêt. Numéros et pancartes sont **relevés sur place**. Chaque modification est **saisie et validée individuellement par une personne**, avec son propre compte OSM, gare par gare. Il n'y a **aucune édition automatisée**.
 
 Je m'adresse notamment à l'auteur de la section « Arrêts voyageurs » de la page _OpenRailwayMap/Tagging in France_ : merci pour la refonte 2026, que nous suivons.
 

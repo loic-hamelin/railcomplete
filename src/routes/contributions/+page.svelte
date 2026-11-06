@@ -40,7 +40,7 @@
 		new Date(t).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
 </script>
 
-<svelte:head><title>Mes contributions — railcomplete</title></svelte:head>
+<svelte:head><title>Mes contributions — stationcomplete</title></svelte:head>
 
 <div class="screen">
 	<main>

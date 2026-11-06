@@ -28,7 +28,7 @@
 </script>
 
 <svelte:head>
-	<title>railcomplete — complétez les gares dans OpenStreetMap</title>
+	<title>stationcomplete — complétez les gares dans OpenStreetMap</title>
 </svelte:head>
 
 <main class="screen">

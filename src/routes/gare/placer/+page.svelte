@@ -78,7 +78,7 @@
 	}
 </script>
 
-<svelte:head><title>Placer une pancarte — railcomplete</title></svelte:head>
+<svelte:head><title>Placer une pancarte — stationcomplete</title></svelte:head>
 
 <div class="screen">
 	<header>

@@ -280,7 +280,7 @@
 	};
 </script>
 
-<svelte:head><title>Fiche — railcomplete</title></svelte:head>
+<svelte:head><title>Fiche — stationcomplete</title></svelte:head>
 
 <div class="screen">
 	<header>
