@@ -15,7 +15,7 @@ async function mockNetwork(page: Page) {
 			body: JSON.stringify({ version: '0.6', elements: fixture.elements })
 		})
 	);
-	await page.route('https://data.geopf.fr/**', (route) =>
+	await page.context().route('https://data.geopf.fr/**', (route) =>
 		route.fulfill({
 			contentType: 'image/jpeg',
 			headers: { 'Access-Control-Allow-Origin': '*' },

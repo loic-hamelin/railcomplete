@@ -3,15 +3,17 @@
 /// <reference lib="esnext" />
 /// <reference lib="webworker" />
 
-// Service worker de railcomplete (lot 0b) : met en cache l'« enveloppe » de l'appli
-// (pages, scripts, styles, polices, icônes) pour qu'elle s'ouvre sans réseau.
-// Les données OSM et les tuiles IGN seront gérées à part (lot 4).
+// Service worker de railcomplete : met en cache l'« enveloppe » de l'appli (pages, scripts,
+// styles, polices, icônes) pour qu'elle s'ouvre sans réseau (lot 0b), et sert les photos
+// aériennes IGN des gares téléchargées (lot 4). Les données OSM sont dans IndexedDB.
 
 import { assets, immutable, prerendered } from '$app/manifest';
 import { version } from '$app/env';
 
 const sw = self as unknown as ServiceWorkerGlobalScope;
 const CACHE = `app-${version}`;
+/** Tuiles IGN des gares téléchargées : conservées d'une version de l'appli à l'autre. */
+const TILES = 'rc-tiles';
 // Les chemins du manifeste sont relatifs à la racine du site : on les rend absolus (« /… »).
 const toPath = (p: string) => new URL(p, sw.location.origin + '/').pathname;
 const ASSETS = [...immutable, ...assets, ...prerendered]
@@ -41,7 +43,9 @@ sw.addEventListener('activate', (event) => {
 	event.waitUntil(
 		caches
 			.keys()
-			.then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+			.then((keys) =>
+				Promise.all(keys.filter((k) => k !== CACHE && k !== TILES).map((k) => caches.delete(k)))
+			)
 			.then(() => sw.clients.claim())
 	);
 });
@@ -50,7 +54,18 @@ sw.addEventListener('fetch', (event) => {
 	const { request } = event;
 	if (request.method !== 'GET') return;
 	const url = new URL(request.url);
-	// Seules les ressources du site passent par ce cache (pas l'API OSM ni l'IGN).
+	// Photo aérienne : depuis les gares téléchargées si possible, sinon le réseau (sans stocker,
+	// pour que le cache ne grossisse pas en simple consultation).
+	if (url.origin === 'https://data.geopf.fr') {
+		event.respondWith(
+			(async () => {
+				const hit = await (await caches.open(TILES)).match(request.url);
+				return hit ?? fetch(request);
+			})()
+		);
+		return;
+	}
+	// Seules les ressources du site passent par le cache de l'appli (pas l'API OSM).
 	if (url.origin !== sw.location.origin) return;
 
 	event.respondWith(

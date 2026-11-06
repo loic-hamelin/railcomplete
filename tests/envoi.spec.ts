@@ -19,9 +19,9 @@ async function setup(page: Page) {
 		localStorage.setItem('rc:demo', 'true');
 		localStorage.setItem(dev + 'oauth2_access_token', 'jeton-de-test');
 	}, DEV);
-	await page.route('https://data.geopf.fr/**', (r) =>
-		r.fulfill({ contentType: 'image/jpeg', body: tile })
-	);
+	await page
+		.context()
+		.route('https://data.geopf.fr/**', (r) => r.fulfill({ contentType: 'image/jpeg', body: tile }));
 }
 
 /** Serveur de test simulé ; renvoie le journal des appels. */

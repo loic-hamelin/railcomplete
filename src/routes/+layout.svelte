@@ -5,6 +5,7 @@
 	import '@fontsource/atkinson-hyperlegible/latin-ext-700.css';
 	import '../app.css';
 	import favicon from '#lib/assets/favicon.svg';
+	import NetStatus from '#lib/NetStatus.svelte';
 	import type { LayoutProps } from './$types';
 	import { onMount } from 'svelte';
 
@@ -38,3 +39,4 @@
 </svelte:head>
 
 {@render children()}
+<NetStatus />

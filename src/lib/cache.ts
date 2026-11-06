@@ -38,6 +38,14 @@ export async function putCachedStation(entry: CachedStation) {
 	}
 }
 
+export async function deleteCachedStation(id: string) {
+	try {
+		await (await open()).delete('stations', id);
+	} catch {
+		/* rien à supprimer */
+	}
+}
+
 export async function getAllEdits<T>(): Promise<T[]> {
 	try {
 		return (await (await open()).getAll('edits')) as T[];

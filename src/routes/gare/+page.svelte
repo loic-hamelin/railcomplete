@@ -11,6 +11,7 @@
 	import { configured, login, signedIn } from '#lib/auth.svelte.js';
 	import { seedTestStation } from '#lib/seed.js';
 	import { server } from '#lib/osmserver.svelte.js';
+	import { downloadStation, downloads, estimate, progress } from '#lib/offline.svelte.js';
 	import { onMount, untrack } from 'svelte';
 
 	// Page statique : l'identifiant de la gare n'est lu que dans le navigateur.
@@ -86,6 +87,8 @@
 			seedMsg = (e as Error).message;
 		}
 	}
+	const dl = $derived(downloads.list.find((d) => d.id === id));
+	const mo = (b: number) => `${(b / 1e6).toFixed(1).replace('.', ',')} Mo`;
 	const fmtDate = (t: number) =>
 		new Date(t).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
 </script>
@@ -184,6 +187,35 @@
 					</div>
 				{/each}
 			</section>
+
+			<div class="card offline" role="group" aria-label="Hors-ligne">
+				{#if progress.station === id}
+					<p role="status">
+						Téléchargement des photos aériennes… {progress.done} / {progress.total}
+					</p>
+					<progress max={progress.total} value={progress.done}></progress>
+				{:else if dl}
+					<p>
+						<Icon name="download" size={18} /> <strong>Disponible hors-ligne</strong> · {mo(
+							dl.bytes
+						)} · le
+						{fmtDate(dl.at)}
+					</p>
+					<button class="btn-small" type="button" onclick={() => downloadStation(ready.station)}
+						>Mettre à jour</button
+					>
+				{:else}
+					<p>Pas de réseau en gare ? Emportez les données et la photo aérienne.</p>
+					<button class="btn-small" type="button" onclick={() => downloadStation(ready.station)}>
+						<Icon name="download" size={18} /> Télécharger pour le hors-ligne (≈ {mo(
+							estimate(ready.station).bytes
+						)})
+					</button>
+				{/if}
+				{#if progress.error && !progress.station}<p class="err" role="alert">
+						{progress.error}
+					</p>{/if}
+			</div>
 
 			<div class="list-head">
 				<h2>À faire ici</h2>
@@ -294,6 +326,36 @@
 	.note {
 		margin: 0;
 		color: var(--text-2);
+	}
+	.offline p {
+		margin: 0;
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		flex-wrap: wrap;
+	}
+	.offline progress {
+		width: 100%;
+		height: 8px;
+		accent-color: var(--primary);
+	}
+	.err {
+		color: var(--danger);
+		font-weight: 700;
+	}
+	.btn-small {
+		align-self: flex-start;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		min-height: 44px;
+		padding: 0 14px;
+		border: 2px solid var(--primary);
+		border-radius: 12px;
+		background: var(--bg);
+		color: var(--primary);
+		font: 700 0.9375rem var(--font);
+		cursor: pointer;
 	}
 	.pending {
 		display: flex;

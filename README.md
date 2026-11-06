@@ -13,6 +13,7 @@ Site : <https://railcomplete.org>
 - Lot 1 : recherche d'une gare, tableau de bord (complétude, quêtes), carte sur la photo aérienne IGN.
 - Lot 2 : saisie locale des numéros de quais et de voies et des pancartes d'arrêt (placement fin, schéma FR:passenger_stop).
 - Lot 3 : connexion au compte OpenStreetMap (OAuth2 PKCE) et envoi d'un changeset par gare, résilient aux coupures et aux conflits. Envoi ouvert sur le serveur de test uniquement (production au lot 6).
+- Lot 4 : hors-ligne — téléchargement d'une gare (données + photos aériennes, taille affichée), consultation et saisie sans réseau, envoi programmé qui part tout seul au retour du réseau, gestion des gares téléchargées.
 
 ## Développer sur son ordinateur
 

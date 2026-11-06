@@ -29,9 +29,9 @@ async function mockNetwork(page: Page) {
 			body: JSON.stringify({ elements: fixture.elements })
 		})
 	);
-	await page.route('https://data.geopf.fr/**', (r) =>
-		r.fulfill({ contentType: 'image/jpeg', body: tile })
-	);
+	await page
+		.context()
+		.route('https://data.geopf.fr/**', (r) => r.fulfill({ contentType: 'image/jpeg', body: tile }));
 }
 
 async function expectAccessible(page: Page, exclude?: string) {

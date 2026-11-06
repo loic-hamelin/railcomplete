@@ -6,14 +6,30 @@
 	import { resetStation } from '#lib/current.svelte.js';
 	import { setDemo, settings } from '#lib/edits.svelte.js';
 	import { SERVERS, server, setServer, type ServerId } from '#lib/osmserver.svelte.js';
+	import { downloads, reloadDownloads, removeDownload } from '#lib/offline.svelte.js';
+	import { loadStations, type Station } from '#lib/stations.js';
 	import { onMount } from 'svelte';
 
 	let mounted = $state(false);
-	onMount(() => (mounted = true));
+	let bboxes = $state<Record<string, Station['bbox']>>({});
+	onMount(async () => {
+		mounted = true;
+		try {
+			const ids = new Set(downloads.list.map((d) => d.id));
+			bboxes = Object.fromEntries(
+				(await loadStations()).stations.filter((s) => ids.has(s.id)).map((s) => [s.id, s.bbox])
+			);
+		} catch {
+			/* index indisponible : suppression des données seulement */
+		}
+	});
+	const mo = (b: number) => `${(b / 1e6).toFixed(1).replace('.', ',')} Mo`;
+	const total = $derived(downloads.list.reduce((n, d) => n + d.bytes, 0));
 	function choose(id: ServerId) {
 		setServer(id);
 		resetStation();
 		syncAccount();
+		reloadDownloads();
 	}
 </script>
 
@@ -101,6 +117,36 @@
 			</div>
 		</div>
 
+		<h2>
+			Gares téléchargées{#if downloads.list.length}
+				· {mo(total)}{/if}
+		</h2>
+		<div class="group">
+			{#each downloads.list as d (d.id)}
+				<div class="row">
+					<span class="txt"
+						><span>{d.name}</span><span class="small"
+							>{mo(d.bytes)} · {new Date(d.at).toLocaleDateString('fr-FR')}</span
+						></span
+					>
+					<button
+						class="small-btn"
+						type="button"
+						aria-label={`Supprimer ${d.name} du téléphone`}
+						onclick={() => removeDownload(d, bboxes[d.id])}>Supprimer</button
+					>
+				</div>
+			{:else}
+				<div class="row">
+					<span class="txt"
+						><span>Aucune</span><span class="small"
+							>Téléchargez une gare depuis son tableau de bord pour l’utiliser sans réseau.</span
+						></span
+					>
+				</div>
+			{/each}
+		</div>
+
 		<h2>Affichage</h2>
 		<div class="group">
 			<div class="row">
@@ -180,6 +226,7 @@
 	label.row {
 		cursor: pointer;
 	}
+	.group > .row + .row,
 	label.row + label.row {
 		border-top: 1px solid var(--border);
 	}

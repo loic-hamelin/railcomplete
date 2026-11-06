@@ -9,6 +9,7 @@
 	import { editsOf, loadEdits, pending, removeEdit, updateEdits } from '#lib/edits.svelte.js';
 	import { sendStation, sending, type SendResult } from '#lib/send.svelte.js';
 	import { srv } from '#lib/osmserver.svelte.js';
+	import { dequeue, enqueue, isQueued } from '#lib/offline.svelte.js';
 	import { loadStations, type Station } from '#lib/stations.js';
 	import { onMount } from 'svelte';
 
@@ -86,7 +87,8 @@
 	<main>
 		{#if !online}
 			<p class="banner warn" role="status">
-				Hors-ligne. Vos saisies sont conservées ; envoyez-les quand le réseau revient.
+				Hors-ligne. Vos saisies sont conservées. Après relecture, vous pouvez programmer l’envoi :
+				il partira tout seul au retour du réseau, appli ouverte.
 			</p>
 		{/if}
 		{#if !srv().canUpload}
@@ -192,9 +194,26 @@
 				<button class="btn" type="button" onclick={() => login()}>Se connecter pour envoyer</button>
 			{:else}
 				<p class="who">Envoyé par <strong>{account.user?.name ?? 'vous'}</strong></p>
-				<button class="btn" type="button" disabled={!online} onclick={send}>
-					Envoyer {ready.length} modification{ready.length > 1 ? 's' : ''}
-				</button>
+				{#if isQueued(id)}
+					<p class="queued" role="status">
+						<Icon name="download" size={18} /> En attente du réseau : l’envoi partira tout seul.
+					</p>
+					<button class="btn btn-secondary" type="button" onclick={() => dequeue(id)}
+						>Annuler l’envoi automatique</button
+					>
+				{:else if online}
+					<button class="btn" type="button" onclick={send}>
+						Envoyer {ready.length} modification{ready.length > 1 ? 's' : ''}
+					</button>
+				{:else}
+					<button
+						class="btn"
+						type="button"
+						onclick={() => enqueue(id, station?.name ?? id, comment)}
+					>
+						Envoyer dès le retour du réseau
+					</button>
+				{/if}
 			{/if}
 		</footer>
 	{/if}
@@ -361,6 +380,13 @@
 	.who {
 		font-size: 0.9375rem;
 		color: var(--text-2);
+	}
+	.queued {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		font-weight: 700;
+		color: var(--primary);
 	}
 	.progress {
 		font-weight: 700;
