@@ -5,7 +5,7 @@
 	import BottomNav from '#lib/BottomNav.svelte';
 	import Icon from '#lib/Icon.svelte';
 	import { current, openStation } from '#lib/current.svelte.js';
-	import { editsOf, loadEdits, pending } from '#lib/edits.svelte.js';
+	import { editsOf, loadEdits, pending, settings } from '#lib/edits.svelte.js';
 	import { groupQuests, type Kind } from '#lib/questText.js';
 	import { stationView } from '#lib/view.js';
 	import { configured, login, signedIn } from '#lib/auth.svelte.js';
@@ -122,10 +122,12 @@
 	</header>
 
 	<main>
-		<p class="demo" role="note">
-			Version d’essai : vos saisies restent sur ce téléphone. L’envoi vers OpenStreetMap arrive
-			bientôt.
-		</p>
+		{#if settings.demo}
+			<p class="demo" role="note">
+				Mode démonstration : saisie possible hors de la gare, mais ces saisies ne partiront pas sur
+				la vraie carte.
+			</p>
+		{/if}
 		{#if myEdits.length}
 			<a class="pending" href={resolve('/contributions')}>
 				<Icon name="download" size={20} />

@@ -25,7 +25,8 @@ export const SERVERS: Record<ServerId, OsmServer> = {
 		label: 'OpenStreetMap',
 		web: 'https://www.openstreetmap.org',
 		api: 'https://api.openstreetmap.org',
-		clientId: '',
+		// Application « stationcomplete » déclarée par Loïc sur openstreetmap.org (identifiant public).
+		clientId: 'RPUXqWhx2wkUVODf4KTLj4ak8n1qAF8kfTaDAJo28Uk',
 		canUpload: true
 	},
 	dev: {

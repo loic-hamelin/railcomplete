@@ -7,7 +7,13 @@
 	import { editKey, type Edit } from '#lib/core/edits.js';
 	import { openStation } from '#lib/current.svelte.js';
 	import { editsOf, loadEdits, pending, removeEdit, updateEdits } from '#lib/edits.svelte.js';
-	import { APP_VERSION, sendStation, sending, type SendResult } from '#lib/send.svelte.js';
+	import {
+		APP_VERSION,
+		DEMO_REFUSED,
+		sendStation,
+		sending,
+		type SendResult
+	} from '#lib/send.svelte.js';
 	import { server, srv } from '#lib/osmserver.svelte.js';
 	import { uploadBlock } from '#lib/core/remote.js';
 	import { refreshConfig, remote } from '#lib/remote.svelte.js';
@@ -48,9 +54,11 @@
 	const real = $derived(server.id === 'prod');
 	// Arrêt d'urgence ou phase pilote (config.json) ; revérifié au moment de l'envoi.
 	const blocked = $derived(
-		mounted
-			? uploadBlock(remote.cfg, APP_VERSION, real && !!account.user, account.user?.name)
-			: undefined
+		!mounted
+			? undefined
+			: real && ready.some((e) => e.demo)
+				? DEMO_REFUSED
+				: uploadBlock(remote.cfg, APP_VERSION, real && !!account.user, account.user?.name)
 	);
 	const STEPS: Record<string, string> = {
 		checking: 'Vérification d’un envoi précédent…',
@@ -105,8 +113,8 @@
 		{/if}
 		{#if !srv().canUpload}
 			<p class="banner warn" role="note">
-				L’envoi vers la vraie carte OpenStreetMap sera ouvert après la phase de test. Pour essayer,
-				choisissez le serveur de test dans les <a href={resolve('/reglages')}>réglages</a>.
+				L’envoi n’est pas encore possible vers {srv().label}. Pour essayer, choisissez un autre
+				serveur dans les <a href={resolve('/reglages')}>réglages</a>.
 			</p>
 		{:else if real}
 			<p class="banner" role="note">
@@ -160,9 +168,16 @@
 							<Icon name={icon(e)} size={24} />
 							<span class="txt"
 								><span class="sum">{e.summary}</span><span class="meta"
-									>{e.kind === 'node' ? 'Nouvelle pancarte' : 'Modification'}</span
+									>{e.kind === 'node' ? 'Nouvelle pancarte' : 'Modification'}{e.demo
+										? ' · mode démonstration'
+										: ''}</span
 								></span
 							>
+							{#if real && e.demo}
+								<span class="acts">
+									<button type="button" onclick={() => removeEdit(e.id)}>Retirer</button>
+								</span>
+							{/if}
 						</li>
 					{/each}
 				</ul>

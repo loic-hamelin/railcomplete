@@ -23,7 +23,7 @@ export const editsOf = (station: string) => mine().filter((e) => e.station === s
 /** Enregistre une saisie ; remplace une saisie précédente sur le même objet. */
 export async function saveEdit(edit: Edit) {
 	await loadEdits();
-	edit = { ...edit, server: server.id };
+	edit = { ...edit, server: server.id, ...(settings.demo ? { demo: true } : {}) };
 	// Tags saisis sur un objet pas encore envoyé (pancarte posée, quai dessiné) : on les range
 	// directement dans la saisie qui le crée, l'objet n'existant pas encore sur le serveur.
 	if (edit.kind === 'tags' && Number(edit.target.split('/')[1]) < 0) {
@@ -37,7 +37,7 @@ export async function saveEdit(edit: Edit) {
 			else merged[k] = v;
 		}
 		const summary = edit.summary.startsWith('Quai') ? `${edit.summary} (dessiné)` : creator.summary;
-		edit = { ...creator, tags: merged, summary };
+		edit = { ...creator, tags: merged, summary, ...(edit.demo ? { demo: true } : {}) };
 	}
 	const same = pending.list.find((e) =>
 		edit.kind === 'tags'
@@ -82,7 +82,8 @@ export function nextTempId() {
 	return n;
 }
 
-// Mode démonstration : permet d'essayer la saisie hors de la gare. Rien n'est envoyé au lot 2.
+// Mode démonstration : permet d'essayer la saisie hors de la gare. Les saisies faites ainsi
+// sont marquées « demo » et ne partent jamais vers la vraie carte (seulement le serveur de test).
 export const settings = $state({ demo: readPref<boolean>('demo', false) });
 export function setDemo(v: boolean) {
 	settings.demo = v;

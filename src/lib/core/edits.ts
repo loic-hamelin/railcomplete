@@ -16,6 +16,8 @@ interface EditBase {
 	server?: 'prod' | 'dev';
 	/** Conflit détecté à l'envoi : la saisie est « à revoir » et n'est plus envoyée. */
 	conflict?: string;
+	/** Faite en mode démonstration (hors de la gare) : jamais envoyée sur la vraie carte. */
+	demo?: boolean;
 }
 
 /** Ajoute, change ou retire des tags d'un objet existant (null = retirer le tag). */

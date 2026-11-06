@@ -145,15 +145,57 @@ test('coupure pendant l’envoi : au nouvel essai, aucun doublon', async ({ page
 	expect(calls.filter((c) => c.path.endsWith('/changeset/create'))).toHaveLength(1);
 });
 
-test('sur la vraie carte, l’envoi est fermé pendant la phase de test', async ({ page }) => {
-	await page.route('https://api.openstreetmap.org/**', (r) =>
-		r.fulfill({
+/** Vraie carte (serveur simulé), connecté sous le pseudo donné. */
+async function setupProd(page: Page, user: string, demo: boolean) {
+	await page.addInitScript(
+		({ user, demo }) => {
+			localStorage.setItem('rc:server', JSON.stringify('prod'));
+			localStorage.setItem('rc:user:prod', JSON.stringify({ name: user, id: 2 }));
+			localStorage.setItem('rc:demo', JSON.stringify(demo));
+			localStorage.setItem('https://www.openstreetmap.orgoauth2_access_token', 'jeton-de-test');
+		},
+		{ user, demo }
+	);
+	await page
+		.context()
+		.route('https://data.geopf.fr/**', (r) => r.fulfill({ contentType: 'image/jpeg', body: tile }));
+	const calls: string[] = [];
+	await page.route('https://api.openstreetmap.org/**', (r) => {
+		calls.push(r.request().method() + ' ' + new URL(r.request().url()).pathname);
+		return r.fulfill({
 			contentType: 'application/json',
 			body: JSON.stringify({ elements: fixture.elements })
+		});
+	});
+	return calls;
+}
+
+test('vraie carte, phase pilote : envoi réservé aux testeurs', async ({ page }) => {
+	// config.json publié : "pilotUsers": [] (personne tant que le pilote n'a pas commencé)
+	await setupProd(page, 'Inconnu', false);
+	await page.goto(`/envoi/?id=${STATION}`);
+	await expect(page.getByText(/publiées sur la carte OpenStreetMap/)).toBeVisible();
+	await expect(page.getByRole('alert')).toContainText('phase pilote');
+	await expectAccessible(page);
+});
+
+test('vraie carte : une saisie faite en mode démonstration ne part jamais', async ({ page }) => {
+	const calls = await setupProd(page, 'Pilote', true);
+	await page.context().route('**/config.json', (r) =>
+		r.fulfill({
+			contentType: 'application/json',
+			body: JSON.stringify({ pilotUsers: ['Pilote'] })
 		})
 	);
+	await editTrack(page, '13');
 	await page.goto(`/envoi/?id=${STATION}`);
-	await expect(page.getByText(/sera ouvert après la phase de test/)).toBeVisible();
+	await expect(page.getByRole('alert')).toContainText('mode démonstration');
+	await expect(page.getByText(/· mode démonstration/)).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Envoyer 1 modification' })).toHaveCount(0);
+	await expectAccessible(page);
+	await page.getByRole('button', { name: 'Retirer' }).click();
+	await expect(page.getByRole('alert')).toHaveCount(0);
+	expect(calls.filter((c) => c.startsWith('POST') || c.startsWith('PUT'))).toEqual([]);
 });
 
 test('réglages : compte, choix du serveur, page de connexion', async ({ page }) => {
@@ -168,7 +210,8 @@ test('réglages : compte, choix du serveur, page de connexion', async ({ page })
 	await expect(page.getByRole('radio', { name: /Serveur de test OSM/ })).toBeChecked();
 	await expectAccessible(page);
 	await page.getByRole('radio', { name: /OpenStreetMap La vraie carte/ }).check();
-	await expect(page.getByText('Connexion indisponible')).toBeVisible();
+	await expect(page.getByText('Non connecté')).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Se connecter' })).toBeVisible();
 });
 
 test('arrêt d’urgence : config.json coupe les envois, puis les rétablit', async ({ page }) => {

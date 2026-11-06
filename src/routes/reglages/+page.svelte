@@ -74,7 +74,7 @@
 				/>
 				<span class="txt"
 					><span>OpenStreetMap</span><span class="small"
-						>La vraie carte. Consultation ; l’envoi ouvrira après la phase de test.</span
+						>La vraie carte : vos envois sont publiés, visibles par tous.</span
 					></span
 				>
 			</label>
@@ -99,8 +99,8 @@
 				<span class="txt">
 					<span id="demo-label">Mode démonstration</span>
 					<span class="small" id="demo-desc"
-						>Permet d’essayer la saisie sans être dans la gare. Tant que l’envoi n’existe pas, rien
-						ne part vers OpenStreetMap.</span
+						>Permet d’essayer la saisie sans être dans la gare. Ces saisies ne partiront jamais sur
+						la vraie carte (seulement sur le serveur de test).</span
 					>
 				</span>
 				<button

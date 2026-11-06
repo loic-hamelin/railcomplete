@@ -24,6 +24,8 @@ import { editsOf, removeEdits, updateEdits } from './edits.svelte.js';
 import { server, srv } from './osmserver.svelte.js';
 
 export const APP_VERSION = '0.4';
+export const DEMO_REFUSED =
+	'Des saisies ont été faites en mode démonstration, hors de la gare : elles ne peuvent pas partir sur la vraie carte. Retirez-les ci-dessous.';
 const RETRY_AFTER_CUT_MS = 5 * 60 * 1000;
 
 interface Job {
@@ -147,6 +149,8 @@ export async function sendStation(
 		account.user?.name
 	);
 	if (blocked) return { sent: 0, conflicts: 0, error: blocked };
+	if (server.id === 'prod' && editsOf(station).some((e) => e.demo && !e.conflict))
+		return { sent: 0, conflicts: 0, error: DEMO_REFUSED };
 	sending.station = station;
 	try {
 		const resumed = await resume(station);
