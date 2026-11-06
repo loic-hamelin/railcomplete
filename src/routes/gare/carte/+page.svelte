@@ -7,6 +7,7 @@
 	import { current, openStation } from '#lib/current.svelte.js';
 	import { editsOf, loadEdits, pending } from '#lib/edits.svelte.js';
 	import { canSurvey, checkOnSite, where } from '#lib/onsite.svelte.js';
+	import { srv } from '#lib/osmserver.svelte.js';
 	import { stationView } from '#lib/view.js';
 	import StationMap from '#lib/map/StationMap.svelte';
 	import { onMount, untrack } from 'svelte';
@@ -176,7 +177,7 @@
 						<a class="btn btn-secondary" href={placeHref}>Pancarte ici</a>
 					{/if}
 				</div>
-				<a class="osm" href={`https://www.openstreetmap.org/${selected.osm}`} rel="external">
+				<a class="osm" href={`${srv().web}/${selected.osm}`} rel="external">
 					Voir sur OpenStreetMap
 				</a>
 			{/if}
