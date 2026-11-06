@@ -136,7 +136,8 @@
 		</p>
 	</header>
 
-	<div class="mapbox">
+	<!-- data-center : centre visé, lu par les tests pour attendre la fin d'un déplacement. -->
+	<div class="mapbox" data-center={centerNow?.map((v) => v.toFixed(7)).join(',')}>
 		{#if view && ready}
 			<DrawMap
 				bind:this={mapRef}

@@ -47,12 +47,33 @@ async function setup(page: Page) {
  * Fonctionne aussi sur le profil tactile, où la souris ne fait pas glisser la carte.
  */
 async function pan(page: Page, right: number, down: number) {
+	const keys = [
+		...Array(Math.abs(right)).fill(right > 0 ? 'ArrowRight' : 'ArrowLeft'),
+		...Array(Math.abs(down)).fill(down > 0 ? 'ArrowDown' : 'ArrowUp')
+	];
+	// Un appui à la fois, en attendant la fin du glissement : deux appuis rapprochés
+	// se fondraient en un seul déplacement, plus court, et le tracé varierait d'un essai à l'autre.
+	for (const key of keys) await press(page, key);
+}
+
+async function press(page: Page, key: string) {
+	const box = page.locator('.mapbox');
+	const before = await box.getAttribute('data-center');
 	await page.locator('.maplibregl-canvas').focus();
-	for (let i = 0; i < Math.abs(right); i++)
-		await page.keyboard.press(right > 0 ? 'ArrowRight' : 'ArrowLeft');
-	for (let i = 0; i < Math.abs(down); i++)
-		await page.keyboard.press(down > 0 ? 'ArrowDown' : 'ArrowUp');
-	await page.waitForTimeout(700);
+	await page.keyboard.press(key);
+	await expect(box).not.toHaveAttribute('data-center', before ?? '');
+	let last = '';
+	await expect
+		.poll(
+			async () => {
+				const now = (await box.getAttribute('data-center')) ?? '';
+				const stable = now === last;
+				last = now;
+				return stable;
+			},
+			{ intervals: [250] }
+		)
+		.toBe(true);
 }
 
 test('dessiner un quai sur une gare sans quai, puis l’envoyer', async ({ page }) => {
