@@ -7,8 +7,10 @@
 	import { editKey, type Edit } from '#lib/core/edits.js';
 	import { openStation } from '#lib/current.svelte.js';
 	import { editsOf, loadEdits, pending, removeEdit, updateEdits } from '#lib/edits.svelte.js';
-	import { sendStation, sending, type SendResult } from '#lib/send.svelte.js';
-	import { srv } from '#lib/osmserver.svelte.js';
+	import { APP_VERSION, sendStation, sending, type SendResult } from '#lib/send.svelte.js';
+	import { server, srv } from '#lib/osmserver.svelte.js';
+	import { uploadBlock } from '#lib/core/remote.js';
+	import { refreshConfig, remote } from '#lib/remote.svelte.js';
 	import { dequeue, enqueue, isQueued } from '#lib/offline.svelte.js';
 	import { loadStations, type Station } from '#lib/stations.js';
 	import { onMount } from 'svelte';
@@ -27,6 +29,7 @@
 		addEventListener('online', up);
 		addEventListener('offline', up);
 		loadEdits();
+		refreshConfig();
 		loadStations().then((d) => {
 			station = d.stations.find((s) => s.id === page.url.searchParams.get('id'));
 			if (station && !comment)
@@ -42,6 +45,13 @@
 	const ready = $derived(edits.filter((e) => !e.conflict));
 	const review = $derived(edits.filter((e) => e.conflict));
 	const busy = $derived(sending.step !== 'idle');
+	const real = $derived(server.id === 'prod');
+	// Arrêt d'urgence ou phase pilote (config.json) ; revérifié au moment de l'envoi.
+	const blocked = $derived(
+		mounted
+			? uploadBlock(remote.cfg, APP_VERSION, real && !!account.user, account.user?.name)
+			: undefined
+	);
 	const STEPS: Record<string, string> = {
 		checking: 'Vérification d’un envoi précédent…',
 		reading: 'Relecture des données à jour…',
@@ -98,10 +108,20 @@
 				L’envoi vers la vraie carte OpenStreetMap sera ouvert après la phase de test. Pour essayer,
 				choisissez le serveur de test dans les <a href={resolve('/reglages')}>réglages</a>.
 			</p>
+		{:else if real}
+			<p class="banner" role="note">
+				Vos modifications seront publiées sur la carte <strong>OpenStreetMap</strong>, visibles par
+				tous.
+			</p>
 		{:else}
 			<p class="banner" role="note">
 				Serveur : <strong>{srv().label}</strong> — aucun effet sur la vraie carte.
 			</p>
+		{/if}
+		{#if blocked && srv().canUpload}
+			<p class="banner warn" role="alert">{blocked}</p>
+		{:else if remote.cfg.message}
+			<p class="banner warn" role="note">{remote.cfg.message}</p>
 		{/if}
 
 		{#if result?.changeset}
@@ -196,7 +216,9 @@
 				<button class="btn" type="button" onclick={() => login()}>Se connecter pour envoyer</button>
 			{:else}
 				<p class="who">Envoyé par <strong>{account.user?.name ?? 'vous'}</strong></p>
-				{#if isQueued(id)}
+				{#if blocked}
+					<p class="hint">Envoi impossible pour le moment (voir le message en haut).</p>
+				{:else if isQueued(id)}
 					<p class="queued" role="status">
 						<Icon name="download" size={18} /> En attente du réseau : l’envoi partira tout seul.
 					</p>

@@ -1,7 +1,7 @@
 // Cache local (IndexedDB) des données de gare déjà chargées, pour la consultation hors-ligne
 // et pour éviter de solliciter l'API OSM à chaque ouverture.
 
-import { openDB, type IDBPDatabase } from 'idb';
+import { deleteDB, openDB, type IDBPDatabase } from 'idb';
 import type { OsmElement } from './core/osm.js';
 
 export interface CachedStation {
@@ -76,4 +76,32 @@ export function writePref(key: string, value: unknown) {
 	} catch {
 		/* sans préférences */
 	}
+}
+
+/**
+ * Efface tout ce que stationcomplete garde sur ce téléphone (page Données personnelles) :
+ * gares, saisies non envoyées, préférences, connexion OSM, photos aériennes téléchargées.
+ */
+export async function wipeAll() {
+	try {
+		(await db)?.close();
+	} catch {
+		/* base déjà fermée */
+	}
+	db = undefined;
+	try {
+		await deleteDB('stationcomplete');
+	} catch {
+		/* rien à effacer */
+	}
+	try {
+		// Préférences (rc:…) et jetons d'osm-auth (clés « <serveur>oauth2_access_token », etc.).
+		for (const k of Object.keys(localStorage))
+			if (k.startsWith('rc:') || k.includes('oauth')) localStorage.removeItem(k);
+		sessionStorage.clear();
+	} catch {
+		/* stockage indisponible */
+	}
+	if ('caches' in globalThis)
+		for (const k of await caches.keys()) if (k.startsWith('rc-tiles')) await caches.delete(k);
 }

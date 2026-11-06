@@ -170,3 +170,26 @@ test('réglages : compte, choix du serveur, page de connexion', async ({ page })
 	await page.getByRole('radio', { name: /OpenStreetMap La vraie carte/ }).check();
 	await expect(page.getByText('Connexion indisponible')).toBeVisible();
 });
+
+test('arrêt d’urgence : config.json coupe les envois, puis les rétablit', async ({ page }) => {
+	await setup(page);
+	const calls = await mockDev(page);
+	let cfg: object = { uploadsEnabled: false, message: 'Envois suspendus : bug en cours.' };
+	await page
+		.context()
+		.route('**/config.json', (r) =>
+			r.fulfill({ contentType: 'application/json', body: JSON.stringify(cfg) })
+		);
+	await editTrack(page, '13');
+
+	await page.goto(`/envoi/?id=${STATION}`);
+	await expect(page.getByRole('alert')).toHaveText('Envois suspendus : bug en cours.');
+	await expect(page.getByRole('button', { name: 'Envoyer 1 modification' })).toHaveCount(0);
+	await expectAccessible(page);
+
+	cfg = { uploadsEnabled: true };
+	await page.reload();
+	await page.getByRole('button', { name: 'Envoyer 1 modification' }).click();
+	await expect(page.getByText('1 modification envoyée.')).toBeVisible();
+	expect(calls.filter((c) => c.path.endsWith('/upload'))).toHaveLength(1);
+});

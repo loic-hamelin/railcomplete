@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import Logo from '#lib/Logo.svelte';
-	import { REPO_URL } from '#lib/config.js';
+	import { CONTACT_EMAIL, REPO_URL } from '#lib/config.js';
 </script>
 
 <svelte:head>
@@ -52,14 +52,17 @@
 		<p>
 			Ce site ne dépose aucun cookie et n'utilise aucun outil de mesure d'audience. Vos saisies
 			restent sur votre téléphone jusqu'à leur envoi dans OpenStreetMap.
+			<a href={resolve('/donnees-personnelles')}>Données personnelles</a> ·
+			<a href={resolve('/mentions-legales')}>Mentions légales</a>
 		</p>
 	</section>
 
 	<section>
-		<h2>Hébergement</h2>
+		<h2>Contact</h2>
 		<p>
-			Site hébergé par GitHub Pages (GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA
-			94107, États-Unis).
+			Une erreur, une idée, une gare qui pose problème ? Écrivez à
+			<a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> ou ouvrez un ticket sur
+			<a href={`${REPO_URL}/issues`} rel="external">GitHub</a>.
 		</p>
 	</section>
 

@@ -159,7 +159,13 @@
 		<h2>À propos</h2>
 		<div class="group">
 			<a class="row link" href={resolve('/a-propos')}>
-				<span class="txt">Sécurité, licences, vie privée</span><span aria-hidden="true">›</span>
+				<span class="txt">Sécurité, licences, contact</span><span aria-hidden="true">›</span>
+			</a>
+			<a class="row link" href={resolve('/donnees-personnelles')}>
+				<span class="txt">Données personnelles</span><span aria-hidden="true">›</span>
+			</a>
+			<a class="row link" href={resolve('/mentions-legales')}>
+				<span class="txt">Mentions légales</span><span aria-hidden="true">›</span>
 			</a>
 		</div>
 	</main>

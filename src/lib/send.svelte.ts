@@ -17,11 +17,13 @@ import {
 	osmChangeXml,
 	planUpload
 } from './core/upload.js';
-import { osmFetch } from './auth.svelte.js';
+import { uploadBlock } from './core/remote.js';
+import { account, osmFetch } from './auth.svelte.js';
+import { refreshConfig } from './remote.svelte.js';
 import { editsOf, removeEdits, updateEdits } from './edits.svelte.js';
 import { server, srv } from './osmserver.svelte.js';
 
-export const APP_VERSION = '0.3';
+export const APP_VERSION = '0.4';
 const RETRY_AFTER_CUT_MS = 5 * 60 * 1000;
 
 interface Job {
@@ -137,6 +139,14 @@ export async function sendStation(
 		return { sent: 0, conflicts: 0, error: 'Pas de réseau : réessayez quand vous serez connecté.' };
 	if (sending.step !== 'idle')
 		return { sent: 0, conflicts: 0, error: 'Un envoi est déjà en cours.' };
+	// Arrêt d'urgence : /config.json est relu juste avant chaque envoi.
+	const blocked = uploadBlock(
+		await refreshConfig(),
+		APP_VERSION,
+		server.id === 'prod',
+		account.user?.name
+	);
+	if (blocked) return { sent: 0, conflicts: 0, error: blocked };
 	sending.station = station;
 	try {
 		const resumed = await resume(station);

@@ -1,5 +1,6 @@
 // Serveur OpenStreetMap utilisé : la vraie carte (consultation) ou le serveur de test (essais d'envoi).
-// Pendant la phase pilote, l'envoi n'est possible que vers le serveur de test (lot 6 : production).
+// L'envoi vers la vraie carte s'ouvre dès que l'application OAuth de production est déclarée ;
+// pendant le pilote, /config.json le réserve aux testeurs (core/remote.ts).
 
 import { readPref, writePref } from './cache.js';
 
@@ -14,7 +15,7 @@ export interface OsmServer {
 	api: string;
 	/** Identifiant public de l'application OAuth2 déclarée sur ce serveur ('' = pas encore). */
 	clientId: string;
-	/** Envoi des contributions autorisé depuis l'appli. */
+	/** Envoi des contributions autorisé depuis l'appli (et seulement si clientId est connu). */
 	canUpload: boolean;
 }
 
@@ -25,7 +26,7 @@ export const SERVERS: Record<ServerId, OsmServer> = {
 		web: 'https://www.openstreetmap.org',
 		api: 'https://api.openstreetmap.org',
 		clientId: '',
-		canUpload: false
+		canUpload: true
 	},
 	dev: {
 		id: 'dev',
@@ -45,7 +46,8 @@ export const server = $state<{ id: ServerId }>({ id: readPref<ServerId>('server'
  */
 export const srv = (): OsmServer => {
 	const s = SERVERS[server.id] ?? SERVERS.prod;
-	return { ...s, clientId: s.clientId || readPref<string>(`clientId:${s.id}`, '') };
+	const clientId = s.clientId || readPref<string>(`clientId:${s.id}`, '');
+	return { ...s, clientId, canUpload: s.canUpload && !!clientId };
 };
 
 export function setServer(id: ServerId) {
