@@ -25,6 +25,7 @@ export default defineConfig({
 						'self',
 						'https://api.openstreetmap.org',
 						'https://www.openstreetmap.org',
+						'https://master.apis.dev.openstreetmap.org',
 						'https://data.geopf.fr'
 					],
 					'worker-src': ['self', 'blob:'],

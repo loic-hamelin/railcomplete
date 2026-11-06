@@ -8,6 +8,9 @@
 	import { editsOf, loadEdits, pending } from '#lib/edits.svelte.js';
 	import { groupQuests, type Kind } from '#lib/questText.js';
 	import { stationView } from '#lib/view.js';
+	import { configured, login, signedIn } from '#lib/auth.svelte.js';
+	import { seedTestStation } from '#lib/seed.js';
+	import { server } from '#lib/osmserver.svelte.js';
 	import { onMount, untrack } from 'svelte';
 
 	// Page statique : l'identifiant de la gare n'est lu que dans le navigateur.
@@ -67,6 +70,22 @@
 	};
 	const mapQuery = (focus?: string) =>
 		`id=${encodeURIComponent(id)}${focus ? `&focus=${focus}` : ''}`;
+	// Serveur de test : une gare encore vide peut être recopiée depuis la vraie carte.
+	let seeding = $state<'idle' | 'busy' | 'error'>('idle');
+	let seedMsg = $state('');
+	async function seed() {
+		if (!ready) return;
+		seeding = 'busy';
+		try {
+			const n = await seedTestStation(ready.station);
+			seedMsg = `${n} objets recopiés sur le serveur de test.`;
+			seeding = 'idle';
+			await openStation(id, { force: true });
+		} catch (e) {
+			seeding = 'error';
+			seedMsg = (e as Error).message;
+		}
+	}
 	const fmtDate = (t: number) =>
 		new Date(t).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
 </script>
@@ -128,6 +147,26 @@
 				</button>
 			</div>
 		{:else if ready}
+			{#if server.id === 'dev' && !analysis?.platforms.length}
+				<div class="card" role="note">
+					<p>
+						<strong>Cette gare n’existe pas encore sur le serveur de test.</strong> Recopiez-y ses quais,
+						voies et pancartes depuis la vraie carte pour essayer la saisie et l’envoi.
+					</p>
+					{#if !configured()}
+						<p>La connexion au serveur de test n’est pas encore configurée.</p>
+					{:else if !(mounted && signedIn())}
+						<button class="btn" type="button" onclick={() => login()}
+							>Se connecter au serveur de test</button
+						>
+					{:else}
+						<button class="btn" type="button" disabled={seeding === 'busy'} onclick={seed}>
+							{seeding === 'busy' ? 'Copie en cours…' : 'Recopier la vraie gare ici'}
+						</button>
+					{/if}
+					{#if seedMsg}<p role="status">{seedMsg}</p>{/if}
+				</div>
+			{/if}
 			<section class="gauges" aria-label="Complétude de la gare">
 				{#each gauges as g (g.kind)}
 					<div class="gauge {g.kind}">

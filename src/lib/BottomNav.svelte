@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import Icon from './Icon.svelte';
-	import { loadEdits, pending } from './edits.svelte.js';
+	import { loadEdits, mine } from './edits.svelte.js';
 	import { onMount } from 'svelte';
 	let { current }: { current: 'gare' | 'contributions' | 'reglages' } = $props();
 	onMount(() => {
 		loadEdits();
 	});
-	const n = $derived(pending.list.length);
+	const n = $derived(mine().length);
 </script>
 
 <nav aria-label="Navigation principale">

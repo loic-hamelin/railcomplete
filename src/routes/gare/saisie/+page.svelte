@@ -161,6 +161,7 @@
 
 	async function save(tags: Record<string, string | null>, summary: string) {
 		if (!el) return;
+		const orig = ready?.elements.find((e) => `${e.type}/${e.id}` === osm);
 		saving = true;
 		try {
 			await saveEdit({
@@ -169,7 +170,10 @@
 				station: id,
 				createdAt: Date.now(),
 				target: osm as ElementKey,
-				version: el.version,
+				// Version et valeurs d'origine (avant toute saisie locale) : servent à détecter, à
+				// l'envoi, si quelqu'un a modifié le même tag entre-temps.
+				version: orig?.version,
+				base: Object.fromEntries(Object.keys(tags).map((k) => [k, orig?.tags?.[k] ?? null])),
 				tags,
 				summary
 			});
@@ -246,6 +250,10 @@
 					way: placed.way,
 					wayVersion: view?.elements.find((e) => e.type === 'way' && e.id === placed.way)?.version,
 					after: placed.after,
+					afterNode: (
+						ready?.elements.find((e) => e.type === 'way' && e.id === placed.way) as
+							OsmWay | undefined
+					)?.nodes[placed.after],
 					tags,
 					summary
 				});

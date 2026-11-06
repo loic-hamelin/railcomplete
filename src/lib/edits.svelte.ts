@@ -3,6 +3,7 @@
 
 import { deleteEdit, getAllEdits, putEdit, readPref, writePref } from './cache.js';
 import type { Edit } from './core/edits.js';
+import { server } from './osmserver.svelte.js';
 
 export const pending = $state<{ list: Edit[]; loaded: boolean }>({ list: [], loaded: false });
 
@@ -15,11 +16,14 @@ export function loadEdits() {
 	return loading;
 }
 
-export const editsOf = (station: string) => pending.list.filter((e) => e.station === station);
+/** Saisies du serveur choisi (on n'envoie pas au serveur de test une saisie faite sur la vraie carte). */
+export const mine = () => pending.list.filter((e) => (e.server ?? 'prod') === server.id);
+export const editsOf = (station: string) => mine().filter((e) => e.station === station);
 
 /** Enregistre une saisie ; remplace une saisie précédente sur le même objet. */
 export async function saveEdit(edit: Edit) {
 	await loadEdits();
+	edit = { ...edit, server: server.id };
 	const same = pending.list.find((e) =>
 		edit.kind === 'tags'
 			? e.kind === 'tags' && e.target === edit.target
@@ -27,10 +31,28 @@ export async function saveEdit(edit: Edit) {
 	);
 	if (same && same.kind === 'tags' && edit.kind === 'tags') {
 		// Fusion : la nouvelle saisie complète la précédente sur le même objet.
-		edit = { ...edit, id: same.id, tags: { ...same.tags, ...edit.tags } };
+		edit = {
+			...edit,
+			id: same.id,
+			tags: { ...same.tags, ...edit.tags },
+			base: { ...edit.base, ...same.base },
+			version: same.version ?? edit.version
+		};
 	} else if (same) edit = { ...edit, id: same.id };
 	await putEdit($state.snapshot(edit) as Edit);
 	pending.list = [...pending.list.filter((e) => e.id !== edit.id), edit];
+}
+
+/** Met à jour des saisies existantes (conflit marqué, par exemple). */
+export async function updateEdits(changed: Edit[]) {
+	for (const e of changed) await putEdit($state.snapshot(e) as Edit);
+	const byId: Record<string, Edit> = Object.fromEntries(changed.map((e) => [e.id, e]));
+	pending.list = pending.list.map((e) => byId[e.id] ?? e);
+}
+
+export async function removeEdits(ids: string[]) {
+	for (const id of ids) await deleteEdit(id);
+	pending.list = pending.list.filter((e) => !ids.includes(e.id));
 }
 
 export async function removeEdit(id: string) {

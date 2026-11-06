@@ -4,7 +4,8 @@
 	import BottomNav from '#lib/BottomNav.svelte';
 	import Icon from '#lib/Icon.svelte';
 	import type { Edit } from '#lib/core/edits.js';
-	import { loadEdits, pending, removeEdit } from '#lib/edits.svelte.js';
+	import { loadEdits, mine, pending, removeEdit } from '#lib/edits.svelte.js';
+	import { srv } from '#lib/osmserver.svelte.js';
 	import { loadStations, type Station } from '#lib/stations.js';
 	import { onMount } from 'svelte';
 
@@ -13,7 +14,7 @@
 	onMount(async () => {
 		await loadEdits();
 		try {
-			const wanted = new Set(pending.list.map((e) => e.station));
+			const wanted = new Set(mine().map((e) => e.station));
 			names = Object.fromEntries(
 				(await loadStations()).stations.filter((s) => wanted.has(s.id)).map((s) => [s.id, s])
 			);
@@ -24,7 +25,7 @@
 
 	const groups = $derived.by(() => {
 		const by: Record<string, Edit[]> = {};
-		for (const e of pending.list) (by[e.station] ??= []).push(e);
+		for (const e of mine()) (by[e.station] ??= []).push(e);
 		return Object.entries(by).map(([station, edits]) => ({ station, edits }));
 	});
 	const icon = (e: Edit) =>
@@ -45,13 +46,13 @@
 	<main>
 		<h1>Mes contributions</h1>
 		<p class="intro">
-			Vos saisies restent sur ce téléphone, même sans réseau. L’envoi vers OpenStreetMap, avec
-			relecture gare par gare, arrive bientôt.
+			Vos saisies restent sur ce téléphone, même sans réseau, jusqu’à leur envoi gare par gare.
+			Serveur : <strong>{srv().label}</strong>.
 		</p>
 
 		{#if !pending.loaded}
 			<p class="note" role="status">Chargement…</p>
-		{:else if !pending.list.length}
+		{:else if !groups.length}
 			<div class="empty">
 				<p>Aucune saisie en attente.</p>
 				<a class="btn" href={resolve('/gares')}>Choisir une gare</a>
@@ -91,6 +92,10 @@
 							</li>
 						{/each}
 					</ul>
+					<a class="btn send" href={resolve(`/envoi?id=${encodeURIComponent(g.station)}`)}>
+						Relire et envoyer{#if g.edits.some((e) => e.conflict)}
+							· {g.edits.filter((e) => e.conflict).length} à revoir{/if}
+					</a>
 				</section>
 			{/each}
 		{/if}
@@ -176,6 +181,9 @@
 	.meta {
 		font-size: 0.875rem;
 		color: var(--text-2);
+	}
+	.send {
+		margin-top: 10px;
 	}
 	li button {
 		min-height: 44px;

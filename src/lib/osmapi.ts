@@ -2,8 +2,10 @@
 // GET /api/0.6/map.json sur l'emprise, découpée en 2 × 2 si elle est grande, 2 requêtes au plus en parallèle.
 
 import type { BBox, OsmElement } from './core/osm.js';
+import { srv } from './osmserver.svelte.js';
 
-export const OSM_API = 'https://api.openstreetmap.org/api/0.6';
+/** Racine de l'API du serveur choisi (vraie carte ou serveur de test). */
+export const osmApi = () => `${srv().api}/api/0.6`;
 const SPLIT_ABOVE_KM2 = 0.25;
 const MAX_PARALLEL = 2;
 
@@ -35,7 +37,7 @@ export class OsmApiError extends Error {
 }
 
 async function fetchBox(b: BBox, signal?: AbortSignal): Promise<OsmElement[]> {
-	const url = `${OSM_API}/map.json?bbox=${b.map((x) => x.toFixed(5)).join(',')}`;
+	const url = `${osmApi()}/map.json?bbox=${b.map((x) => x.toFixed(5)).join(',')}`;
 	const r = await fetch(url, { signal, headers: { Accept: 'application/json' } });
 	if (r.status === 400) {
 		// Trop de nœuds dans la boîte : on la redécoupe.

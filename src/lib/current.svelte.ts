@@ -4,7 +4,11 @@ import { getCachedStation, putCachedStation, readPref, writePref } from './cache
 import { analyzeStation, type StationAnalysis } from './core/quests.js';
 import type { OsmElement } from './core/osm.js';
 import { fetchStationData, OsmApiError } from './osmapi.js';
+import { server } from './osmserver.svelte.js';
 import { loadStations, type Station } from './stations.js';
+
+// Clé du cache local : une gare chargée depuis le serveur de test ne se mélange pas à la vraie.
+const cacheKey = (id: string) => (server.id === 'prod' ? id : `${server.id}:${id}`);
 
 type State =
 	| { status: 'idle' }
@@ -17,6 +21,7 @@ type State =
 			analysis: StationAnalysis;
 			fetchedAt: number;
 			fromCache: boolean;
+			server: string;
 	  };
 
 export const current = $state<{ value: State }>({ value: { status: 'idle' } });
@@ -25,7 +30,8 @@ const MAX_AGE_MS = 24 * 3600 * 1000; // au-delà, on recharge si le réseau est 
 
 export async function openStation(id: string, { force = false } = {}) {
 	const prev = current.value;
-	if (!force && prev.status === 'ready' && prev.station.id === id) return;
+	if (!force && prev.status === 'ready' && prev.station.id === id && prev.server === server.id)
+		return;
 	current.value = { status: 'loading' };
 	let station: Station | undefined;
 	try {
@@ -41,7 +47,7 @@ export async function openStation(id: string, { force = false } = {}) {
 	current.value = { status: 'loading', station };
 	rememberRecent(station.id);
 
-	const cached = await getCachedStation(id);
+	const cached = await getCachedStation(cacheKey(id));
 	const fresh = cached && Date.now() - cached.fetchedAt < MAX_AGE_MS;
 	if (cached && (!force || !navigator.onLine) && (fresh || !navigator.onLine)) {
 		ready(station, cached.elements, cached.fetchedAt, true);
@@ -50,7 +56,7 @@ export async function openStation(id: string, { force = false } = {}) {
 	try {
 		const elements = await fetchStationData(station.bbox);
 		const fetchedAt = Date.now();
-		await putCachedStation({ id, fetchedAt, elements });
+		await putCachedStation({ id: cacheKey(id), fetchedAt, elements });
 		ready(station, elements, fetchedAt, false);
 	} catch (e) {
 		if (cached) ready(station, cached.elements, cached.fetchedAt, true);
@@ -73,8 +79,14 @@ function ready(station: Station, elements: OsmElement[], fetchedAt: number, from
 		elements,
 		analysis: analyzeStation(elements, station.bbox),
 		fetchedAt,
-		fromCache
+		fromCache,
+		server: server.id
 	};
+}
+
+/** Oublie la gare affichée (changement de serveur). */
+export function resetStation() {
+	current.value = { status: 'idle' };
 }
 
 export function recentIds(): string[] {

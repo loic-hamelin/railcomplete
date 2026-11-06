@@ -12,6 +12,10 @@ interface EditBase {
 	id: string;
 	station: string;
 	createdAt: number;
+	/** Serveur OSM d'origine des données modifiées (« prod » si absent). */
+	server?: 'prod' | 'dev';
+	/** Conflit détecté à l'envoi : la saisie est « à revoir » et n'est plus envoyée. */
+	conflict?: string;
 }
 
 /** Ajoute, change ou retire des tags d'un objet existant (null = retirer le tag). */
@@ -21,6 +25,8 @@ export interface TagEdit extends EditBase {
 	/** Version de l'objet au moment de la saisie (détection des conflits au lot 3). */
 	version?: number;
 	tags: Record<string, string | null>;
+	/** Valeurs des tags modifiés au moment de la saisie (pour détecter un changement entre-temps). */
+	base?: Record<string, string | null>;
 	/** Résumé lisible pour la liste des contributions (« Voie 3 », « Quai A »…). */
 	summary: string;
 }
@@ -36,6 +42,8 @@ export interface NewNodeEdit extends EditBase {
 	wayVersion?: number;
 	/** Le nœud est inséré après le nœud d'indice `after` du way. */
 	after: number;
+	/** Identifiant de ce nœud voisin (retrouve la place même si le way a changé entre-temps). */
+	afterNode?: number;
 	tags: Tags;
 	summary: string;
 }
