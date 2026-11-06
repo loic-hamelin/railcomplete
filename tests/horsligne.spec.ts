@@ -37,7 +37,7 @@ test('télécharger une gare puis la consulter, carte comprise, sans réseau', a
 	const tiles = await mockTiles(page);
 	await page.goto(`/gare/?id=${STATION}`);
 	await page.evaluate(() => navigator.serviceWorker.ready);
-	await page.getByRole('button', { name: /Télécharger pour le hors-ligne/ }).click();
+	await page.getByRole('button', { name: /Emporter la gare hors-ligne/ }).click();
 	await expect(page.getByText('Disponible hors-ligne')).toBeVisible({ timeout: 30_000 });
 	const fetched = tiles();
 	expect(fetched).toBeGreaterThan(50);

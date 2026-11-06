@@ -1,11 +1,10 @@
 <script lang="ts">
-	import '@fontsource/atkinson-hyperlegible/latin-400.css';
-	import '@fontsource/atkinson-hyperlegible/latin-700.css';
-	import '@fontsource/atkinson-hyperlegible/latin-ext-400.css';
-	import '@fontsource/atkinson-hyperlegible/latin-ext-700.css';
+	// Jetons, police (Atkinson Hyperlegible Next 400/600, auto-hébergée) et composants partagés.
 	import '../app.css';
 	import favicon from '#lib/assets/favicon.svg';
+	import font400 from '@fontsource/atkinson-hyperlegible-next/files/atkinson-hyperlegible-next-latin-400-normal.woff2?url';
 	import NetStatus from '#lib/NetStatus.svelte';
+	import { loadTheme } from '#lib/theme.svelte.js';
 	import type { LayoutProps } from './$types';
 	import { onMount } from 'svelte';
 
@@ -14,6 +13,7 @@
 	// Quand une nouvelle version de l'appli prend le relais, on recharge une fois la page
 	// pour l'afficher (sauf à la toute première installation).
 	onMount(() => {
+		loadTheme();
 		const sw = navigator.serviceWorker;
 		if (!sw?.controller) return;
 		let reloaded = false;
@@ -27,7 +27,9 @@
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
-	<meta name="theme-color" content="#0B4F9C" />
+	<link rel="preload" href={font400} as="font" type="font/woff2" crossorigin="anonymous" />
+	<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+	<meta name="theme-color" content="#161412" media="(prefers-color-scheme: dark)" />
 	<link rel="manifest" href="/manifest.webmanifest" />
 	<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
 	<meta name="apple-mobile-web-app-title" content="stationcomplete" />

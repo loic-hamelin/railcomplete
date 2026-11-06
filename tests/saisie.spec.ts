@@ -84,6 +84,15 @@ test('saisir un numéro de voie et une pancarte, puis les retrouver', async ({ p
 	// E6 — placer une pancarte sur la même voie
 	await page.goto(`/gare/placer/?id=${STATION}&lon=${mid.lon}&lat=${mid.lat}`);
 	await expect(page.getByText('Accrochée à la voie')).toBeVisible();
+	// Les flèches de 20 cm (alternative au glisser, WCAG 2.5.7) sont repliées derrière un bouton.
+	await expect(page.getByRole('button', { name: 'Déplacer la croix vers la droite' })).toHaveCount(
+		0
+	);
+	await page.getByRole('button', { name: 'Ajuster au centimètre' }).click();
+	await expect(page.getByRole('button', { name: 'Ajuster au centimètre' })).toHaveAttribute(
+		'aria-expanded',
+		'true'
+	);
 	await page.getByRole('button', { name: 'Déplacer la croix vers la droite' }).click();
 	await expect(page.getByText('Accrochée à la voie')).toBeVisible();
 	await expectAccessible(page, '.maplibregl-canvas-container');

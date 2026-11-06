@@ -4,6 +4,36 @@
 > À valider par Loïc avant tout développement.
 > v0.2 : décisions de Loïc intégrées (§ 0 bis) et champs alignés sur `osm-tags-rapport.md` (§ 3 E6, E7, E11, § 4).
 
+## Refonte visuelle v1 (6 novembre 2026)
+
+Habillage revu (palette, police, carte, icônes, contrôles) sans changer les parcours ni les contenus. Valeurs à jour au § 5 ; jetons dans `src/app.css`, style de carte dans `src/lib/map/style.ts`.
+
+Décisions de Loïc :
+
+1. **Police** : Atkinson Hyperlegible **Next**, graisses 400 et 600 seulement (woff2, sous-ensembles latin et latin-ext, ce dernier chargé à la demande). L'ancienne police (400/700) est retirée.
+2. **Bleu d'action** : bleu OSRD exact `#1844EF` en clair ; `#8098F6` (teinte claire du même bleu) en sombre. Ratios calculés par `scripts/contrast.mjs` (§ 5.1).
+3. **Numéros de voie complets** masqués sur la vue générale (zoom < 18, sauf voie à compléter, en alerte, modifiée ou sélectionnée), visibles en zoomant.
+4. **« Modifié par vous »** : trait bleu pâle `#B3C8FF` + point bleu dans l'étiquette.
+5. **Feuille basse E5** : un seul bouton « Renseigner », compact (à filet, non pleine largeur), qui mène à la fiche ; titre, 1 à 3 constats avec icône, lien « Voir sur OpenStreetMap » (et lien discret « Pancarte ici » pour une voie).
+6. **E5, E6, E11 : menus flottants** au-dessus d'une carte plein écran (cartes à coins arrondis, ombre légère, marges 8 px, zones sûres respectées). Les flèches de 20 cm ne sont plus affichées en permanence : un petit bouton « Ajuster au centimètre » ouvre un pavé flottant (alternative sans glisser, WCAG 2.5.7) ; libellés des flèches inchangés.
+
+Écarts assumés avec cette spécification (v0.3) :
+
+| Sujet               | v0.3                              | Refonte v1                                                                                                                                                                                                             | Raison                                                     |
+| ------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Tailles de libellés | Légende 14 sp minimum             | 13 px pour surtitres en capitales et onglets ; 11 px pour les étiquettes de carte (codes de 1 à 5 caractères)                                                                                                          | Allègement ; libellés courts uniquement                    |
+| Cibles              | ≥ 48 × 48 dp partout              | 48 px pour actions principales et lignes ; 44 px pour boutons flottants, puces, zoom, segments ; 24 px pour les étiquettes de carte (WCAG 2.5.8), l'objet restant touchable sur son trait et présent dans la vue Liste | Contrôles plus discrets sur la carte                       |
+| Réticule            | Croix jaune `#FFD400` à halo noir | Croix blanche 1,5 px à liseré sombre, centre libre de 16 px ; jaune `#FFF700` quand le point est accroché                                                                                                              | Précision au mètre ; l'accrochage se voit sur la croix     |
+| Tracés sur l'ortho  | Halo blanc/noir de 2 px           | Trait clair + liseré sombre (0,75 px de chaque côté), épaisseurs selon le zoom                                                                                                                                         | Moins lourd, ≥ 3:1 sur béton comme sur ballast             |
+| Icônes              | Material Symbols ou Lucide        | Jeu maison de 37 icônes, trait 1,5 px (`src/lib/icons.ts`)                                                                                                                                                             | Poids, cohérence du trait fin, aucune dépendance           |
+| États des marqueurs | ✓ ? ! ⏱ en coin                   | « ! » dans une pastille rouge (alerte), « ? » ambre (à compléter), point bleu (modifié), rien si complet                                                                                                               | Moins de signes ; forme + couleur, jamais la couleur seule |
+| Alerte sur E4       | Carte encadrée de rouge           | Icône rouge dans un carré teinté, en tête de liste                                                                                                                                                                     | Couleur d'alerte réservée au signe                         |
+| Thème               | Système seulement                 | Réglage Système / Clair / Sombre dans E10 (`data-theme`)                                                                                                                                                               | Prévu par la maquette E10                                  |
+
+Non repris pour l'instant : mode « Plein soleil », mini-carte en tête de E7, « ancien → nouveau » barré sur E8 (le résumé reste celui du cœur métier).
+
+---
+
 ## 0 bis. Décisions validées (5 novembre 2026)
 
 | Sujet            | Décision                                                                                                                                                                     |
@@ -13,7 +43,7 @@
 | À distance       | Autorisé pour **positions et vérifications** seulement. Les numéros de quais/voies et les pancartes exigent d'être **sur place** (GPS ponctuel dans l'emprise de la gare)    |
 | Gares sans quais | **Dessiner le quai** dans l'appli : nouvel écran E11                                                                                                                         |
 | Motivation       | Compteurs personnels sobres, ni badges ni classement                                                                                                                         |
-| Police           | **Atkinson Hyperlegible** (Marianne est réservée aux services de l'État)                                                                                                     |
+| Police           | **Atkinson Hyperlegible** (Marianne est réservée aux services de l'État) — remplacée par sa version **Next** à la refonte v1                                                 |
 | Contributeurs    | Citoyens uniquement ; les employés de gare seront traités plus tard (organised editing)                                                                                      |
 
 ---
@@ -553,57 +583,93 @@ Si l'utilisateur est **sur place** (GPS récent dans la gare), les quêtes « su
 
 ## 5. Principes visuels
 
-### 5.1 Palette (contrastes WCAG calculés)
+### 5.1 Palette et jetons (refonte v1, contrastes WCAG calculés)
 
-Thème clair (fond `#FFFFFF`) :
+Jetons CSS de `src/app.css` (noms utilisés par tout le code). Le thème suit le téléphone, ou le réglage E10 (`<html data-theme="light|dark">`).
 
-| Rôle                      | Couleur                                | Contraste sur fond |
-| ------------------------- | -------------------------------------- | ------------------ |
-| Texte principal           | `#1A1D21`                              | 16,9:1             |
-| Texte secondaire          | `#4A515B`                              | 8,0:1              |
-| Primaire (boutons, liens) | `#0B4F9C` (texte blanc dessus : 8,0:1) | 8,0:1              |
-| Objet Quai                | `#00707A` (sarcelle)                   | 5,8:1              |
-| Objet Voie                | `#6A3FB5` (violet)                     | 7,0:1              |
-| Objet Pancarte            | `#A34A00` (orange brûlé)               | 5,9:1              |
-| État complet              | `#1E7A34`                              | 5,4:1              |
-| État manquant             | `#8A5A00`                              | 5,9:1              |
-| Danger / sécurité         | `#B3261E`                              | 6,5:1              |
+| Jeton                                                           | Clair                             | Sombre                            | Rôle                                                                          |
+| --------------------------------------------------------------- | --------------------------------- | --------------------------------- | ----------------------------------------------------------------------------- |
+| `--bg`                                                          | `#FFFFFF`                         | `#161412`                         | fond                                                                          |
+| `--surface` / `--surface-2`                                     | `#F5F5F4` / `#EBEBEA`             | `#201D1A` / `#2A2723`             | bandeaux, segmentés / bouton désactivé                                        |
+| `--border` / `--border-strong`                                  | `#D3D1CF` / `#8A8681`             | `#3B3733` / `#77736E`             | filets décoratifs / contours de champs et boutons secondaires                 |
+| `--text` / `--text-2` / `--text-3`                              | `#1F1B17` / `#5C5955` / `#706C67` | `#F2F0EE` / `#B6B2AF` / `#94918E` | texte, secondaire, chevrons et indications                                    |
+| `--primary`                                                     | **`#1844EF`** (bleu OSRD)         | **`#8098F6`**                     | seul bleu d'action : boutons, liens, sélection                                |
+| `--primary-hover` / `--primary-soft` / `--on-primary`           | `#1336C4` / `#E8EFFD` / `#FFFFFF` | `#97ABF8` / `#1E2A44` / `#10131A` | survol, choix sélectionné, texte sur bouton                                   |
+| `--quai` (+ `-soft`)                                            | `#2D6B65` / `#E7F1EF`             | `#7CC6BC` / `#1B2A28`             | famille quai                                                                  |
+| `--voie` (+ `-soft`)                                            | `#57508C` / `#EEEDF6`             | `#AFA8E8` / `#25233A`             | famille voie                                                                  |
+| `--pancarte` (+ `-soft`)                                        | `#85561A` / `#F7F0E4`             | `#D8A660` / `#2E2518`             | famille pancarte                                                              |
+| `--ok` / `--missing` / `--danger` (+ `-soft`)                   | `#0B723C` / `#7D521E` / `#C42B21` | `#5FCB8E` / `#E2B256` / `#FF8A80` | sémantique atténuée ; rouge réservé aux incohérences                          |
+| `--on-danger`                                                   | `#FFFFFF`                         | `#1F1B17`                         | texte sur bouton rouge                                                        |
+| `--overlay` / `--overlay-line`                                  | blanc 96 % / filet 12 %           | `#1A1714` 94 % / filet blanc 14 % | contrôles flottants sur la carte                                              |
+| `--radius` / `--radius-lg` / `--radius-sheet` / `--radius-pill` | 6 / 8 / 12 / 999 px               |                                   | boutons et champs / listes, tuiles, barres flottantes / feuille basse / puces |
+| `--target` / `--target-min`                                     | 48 / 44 px                        |                                   | cibles principales / flottantes                                               |
 
-Thème sombre (fond `#121417`, défaut si système sombre ; recommandé pour l'économie d'énergie sur OLED) :
+Contrastes (sortie de `node scripts/contrast.mjs`, formule WCAG 2.x) :
 
-| Rôle                        | Couleur                                    | Contraste sur fond  |
-| --------------------------- | ------------------------------------------ | ------------------- |
-| Texte principal             | `#ECEEF1`                                  | 15,9:1              |
-| Texte secondaire            | `#AEB6C0`                                  | 9,0:1               |
-| Primaire                    | `#8CB8FF` (texte `#121417` dessus : 9,2:1) | 9,2:1               |
-| Quai / Voie / Pancarte      | `#4FC7CF` / `#B79CFF` / `#FFA45C`          | 9,1 / 8,1 / 9,4:1   |
-| Complet / Manquant / Danger | `#6FD48A` / `#F2C14E` / `#FF8A80`          | 10,1 / 11,0 / 8,1:1 |
+| Paire (texte / fond)         | Clair   | Sombre  | Usage                                |
+| ---------------------------- | ------- | ------- | ------------------------------------ |
+| `text` / `bg`                | 17,11:1 | 16,16:1 |                                      |
+| `text` / `surface`           | 15,68:1 | 14,75:1 |                                      |
+| `text-2` / `bg`              | 6,96:1  | 8,73:1  |                                      |
+| `text-2` / `surface`         | 6,38:1  | 7,97:1  |                                      |
+| `text-2` / `surface-2`       | 5,84:1  | 7,06:1  | bouton désactivé                     |
+| `text-3` / `bg`              | 5,21:1  | 5,86:1  |                                      |
+| `primary` / `bg`             | 6,75:1  | 6,77:1  | liens, bouton discret                |
+| `primary` / `surface`        | 6,19:1  | 6,18:1  |                                      |
+| `primary` / `primary-soft`   | 5,85:1  | 5,27:1  | choix sélectionné                    |
+| `on-primary` / `primary`     | 6,75:1  | 6,85:1  | bouton principal                     |
+| `quai` / `bg`                | 6,17:1  | 9,33:1  |                                      |
+| `quai` / `quai-soft`         | 5,36:1  | 7,57:1  |                                      |
+| `voie` / `bg`                | 7,16:1  | 8,39:1  |                                      |
+| `voie` / `voie-soft`         | 6,17:1  | 6,95:1  | jetons E7                            |
+| `pancarte` / `bg`            | 6,28:1  | 8,35:1  |                                      |
+| `pancarte` / `pancarte-soft` | 5,55:1  | 6,85:1  |                                      |
+| `ok` / `bg`                  | 6,02:1  | 9,12:1  |                                      |
+| `missing` / `bg`             | 6,78:1  | 9,39:1  |                                      |
+| `missing` / `missing-soft`   | 6,13:1  | 7,65:1  |                                      |
+| `danger` / `bg`              | 5,65:1  | 8,05:1  |                                      |
+| `danger` / `danger-soft`     | 4,97:1  | 6,66:1  |                                      |
+| `on-danger` / `danger`       | 5,65:1  | 7,49:1  | bouton « Tout effacer »              |
+| `text` / `missing-soft`      | 15,48:1 | 13,16:1 | bandeau                              |
+| `text` / `danger-soft`       | 15,03:1 | 13,37:1 | bandeau                              |
+| `border-strong` / `bg`       | 3,62:1  | 3,90:1  | contour de champ, 1.4.11             |
+| `knob` / `border-strong`     | 3,62:1  | 4,14:1  | interrupteur éteint, 1.4.11          |
+| `primary` / `surface-2`      | 5,66:1  | 5,48:1  | interrupteur allumé sur fond, 1.4.11 |
+
+Carte (identique dans les deux thèmes ; fonds de référence ballast `#857C6F`, béton `#AEA89C`) — `src/lib/map/style.ts` :
+
+| Élément               | Valeur                                             | Contraste                                                                              |
+| --------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Voie                  | trait `#E4E0FF` sur liseré `#14110E` à 70 %        | trait/ballast 3,21:1 ; trait/liseré 10,06:1 ; liseré/béton 4,49:1                      |
+| Quai                  | contour `#B5EDE4`, remplissage 16 % (10 % dès z18) | porté par le liseré (≥ 3:1 sur les deux fonds)                                         |
+| Modifié par vous      | `#B3C8FF`                                          | porté par le liseré                                                                    |
+| Sélection, accrochage | `#FFF700` + halo                                   | 3,63:1 sur ballast                                                                     |
+| Étiquette             | fond `#1F1B17` à 86 %, texte blanc 11 px / 600     | 13,3 à 14,3:1 ; « ? » `#FFE08A` 11,05:1 ; sélectionnée `#1F1B17` sur `#FFF700` 15,12:1 |
+| Croix de visée        | blanche 1,5 px sur liseré 3,5 px à 75 %            | 4,11:1 sur ballast ; liseré/béton 5,01:1                                               |
+
+Épaisseurs (px, interpolées selon le zoom) : voie 0,75 (z15) → 1,25 (z17) → 1,6 (z18) → 2 (z19) → 3 (z21), liseré = trait + 1,5 ; quai 0,75 → 1 → 1,25 → 1,5 → 2.
 
 Règles :
 
-- **Sur l'ortho**, les couleurs seules ne suffisent pas (sarcelle sur ballast gris ≈ 1,3:1) : tout tracé ou pictogramme sur carte porte un **halo** blanc (clair) ou noir (sombre) de 2 px pour garantir ≥ 3:1 (WCAG 1.4.11).
-- Réticule : jaune `#FFD400` + halo noir (14,7:1), visible sur toutes les textures.
-- Mode « Plein soleil » : texte principal noir pur, traits ×1,5, ortho légèrement désaturée/éclaircie pour faire ressortir les tracés.
-- Aucune information portée par la couleur seule : toujours icône ou texte (✓, ?, !).
+- La photo IGN reste intacte ; chaque tracé = trait clair + liseré sombre (WCAG 1.4.11 tenu par au moins une frontière).
+- Tirets = à compléter ; « ! » = alerte ; point bleu = modifié ; jaune = sélection. Jamais la couleur seule.
+- Étiquettes : z < 17 point d'état seulement ; 17–18 quais + voies à compléter ou en alerte ; ≥ 18 toutes les voies ; ≥ 18,5 plaques des pancartes. Placement sans chevauchement recalculé à chaque fin de déplacement (5 à 8 positions essayées le long de l'objet, hors des contrôles flottants), sinon masquée (l'objet reste touchable sur son trait).
+- Ombres réservées à ce qui flotte (contrôles de carte, feuille basse, bouton principal léger).
 
 ### 5.2 Typographie
 
-- **Atkinson Hyperlegible** (décision v0.2) (lisibilité, distinction 1/l/I, 0/O — utile pour les numéros de voie) ; repli système (`system-ui`).
-- Échelle (sp, suit la taille système, testée à 200 %) : Titre 24/32 gras · Sous-titre 18/24 semi-gras · Corps 16/24 · Légende 14/20 (minimum).
-- Numéros de quai/voie/pancarte : chiffres tabulaires, gras, ≥ 20 sp dans les fiches.
+- **Atkinson Hyperlegible Next**, 400 et 600 (jamais 700 : faux gras), auto-hébergée ; repli `system-ui`. Chiffres tabulaires pour compteurs, jauges et numéros.
+- Échelle (rem, suit la taille système) : titre d'écran 24/32 · titre d'accueil 26/32 · barre d'en-tête 18/24 (17 sur les barres flottantes) · sous-titre de section 17/24 · corps 16 · secondaire 14/20 · surtitre et onglets 13/16 · numéro dans un champ 28 · étiquette de carte 11.
 
-### 5.3 Iconographie des 3 objets
+### 5.3 Iconographie
 
-Pictogrammes simples, trait 2 px, lisibles à 24 dp, chacun avec sa couleur **et** une forme distincte :
+Jeu maison (`src/lib/icons.ts`, composant `Icon.svelte`) : grille 24 px, trait 1,5 px, extrémités arrondies, `currentColor`. Tailles 24 (onglets, en-têtes), 20 (boutons), 18 (bandeaux, constats), 14–16 (méta).
 
-| Objet            | Pictogramme                                                                                            | Forme du marqueur sur carte                                                 |
-| ---------------- | ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
-| Quai             | Rectangle allongé avec bord épais côté voie (`▭`)                                                      | Pastille **carrée** au centre du quai, contenant le numéro (« B ») ou « ? » |
-| Voie             | Deux rails + traverses (`═`)                                                                           | Pastille **ronde** sur l'axe, contenant le numéro (« 2 ») ou « ? »          |
-| Pancarte d'arrêt | Panneau carré sur mât, avec chiffre (`⚑`) — s'inspirer de la vraie pancarte (fond blanc, chiffre noir) | **Losange/panneau** sur le bord de quai, contenant le texte (« 8 »)         |
-
-États superposés en coin du marqueur : ✓ complet · ? manquant · ! à vérifier/conflit · ⏱ en attente d'envoi.
-Autres icônes : jeu standard sous licence libre (ex. Material Symbols ou Lucide), trait homogène.
+| Objet            | Pictogramme                   | Marqueur sur la carte                                         |
+| ---------------- | ----------------------------- | ------------------------------------------------------------- |
+| Quai             | rectangle avec bord intérieur | pastille à coins de 2 px                                      |
+| Voie             | deux rails et traverses       | pastille ronde                                                |
+| Pancarte d'arrêt | plaque sur mât                | plaque blanche sur mât (≥ z18,5), petit rond blanc en dessous |
 
 ### 5.4 Ton rédactionnel
 

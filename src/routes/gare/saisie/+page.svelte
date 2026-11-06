@@ -283,12 +283,14 @@
 <svelte:head><title>Fiche — stationcomplete</title></svelte:head>
 
 <div class="screen">
-	<header>
+	<header class="head">
 		<a class="icon-btn" href={back} aria-label="Fermer sans enregistrer"
-			><span aria-hidden="true">✕</span></a
+			><Icon name="close" size={22} /></a
 		>
 		<div class="h">
-			<h1>{title}</h1>
+			<h1>
+				{#if kind}<span class="fam {kind}"><Icon name={kind} size={20} /></span>{/if}{title}
+			</h1>
 			<span class="sub">{ready?.station.name ?? ''}</span>
 		</div>
 	</header>
@@ -302,15 +304,15 @@
 			<p class="note">Cet objet n’existe plus dans les données de la gare.</p>
 		{:else}
 			{#if !survey && !(kind === 'pancarte' && !placed && !correcting)}
-				<div class="lock" role="note">
-					<Icon name="lock" size={20} />
+				<div class="banner warn lock" role="note">
+					<Icon name="lock" size={18} />
 					<div>
 						<p>
 							Les numéros et les pancartes se relèvent <strong>sur place</strong>, en restant
 							derrière la ligne de sécurité.
 						</p>
 						<button
-							class="btn-small"
+							class="btn-sm"
 							type="button"
 							disabled={where.status === 'checking'}
 							onclick={() => ready && checkOnSite(ready.station)}
@@ -341,13 +343,15 @@
 								<button
 									type="button"
 									aria-label={`Retirer la voie ${r}`}
-									onclick={() => (refs = refs.filter((x) => x !== r))}>✕</button
+									onclick={() => (refs = refs.filter((x) => x !== r))}
+									><Icon name="close" size={16} /></button
 								>
 							</span>
 						{/each}
 						<label class="add">
 							<span class="visually-hidden">Ajouter un numéro de voie</span>
 							<input
+								class="input"
 								bind:value={newRef}
 								placeholder="Ajouter"
 								inputmode="text"
@@ -366,6 +370,7 @@
 					<label class="field">
 						<span class="visually-hidden">Lettre ou nom du quai</span>
 						<input
+							class="input"
 							bind:value={localRef}
 							placeholder="Ex. A"
 							autocapitalize="characters"
@@ -379,6 +384,7 @@
 					<label class="field big">
 						<span class="visually-hidden">Numéro de la voie</span>
 						<input
+							class="input"
 							bind:value={trackRef}
 							placeholder="Ex. 3"
 							autocapitalize="characters"
@@ -400,7 +406,7 @@
 				</fieldset>
 			{:else if kind === 'pancarte'}
 				{#if !placed && !correcting}
-					<div class="card">
+					<div class="banner">
 						<p>
 							<strong>{el?.tags?.['railway:signal:stop:caption'] ?? 'Pancarte existante'}</strong>
 						</p>
@@ -447,6 +453,7 @@
 								<label class="mini">
 									<span class="visually-hidden">Autre nombre</span>
 									<input
+										class="input"
 										inputmode="numeric"
 										placeholder="Autre"
 										maxlength="2"
@@ -515,7 +522,12 @@
 							<legend>Texte de la pancarte</legend>
 							<label class="field">
 								<span class="visually-hidden">Texte lu sur la pancarte</span>
-								<input bind:value={sign.caption} maxlength="40" placeholder="Recopiez le texte" />
+								<input
+									class="input"
+									bind:value={sign.caption}
+									maxlength="40"
+									placeholder="Recopiez le texte"
+								/>
 							</label>
 						</fieldset>
 					{/if}
@@ -592,70 +604,61 @@
 		display: flex;
 		flex-direction: column;
 	}
-	header {
-		display: flex;
-		align-items: center;
-		gap: 4px;
-		padding: 8px 12px 8px 4px;
-		border-bottom: 1px solid var(--border);
-	}
-	.icon-btn {
-		width: 48px;
-		height: 48px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		color: var(--text);
-		text-decoration: none;
-		font-size: 1.25rem;
-	}
 	.h {
 		display: flex;
 		flex-direction: column;
+		min-width: 0;
 	}
-	h1 {
-		margin: 0;
-		font-size: 1.25rem;
+	.head h1 {
+		display: flex;
+		align-items: center;
+		gap: 8px;
 	}
-	.sub {
-		font-size: 0.875rem;
-		color: var(--text-2);
+	.fam {
+		display: flex;
+		color: var(--quai);
+	}
+	.fam.voie {
+		color: var(--voie);
+	}
+	.fam.pancarte {
+		color: var(--pancarte);
 	}
 	main {
 		flex-grow: 1;
 		width: 100%;
 		max-width: 640px;
 		margin: 0 auto;
-		padding: 16px 20px;
+		padding: 16px;
 		display: flex;
 		flex-direction: column;
-		gap: 18px;
+		gap: 20px;
 	}
 	fieldset {
 		border: 0;
 		margin: 0;
 		padding: 0;
+		min-width: 0;
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
 	}
-	fieldset:disabled {
-		opacity: 0.55;
-	}
 	legend {
 		padding: 0;
 		margin-bottom: 8px;
-		font-weight: 700;
-		font-size: 1.0625rem;
+		font-size: 1rem;
+		line-height: 1.4;
 	}
 	.opt {
 		font-weight: 400;
+		font-size: 0.875rem;
 		color: var(--text-2);
 	}
 	.hint,
 	.small {
 		margin: 0;
-		font-size: 0.9375rem;
+		font-size: 0.875rem;
+		line-height: 1.43;
 		color: var(--text-2);
 	}
 	.note {
@@ -664,44 +667,41 @@
 	}
 	.err {
 		color: var(--danger);
-		font-weight: 700;
+		font-weight: 600;
 	}
-	.lock {
+	.lock > div {
 		display: flex;
-		gap: 10px;
-		padding: 12px 14px;
-		border-radius: var(--radius);
-		background: var(--surface);
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 8px;
 	}
 	.lock p {
-		margin: 0 0 8px;
-	}
-	.card {
-		padding: 14px;
-		border-radius: var(--radius);
-		background: var(--surface);
-	}
-	.card p {
 		margin: 0;
 	}
-	input {
-		font: 1.0625rem var(--font);
+	.lock .small {
 		color: var(--text);
-		background: var(--bg);
-		border: 2px solid var(--text-2);
-		border-radius: 12px;
-		min-height: 48px;
-		padding: 0 12px;
-		width: 100%;
 	}
-	input:focus {
-		border-color: var(--primary);
-		outline: none;
+	.banner p {
+		margin: 0;
+	}
+	.input:focus {
+		outline: 2px solid var(--primary);
+		outline-offset: 2px;
+	}
+	.input:disabled,
+	.grid button:disabled,
+	.chips button:disabled {
+		background: var(--surface-2);
+		color: var(--text-2);
+		border-color: transparent;
+		cursor: default;
 	}
 	.field.big input {
-		font-size: 1.5rem;
-		font-weight: 700;
-		max-width: 200px;
+		min-height: 56px;
+		max-width: 150px;
+		font-size: 1.75rem;
+		font-weight: 600;
+		font-variant-numeric: tabular-nums;
 	}
 	.tokens {
 		display: flex;
@@ -712,110 +712,110 @@
 	.token {
 		display: inline-flex;
 		align-items: center;
-		gap: 4px;
+		gap: 2px;
 		min-height: 44px;
-		padding: 0 4px 0 14px;
-		border-radius: 22px;
-		background: var(--voie);
-		color: #fff;
-		font-weight: 700;
-		font-size: 1.0625rem;
+		padding: 0 0 0 14px;
+		border-radius: var(--radius);
+		background: var(--voie-soft);
+		color: var(--voie);
+		font-weight: 600;
+		font-size: 1.125rem;
+		font-variant-numeric: tabular-nums;
 	}
 	.token button {
-		width: 36px;
-		height: 36px;
+		width: 44px;
+		height: 44px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 		border: 0;
-		border-radius: 18px;
+		border-radius: var(--radius);
 		background: transparent;
 		color: inherit;
 		cursor: pointer;
 	}
 	.add {
-		width: 110px;
+		width: 112px;
 	}
 	.grid {
 		display: grid;
 		grid-template-columns: repeat(4, minmax(0, 1fr));
-		gap: 6px;
+		gap: 8px;
 	}
+	/* Puces de choix : filet ; choisie = filet 2 px bleu, fond bleu pâle, coche (pas seulement la couleur). */
 	.grid button,
-	.chips button,
-	.seg button {
-		min-height: 50px;
-		border: 2px solid var(--border);
-		border-radius: 12px;
+	.chips button {
+		position: relative;
+		min-height: 48px;
+		border: 1px solid var(--border-strong);
+		border-radius: var(--radius);
 		background: var(--bg);
 		color: var(--text);
-		font: 700 0.9375rem var(--font);
+		font: 600 0.9375rem/1.2 var(--font);
 		cursor: pointer;
 	}
 	.grid button.wide {
 		grid-column: span 2;
 	}
 	.grid button[aria-pressed='true'],
-	.chips button[aria-pressed='true'],
-	.seg button[aria-pressed='true'] {
-		border: 3px solid var(--primary);
-		background: color-mix(in srgb, var(--primary) 14%, var(--bg));
+	.chips button[aria-pressed='true'] {
+		border: 2px solid var(--primary);
+		background: var(--primary-soft);
 		color: var(--primary);
 	}
+	.grid button[aria-pressed='true']::after {
+		content: '';
+		position: absolute;
+		top: -7px;
+		right: -7px;
+		width: 18px;
+		height: 18px;
+		border-radius: 50%;
+		background: var(--primary)
+			url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E")
+			center / 12px no-repeat;
+		box-shadow: 0 0 0 2px var(--bg);
+	}
 	.grid button:disabled {
-		opacity: 0.5;
-		cursor: default;
-		border-style: dashed;
+		border: 1px dashed var(--border-strong);
+		background: var(--bg);
 	}
 	.plate {
-		padding: 2px 6px;
-		border: 2px solid #1a1d21;
-		border-radius: 3px;
+		padding: 1px 6px;
+		border: 1.5px solid #1f1b17;
+		border-radius: 2px;
 		background: #fff;
-		color: #1a1d21;
+		color: #1f1b17;
+		font-variant-numeric: tabular-nums;
 	}
 	.chips {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 6px;
+		gap: 8px;
 	}
 	.chips button {
 		min-width: 48px;
+		min-height: 44px;
 		padding: 0 12px;
-		border-radius: 24px;
+		font-variant-numeric: tabular-nums;
 	}
 	.mini {
-		width: 90px;
+		width: 96px;
 	}
-	.seg {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 8px;
+	.mini .input {
+		min-height: 44px;
 	}
 	.seg.four {
-		grid-template-columns: repeat(4, minmax(0, 1fr));
-	}
-	.seg.four button {
-		font-size: 0.8125rem;
-	}
-	.btn-small {
-		min-height: 44px;
-		padding: 0 14px;
-		border: 2px solid var(--primary);
-		border-radius: 12px;
-		background: var(--bg);
-		color: var(--primary);
-		font: 700 0.9375rem var(--font);
-		cursor: pointer;
+		grid-auto-flow: row;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
 	footer {
 		position: sticky;
 		bottom: 0;
 		display: flex;
 		gap: 8px;
-		padding: 12px 20px calc(16px + env(safe-area-inset-bottom));
+		padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
 		border-top: 1px solid var(--border);
 		background: var(--bg);
-	}
-	footer .btn:disabled {
-		opacity: 0.5;
-		cursor: default;
 	}
 </style>

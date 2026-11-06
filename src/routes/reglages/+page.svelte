@@ -2,6 +2,8 @@
 	// E10 — Réglages : compte OpenStreetMap, serveur, mode démonstration, informations.
 	import { resolve } from '$app/paths';
 	import BottomNav from '#lib/BottomNav.svelte';
+	import Icon from '#lib/Icon.svelte';
+	import { setTheme, theme, type Theme } from '#lib/theme.svelte.js';
 	import { account, configured, login, logout, signedIn, syncAccount } from '#lib/auth.svelte.js';
 	import { resetStation } from '#lib/current.svelte.js';
 	import { setDemo, settings } from '#lib/edits.svelte.js';
@@ -25,6 +27,11 @@
 	});
 	const mo = (b: number) => `${(b / 1e6).toFixed(1).replace('.', ',')} Mo`;
 	const total = $derived(downloads.list.reduce((n, d) => n + d.bytes, 0));
+	const THEMES: [Theme, string][] = [
+		['system', 'Système'],
+		['light', 'Clair'],
+		['dark', 'Sombre']
+	];
 	function choose(id: ServerId) {
 		setServer(id);
 		resetStation();
@@ -39,7 +46,7 @@
 	<main>
 		<h1>Réglages</h1>
 
-		<h2>Compte OpenStreetMap</h2>
+		<h2 class="overline">Compte OpenStreetMap</h2>
 		<div class="group">
 			<div class="row">
 				{#if mounted && signedIn() && account.user}
@@ -48,10 +55,10 @@
 							>{SERVERS[server.id].label}</span
 						></span
 					>
-					<button class="small-btn" type="button" onclick={logout}>Se déconnecter</button>
+					<button class="btn-sm" type="button" onclick={logout}>Se déconnecter</button>
 				{:else if mounted && configured()}
 					<span class="txt"><span>Non connecté</span></span>
-					<button class="small-btn" type="button" onclick={() => login()}>Se connecter</button>
+					<button class="btn-sm" type="button" onclick={() => login()}>Se connecter</button>
 				{:else}
 					<span class="txt"
 						><span>Connexion indisponible</span><span class="small"
@@ -62,7 +69,25 @@
 			</div>
 		</div>
 
-		<h2>Serveur</h2>
+		<h2 class="overline">Apparence</h2>
+		<div class="group">
+			<div class="row col">
+				<span class="txt"
+					><span id="theme-label">Thème</span><span class="small"
+						>« Système » suit le réglage de votre téléphone.</span
+					></span
+				>
+				<div class="seg" role="group" aria-labelledby="theme-label">
+					{#each THEMES as [v, label] (v)}
+						<button type="button" aria-pressed={theme.value === v} onclick={() => setTheme(v)}
+							>{label}</button
+						>
+					{/each}
+				</div>
+			</div>
+		</div>
+
+		<h2 class="overline">Serveur</h2>
 		<fieldset class="group">
 			<legend class="visually-hidden">Serveur OpenStreetMap</legend>
 			<label class="row">
@@ -93,7 +118,7 @@
 			</label>
 		</fieldset>
 
-		<h2>Saisie</h2>
+		<h2 class="overline">Saisie</h2>
 		<div class="group">
 			<div class="row">
 				<span class="txt">
@@ -117,7 +142,7 @@
 			</div>
 		</div>
 
-		<h2>
+		<h2 class="overline">
 			Gares téléchargées{#if downloads.list.length}
 				· {mo(total)}{/if}
 		</h2>
@@ -130,7 +155,7 @@
 						></span
 					>
 					<button
-						class="small-btn"
+						class="btn-sm"
 						type="button"
 						aria-label={`Supprimer ${d.name} du téléphone`}
 						onclick={() => removeDownload(d, bboxes[d.id])}>Supprimer</button
@@ -147,25 +172,16 @@
 			{/each}
 		</div>
 
-		<h2>Affichage</h2>
-		<div class="group">
-			<div class="row">
-				<span class="txt"
-					><span>Thème</span><span class="small">Clair ou sombre, comme votre téléphone</span></span
-				>
-			</div>
-		</div>
-
-		<h2>À propos</h2>
+		<h2 class="overline">À propos</h2>
 		<div class="group">
 			<a class="row link" href={resolve('/a-propos')}>
-				<span class="txt">Sécurité, licences, contact</span><span aria-hidden="true">›</span>
+				<span class="txt">Sécurité, licences, contact</span><Icon name="chev" size={18} />
 			</a>
 			<a class="row link" href={resolve('/donnees-personnelles')}>
-				<span class="txt">Données personnelles</span><span aria-hidden="true">›</span>
+				<span class="txt">Données personnelles</span><Icon name="chev" size={18} />
 			</a>
 			<a class="row link" href={resolve('/mentions-legales')}>
-				<span class="txt">Mentions légales</span><span aria-hidden="true">›</span>
+				<span class="txt">Mentions légales</span><Icon name="chev" size={18} />
 			</a>
 		</div>
 	</main>
@@ -173,110 +189,80 @@
 </div>
 
 <style>
+	/* Coque d'appli : seul le contenu défile, la barre basse ne recouvre jamais rien. */
 	.screen {
-		min-height: 100dvh;
+		height: 100dvh;
 		display: flex;
 		flex-direction: column;
-		background: var(--surface);
 	}
 	main {
-		flex-grow: 1;
+		flex: 1 1 auto;
+		min-height: 0;
+		overflow-y: auto;
 		width: 100%;
-		max-width: 640px;
-		margin: 0 auto;
-		padding: 24px 16px;
+		padding: 20px 16px;
+		/* colonne de 640 px au plus, barre de défilement au bord de l'écran */
+		padding-inline: max(16px, calc((100% - 640px) / 2));
 		display: flex;
 		flex-direction: column;
 		gap: 6px;
 	}
+	main > :global(*) {
+		flex-shrink: 0;
+	}
 	h1 {
-		margin: 0 4px 8px;
-		font-size: 1.625rem;
+		margin: 0 0 4px;
+		font-size: 1.5rem;
+		line-height: 1.33;
 	}
-	h2 {
-		margin: 14px 4px 4px;
-		font-size: 0.875rem;
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
-		color: var(--text-2);
-	}
-	.group {
-		background: var(--bg);
-		border-radius: var(--radius);
+	.overline {
+		margin: 14px 0 2px;
 	}
 	.row {
 		display: flex;
 		align-items: center;
 		gap: 12px;
 		min-height: 56px;
-		padding: 10px 16px;
+		padding: 8px 8px 8px 14px;
+	}
+	.row.col {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 8px;
+		padding: 10px 14px 12px;
 	}
 	.link {
 		color: var(--text);
 		text-decoration: none;
+	}
+	.link > :global(svg) {
+		flex-shrink: 0;
+		color: var(--text-3);
 	}
 	.txt {
 		flex-grow: 1;
 		display: flex;
 		flex-direction: column;
 	}
+	.txt > span:first-child {
+		font-weight: 600;
+	}
 	.small {
 		font-size: 0.875rem;
 		color: var(--text-2);
 	}
 	fieldset.group {
-		border: 0;
 		margin: 0;
 		padding: 0;
 	}
 	label.row {
 		cursor: pointer;
 	}
-	.group > .row + .row,
-	label.row + label.row {
-		border-top: 1px solid var(--border);
-	}
 	input[type='radio'] {
 		width: 24px;
 		height: 24px;
+		margin: 0;
 		accent-color: var(--primary);
 		flex-shrink: 0;
-	}
-	.small-btn {
-		flex-shrink: 0;
-		min-height: 44px;
-		padding: 0 14px;
-		border: 2px solid var(--primary);
-		border-radius: 12px;
-		background: var(--bg);
-		color: var(--primary);
-		font: 700 0.9375rem var(--font);
-		cursor: pointer;
-	}
-	.switch {
-		flex-shrink: 0;
-		width: 60px;
-		height: 36px;
-		padding: 3px;
-		border: 2px solid var(--text-2);
-		border-radius: 18px;
-		background: var(--bg);
-		display: flex;
-		justify-content: flex-start;
-		cursor: pointer;
-	}
-	.switch span {
-		width: 26px;
-		height: 26px;
-		border-radius: 13px;
-		background: var(--text-2);
-	}
-	.switch[aria-checked='true'] {
-		border-color: var(--primary);
-		background: var(--primary);
-		justify-content: flex-end;
-	}
-	.switch[aria-checked='true'] span {
-		background: var(--on-primary);
 	}
 </style>

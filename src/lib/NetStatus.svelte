@@ -1,6 +1,7 @@
 <script lang="ts">
 	// Bandeau hors-ligne et compte rendu des envois partis tout seuls au retour du réseau.
 	import { resolve } from '$app/paths';
+	import Icon from './Icon.svelte';
 	import { net, queue, watchNetwork } from './offline.svelte.js';
 	import { onMount } from 'svelte';
 
@@ -32,7 +33,7 @@
 			{#if last.conflicts}<a href={resolve('/contributions')}>Voir les saisies à revoir</a>{/if}
 		</p>
 		<button type="button" aria-label="Fermer le message" onclick={() => (queue.last = undefined)}
-			>✕</button
+			><Icon name="close" size={20} /></button
 		>
 	</div>
 {/if}
@@ -46,11 +47,13 @@
 		transform: translateX(-50%);
 		max-width: calc(100% - 32px);
 		margin: 6px 0 0;
-		padding: 6px 14px;
-		border-radius: 16px;
-		background: #1a1d21;
+		padding: 6px 12px;
+		border-radius: var(--radius-pill);
+		background: #1f1b17;
 		color: #fff;
 		font-size: 0.875rem;
+		line-height: 1.43;
+		box-shadow: var(--shadow-float);
 		pointer-events: none;
 	}
 	.toast {
@@ -64,11 +67,12 @@
 		display: flex;
 		align-items: flex-start;
 		gap: 8px;
-		padding: 12px 8px 12px 16px;
-		border-radius: 14px;
+		padding: 10px 4px 10px 14px;
+		border-radius: var(--radius-lg);
 		background: var(--bg);
-		border: 2px solid var(--primary);
-		box-shadow: 0 4px 16px rgb(0 0 0 / 0.25);
+		border: 1px solid var(--border);
+		box-shadow: 0 2px 10px rgb(0 0 0 / 0.2);
+		font-size: 0.9375rem;
 	}
 	.toast p {
 		flex-grow: 1;
@@ -77,15 +81,18 @@
 	.toast a {
 		display: block;
 		margin-top: 4px;
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.toast button {
 		width: 44px;
 		height: 44px;
 		border: 0;
+		flex-shrink: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 		background: transparent;
 		color: var(--text);
-		font-size: 1.125rem;
 		cursor: pointer;
 	}
 </style>

@@ -11,6 +11,7 @@
 	import { current, openStation } from '#lib/current.svelte.js';
 	import { editsOf, loadEdits, nextTempId, pending, saveEdit } from '#lib/edits.svelte.js';
 	import DrawMap from '#lib/map/DrawMap.svelte';
+	import NudgePad from '#lib/map/NudgePad.svelte';
 	import { stationView } from '#lib/view.js';
 	import { onMount, untrack } from 'svelte';
 
@@ -114,28 +115,8 @@
 
 <svelte:head><title>Dessiner un quai — stationcomplete</title></svelte:head>
 
+<!-- Carte plein écran ; en-tête, contrôles et actions flottent au-dessus (décision 6). -->
 <div class="screen">
-	<header>
-		<div class="row">
-			<a
-				class="icon-btn"
-				href={resolve(`/gare?id=${encodeURIComponent(id)}`)}
-				aria-label="Annuler le dessin"><span aria-hidden="true">✕</span></a
-			>
-			<h1>Dessiner un quai</h1>
-			<span class="count">{points.length} point{points.length > 1 ? 's' : ''}</span>
-		</div>
-		<p>
-			{#if selected !== undefined}
-				Placez la croix au nouvel emplacement du <strong>point {selected + 1}</strong>.
-			{:else if points.length < 3}
-				Faites le tour du quai, coin après coin, en restant sur son bord.
-			{:else}
-				Continuez, ou touchez le <strong>point 1</strong> pour fermer le quai.
-			{/if}
-		</p>
-	</header>
-
 	<!-- data-center : centre visé, lu par les tests pour attendre la fin d'un déplacement. -->
 	<div class="mapbox" data-center={centerNow?.map((v) => v.toFixed(7)).join(',')}>
 		{#if view && ready}
@@ -147,21 +128,54 @@
 				{points}
 				{selected}
 				{preview}
+				snapped={!!snap}
 				onmove={(c) => (centerNow = c)}
 				onvertex={vertex}
 			/>
-			<div class="zoom">
-				<button type="button" aria-label="Zoomer" onclick={() => mapRef?.zoom(1)}>+</button>
-				<button type="button" aria-label="Dézoomer" onclick={() => mapRef?.zoom(-1)}>−</button>
-			</div>
 		{:else}
-			<p class="status" role="status">Chargement…</p>
+			<p class="status float" role="status">Chargement…</p>
 		{/if}
 	</div>
 
-	<section class="panel">
+	<div class="stack">
+		<header class="top float">
+			<div class="row">
+				<a
+					class="icon-btn"
+					href={resolve(`/gare?id=${encodeURIComponent(id)}`)}
+					aria-label="Annuler le dessin"><Icon name="close" size={22} /></a
+				>
+				<h1>Dessiner un quai</h1>
+				<span class="count">{points.length} point{points.length > 1 ? 's' : ''}</span>
+			</div>
+			<p>
+				{#if selected !== undefined}
+					Placez la croix au nouvel emplacement du <strong>point {selected + 1}</strong>.
+				{:else if points.length < 3}
+					Faites le tour du quai, coin après coin, en restant sur son bord.
+				{:else}
+					Continuez, ou touchez le <strong>point 1</strong> (le plus gros) pour fermer le quai.
+				{/if}
+			</p>
+		</header>
+		{#if view && ready}
+			<div class="tools">
+				<div class="zoom float">
+					<button type="button" aria-label="Zoomer" onclick={() => mapRef?.zoom(1)}
+						><Icon name="plus" size={20} /></button
+					>
+					<button type="button" aria-label="Dézoomer" onclick={() => mapRef?.zoom(-1)}
+						><Icon name="minus" size={20} /></button
+					>
+				</div>
+				<NudgePad onnudge={(dx, dy) => mapRef?.nudge(dx, dy)} />
+			</div>
+		{/if}
+	</div>
+
+	<section class="panel float" aria-label="Tracé du quai">
 		<div class="info" class:ok={!!snap} role="status" aria-live="polite">
-			<Icon name={snap ? 'verif' : 'locate'} size={22} />
+			<Icon name={snap ? 'check' : 'locate'} size={20} />
 			<span>
 				{#if snap}<strong>Accroché au bord de la voie</strong> (à 1,5 m de son axe){:else}Point
 					libre (aucune voie à moins de 4 m){/if}
@@ -170,44 +184,25 @@
 			</span>
 		</div>
 		{#if errors.length}
-			<ul class="errors" role="alert">
+			<ul class="errors banner err" role="alert">
 				{#each errors as e (e)}<li>{e}</li>{/each}
 			</ul>
 		{/if}
 
-		<div class="pad" role="group" aria-label="Déplacer la croix de 20 cm">
-			<button
-				type="button"
-				aria-label="Déplacer la croix vers la gauche"
-				onclick={() => mapRef?.nudge(-1, 0)}>◀</button
-			>
-			<button
-				type="button"
-				aria-label="Déplacer la croix vers le haut"
-				onclick={() => mapRef?.nudge(0, -1)}>▲</button
-			>
-			<span class="step">20 cm</span>
-			<button
-				type="button"
-				aria-label="Déplacer la croix vers le bas"
-				onclick={() => mapRef?.nudge(0, 1)}>▼</button
-			>
-			<button
-				type="button"
-				aria-label="Déplacer la croix vers la droite"
-				onclick={() => mapRef?.nudge(1, 0)}>▶</button
-			>
-		</div>
-
 		<div class="two">
 			<button class="btn btn-secondary" type="button" disabled={!points.length} onclick={undo}>
-				Annuler le point
+				<Icon name="undo" size={20} />Annuler le point
 			</button>
 			<button class="btn" type="button" disabled={!preview} onclick={add}>
 				{selected !== undefined ? `Déplacer le point ${selected + 1} ici` : 'Ajouter un point'}
 			</button>
 		</div>
-		<button class="btn close" type="button" disabled={points.length < 3 || saving} onclick={close}>
+		<button
+			class="btn-quiet close"
+			type="button"
+			disabled={points.length < 3 || saving}
+			onclick={close}
+		>
 			Fermer le quai
 		</button>
 	</section>
@@ -215,70 +210,99 @@
 
 <style>
 	.screen {
+		position: relative;
 		height: 100dvh;
+		overflow: hidden;
+		background: #8c877c;
+	}
+	.mapbox {
+		position: absolute;
+		inset: 0;
+	}
+	.status {
+		position: absolute;
+		inset: 45% 16px auto;
+		margin: 0;
+		padding: 12px;
+		text-align: center;
+	}
+	.stack {
+		position: absolute;
+		top: calc(8px + env(safe-area-inset-top));
+		left: calc(8px + env(safe-area-inset-left));
+		right: calc(8px + env(safe-area-inset-right));
 		display: flex;
 		flex-direction: column;
+		gap: 8px;
+		pointer-events: none;
 	}
-	header {
-		padding: 8px 16px 8px 4px;
+	.stack > * {
+		pointer-events: auto;
+	}
+	.top {
+		padding: 2px 12px 8px 2px;
 	}
 	.row {
 		display: flex;
 		align-items: center;
-		gap: 4px;
+		gap: 2px;
 	}
 	h1 {
-		margin: 0;
 		flex-grow: 1;
-		font-size: 1.25rem;
+		margin: 0;
+		font-size: 1.0625rem;
+		line-height: 1.4;
 	}
 	.count {
-		font-weight: 700;
+		font-size: 0.875rem;
+		font-weight: 600;
+		color: var(--text-2);
+		font-variant-numeric: tabular-nums;
+	}
+	.top p {
+		margin: 0 0 0 12px;
+		font-size: 0.875rem;
+		line-height: 1.43;
 		color: var(--text-2);
 	}
-	header p {
-		margin: 0 0 0 16px;
-		color: var(--text-2);
+	.top p strong {
+		color: var(--text);
 	}
-	.icon-btn {
-		width: 48px;
-		height: 48px;
+	.tools {
+		align-self: flex-end;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 8px;
+	}
+	.zoom {
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+	}
+	.zoom button {
+		width: 44px;
+		height: 44px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		color: var(--text);
-		text-decoration: none;
-		font-size: 1.25rem;
-	}
-	.mapbox {
-		position: relative;
-		flex: 1 1 auto;
-		min-height: 240px;
-	}
-	.status {
-		padding: 16px;
-	}
-	.zoom {
-		position: absolute;
-		right: 12px;
-		top: 12px;
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-	}
-	.zoom button {
-		width: 48px;
-		height: 48px;
+		padding: 0;
 		border: 0;
-		border-radius: 12px;
-		background: var(--bg);
+		background: transparent;
 		color: var(--text);
-		font: 700 1.5rem system-ui;
-		box-shadow: 0 1px 4px rgb(0 0 0 / 0.3);
 		cursor: pointer;
 	}
+	.zoom button + button {
+		border-top: 1px solid var(--overlay-line);
+	}
 	.panel {
-		padding: 8px 16px calc(12px + env(safe-area-inset-bottom));
+		position: absolute;
+		left: calc(8px + env(safe-area-inset-left));
+		right: calc(8px + env(safe-area-inset-right));
+		bottom: calc(24px + env(safe-area-inset-bottom)); /* au-dessus de l'attribution */
+		max-width: 560px;
+		margin: 0 auto;
+		padding: 8px 8px 2px;
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
@@ -286,12 +310,10 @@
 	.info {
 		display: flex;
 		align-items: center;
-		gap: 10px;
-		padding: 8px 12px;
-		border-radius: var(--radius);
-		background: var(--surface);
-		color: var(--text-2);
+		gap: 8px;
+		padding: 4px 6px;
 		font-size: 0.9375rem;
+		color: var(--text-2);
 	}
 	.info span {
 		color: var(--text);
@@ -300,48 +322,18 @@
 		color: var(--ok);
 	}
 	.errors {
-		margin: 0;
-		padding: 10px 12px 10px 2em;
-		border-radius: var(--radius);
-		border: 2px solid var(--danger);
-		color: var(--danger);
-		font-weight: 700;
-	}
-	.pad {
-		align-self: center;
-		display: flex;
-		align-items: center;
-		gap: 6px;
-	}
-	.pad button {
-		width: 48px;
-		height: 44px;
-		border: 2px solid var(--border);
-		border-radius: 12px;
-		background: var(--bg);
-		color: var(--text);
-		cursor: pointer;
-	}
-	.step {
-		width: 44px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 0.75rem;
-		color: var(--text-2);
+		display: block;
+		padding-left: 2em;
 	}
 	.two {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 8px;
 	}
-	.two .btn,
-	.close {
-		min-height: 48px;
-		font-size: 1rem;
+	.two .btn {
+		padding: 0 10px;
 	}
-	.btn:disabled {
-		opacity: 0.5;
-		cursor: default;
+	.close {
+		align-self: center;
 	}
 </style>

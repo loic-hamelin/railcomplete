@@ -3,7 +3,19 @@
 	// À chaque arrêt du déplacement, le point visé est accroché à l'axe de la voie la plus proche.
 	import 'maplibre-gl/dist/maplibre-gl.css';
 	import { snapToTracks, type Snap } from '#lib/core/edits.js';
-	import type { OsmElement, OsmNode, OsmWay } from '#lib/core/osm.js';
+	import { isPlatform, type OsmElement, type OsmNode, type OsmWay } from '#lib/core/osm.js';
+	import { IGN_MAX_ZOOM, IGN_TILE_URL } from '#lib/core/tiles.js';
+	import Reticle from './Reticle.svelte';
+	import {
+		IGN_ATTRIBUTION,
+		IS_SEL,
+		MAP,
+		OSM_ATTRIBUTION,
+		QUAI_W,
+		VOIE_W,
+		W,
+		plus
+	} from './style.js';
 	import { onMount } from 'svelte';
 
 	let {
@@ -18,15 +30,12 @@
 		onsnap: (s: Snap | undefined) => void;
 	} = $props();
 
-	const IGN_TILES =
-		'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0' +
-		'&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&TILEMATRIXSET=PM&FORMAT=image/jpeg' +
-		'&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}';
-
 	let container: HTMLDivElement;
 	let map: import('maplibre-gl').Map | undefined;
 	let snapMarker: import('maplibre-gl').Marker | undefined;
 	let failed = $state('');
+	let snapped = $state(false);
+	let snappedWay: number | undefined;
 
 	const nodes = $derived(
 		new Map(elements.filter((e): e is OsmNode => e.type === 'node').map((n) => [n.id, n]))
@@ -42,11 +51,18 @@
 			(e): e is OsmNode =>
 				e.type === 'node' && e.tags?.railway === 'signal' && !!e.tags['railway:signal:stop']
 		);
+		const platforms = elements.filter((e): e is OsmWay => e.type === 'way' && isPlatform(e.tags));
 		return {
 			type: 'FeatureCollection',
 			features: [
+				...platforms.map((w) => ({
+					type: 'Feature',
+					properties: { kind: 'quai' },
+					geometry: { type: 'LineString', coordinates: line(w) }
+				})),
 				...tracks.map((w) => ({
 					type: 'Feature',
+					id: w.id,
 					properties: { kind: 'voie' },
 					geometry: { type: 'LineString', coordinates: line(w) }
 				})),
@@ -65,6 +81,12 @@
 		const s = snapToTracks(c.lng, c.lat, tracks, (id) => nodes.get(id), 3);
 		if (s) snapMarker?.setLngLat([s.lon, s.lat]).addTo(map);
 		else snapMarker?.remove();
+		// Voie accrochée : jaune avec halo (feature-state), croix jaune.
+		if (snappedWay !== undefined && snappedWay !== s?.way)
+			map.setFeatureState({ source: 'objets', id: snappedWay }, { selected: false });
+		snappedWay = s?.way;
+		if (s) map.setFeatureState({ source: 'objets', id: s.way }, { selected: true });
+		snapped = !!s;
 		onsnap(s);
 	}
 
@@ -103,33 +125,74 @@
 						sources: {
 							ign: {
 								type: 'raster',
-								tiles: [IGN_TILES],
+								tiles: [IGN_TILE_URL],
 								tileSize: 256,
-								maxzoom: 19,
-								attribution: 'Photo © IGN – BD ORTHO'
+								maxzoom: IGN_MAX_ZOOM,
+								attribution: IGN_ATTRIBUTION
 							},
 							objets: {
 								type: 'geojson',
 								data: geojson(),
-								attribution: '© contributeurs OpenStreetMap'
+								attribution: OSM_ATTRIBUTION
 							}
 						},
 						layers: [
-							{ id: 'fond', type: 'background', paint: { 'background-color': '#7D786E' } },
+							{ id: 'fond', type: 'background', paint: { 'background-color': MAP.ground } },
 							{ id: 'ign', type: 'raster', source: 'ign' },
 							{
-								id: 'voie-halo',
+								id: 'quai-casing',
+								type: 'line',
+								source: 'objets',
+								filter: ['==', ['get', 'kind'], 'quai'],
+								layout: { 'line-join': 'round' },
+								paint: {
+									'line-color': MAP.casing,
+									'line-opacity': 0.7,
+									'line-width': W(plus(QUAI_W, 1.5))
+								}
+							},
+							{
+								id: 'quai',
+								type: 'line',
+								source: 'objets',
+								filter: ['==', ['get', 'kind'], 'quai'],
+								layout: { 'line-join': 'round' },
+								paint: { 'line-color': MAP.quai, 'line-width': W(QUAI_W) }
+							},
+							{
+								id: 'voie-sel',
 								type: 'line',
 								source: 'objets',
 								filter: ['==', ['get', 'kind'], 'voie'],
-								paint: { 'line-color': '#FFFFFF', 'line-width': 9 }
+								layout: { 'line-cap': 'round', 'line-join': 'round' },
+								paint: {
+									'line-color': MAP.sel,
+									'line-opacity': ['case', IS_SEL, 0.35, 0],
+									'line-width': W(plus(VOIE_W, 8))
+								}
+							},
+							{
+								id: 'voie-casing',
+								type: 'line',
+								source: 'objets',
+								filter: ['==', ['get', 'kind'], 'voie'],
+								layout: { 'line-cap': 'round', 'line-join': 'round' },
+								paint: {
+									'line-color': MAP.casing,
+									'line-opacity': 0.7,
+									'line-width': W(plus(VOIE_W, 1.5))
+								}
 							},
 							{
 								id: 'voie',
 								type: 'line',
 								source: 'objets',
 								filter: ['==', ['get', 'kind'], 'voie'],
-								paint: { 'line-color': '#6A3FB5', 'line-width': 5 }
+								layout: { 'line-cap': 'round', 'line-join': 'round' },
+								paint: {
+									'line-color': ['case', IS_SEL, MAP.sel, MAP.voie],
+									'line-width': W(VOIE_W)
+								}
 							},
 							{
 								id: 'pancarte',
@@ -137,10 +200,10 @@
 								source: 'objets',
 								filter: ['==', ['get', 'kind'], 'pancarte'],
 								paint: {
-									'circle-radius': 7,
-									'circle-color': '#A34A00',
-									'circle-stroke-color': '#FFFFFF',
-									'circle-stroke-width': 2
+									'circle-radius': 4,
+									'circle-color': MAP.plate,
+									'circle-stroke-color': MAP.casing,
+									'circle-stroke-width': 1.5
 								}
 							}
 						]
@@ -170,23 +233,7 @@
 		role="region"
 		aria-label="Photo aérienne, la croix marque l’emplacement visé"
 	></div>
-	<svg class="reticle" width="96" height="96" viewBox="-48 -48 96 96" aria-hidden="true">
-		<circle r="16" fill="none" stroke="#1A1D21" stroke-width="5" />
-		<circle r="16" fill="none" stroke="#FFD400" stroke-width="2.5" />
-		<path
-			d="M-44 0h-0M-28 0h-16M28 0h16M0 -28v-16M0 28v16"
-			stroke="#1A1D21"
-			stroke-width="6"
-			stroke-linecap="round"
-		/>
-		<path
-			d="M-28 0h-16M28 0h16M0 -28v-16M0 28v16"
-			stroke="#FFD400"
-			stroke-width="3"
-			stroke-linecap="round"
-		/>
-		<circle r="3" fill="#FFD400" stroke="#1A1D21" stroke-width="1.5" />
-	</svg>
+	<Reticle {snapped} />
 	{#if failed}<p class="failed" role="alert">{failed}</p>{/if}
 </div>
 
@@ -198,27 +245,21 @@
 	.map {
 		position: absolute;
 		inset: 0;
-		background: #7d786e;
-	}
-	.reticle {
-		position: absolute;
-		left: 50%;
-		top: 50%;
-		transform: translate(-50%, -50%);
-		pointer-events: none;
+		background: #8c877c;
 	}
 	.failed {
 		position: absolute;
 		inset: 40% 16px auto;
 		padding: 14px;
-		border-radius: 14px;
+		border-radius: var(--radius-lg);
 		background: var(--bg);
 	}
+	/* Point d'accrochage sur l'axe de la voie : visible quand l'écart dépasse le centre de la croix. */
 	:global(.rc-snap) {
-		width: 14px;
-		height: 14px;
+		width: 9px;
+		height: 9px;
 		border-radius: 50%;
-		background: #ffd400;
-		border: 3px solid #1a1d21;
+		background: #fff700;
+		border: 1.5px solid #14110e;
 	}
 </style>

@@ -63,6 +63,12 @@
 		Q6: 'À vérifier (aucune date de vérification récente)',
 		Q7: 'Numéro de voie en double ou incohérent'
 	};
+	// Constats de la feuille basse : une icône par nature (alerte, à relever, à vérifier).
+	const QUEST_ICON: Record<string, 'alert' | 'question' | 'clock'> = {
+		Q3: 'alert',
+		Q7: 'alert',
+		Q6: 'clock'
+	};
 	const filters = [
 		{ k: 'quai', label: 'Quais' },
 		{ k: 'voie', label: 'Voies' },
@@ -72,7 +78,8 @@
 
 <svelte:head><title>Carte — {ready?.station.name ?? 'Gare'} — stationcomplete</title></svelte:head>
 
-<div class="screen">
+<!-- Carte plein écran ; barre, filtres, boutons et feuille basse flottent au-dessus. -->
+<div class="screen" data-map-scope>
 	{#if ready && data}
 		<StationMap
 			bind:this={mapRef}
@@ -86,13 +93,13 @@
 	{/if}
 
 	<div class="top">
-		<div class="bar">
+		<div class="bar float" data-map-avoid>
 			<a
 				class="icon-btn"
 				href={resolve(`/gare?id=${encodeURIComponent(id)}`)}
 				aria-label="Retour au tableau de bord"
 			>
-				<Icon name="back" />
+				<Icon name="back" size={22} />
 			</a>
 			<h1>{ready?.station.name ?? 'Carte'}</h1>
 			{#if ready}
@@ -102,7 +109,10 @@
 					type="button"
 					onclick={() => checkOnSite(ready.station)}
 				>
-					<Icon name={survey ? 'locate' : 'lock'} size={16} />
+					{#if survey}<span class="live" aria-hidden="true"></span>{:else}<Icon
+							name="lock"
+							size={16}
+						/>{/if}
 					{survey ? 'Sur place' : where.status === 'checking' ? 'Localisation…' : 'À distance'}
 					<span class="visually-hidden">, vérifier ma position</span>
 				</button>
@@ -113,35 +123,44 @@
 				<button
 					type="button"
 					class="chip {f.k}"
+					data-map-avoid
 					aria-pressed={visible[f.k]}
 					onclick={() => (visible[f.k] = !visible[f.k])}
 				>
-					{visible[f.k] ? '✓ ' : ''}{f.label}
+					<span class="pict" aria-hidden="true"></span>{f.label}
 				</button>
 			{/each}
 		</div>
 	</div>
 
 	{#if st.status === 'loading' || !mounted}
-		<p class="status" role="status">Chargement de la gare…</p>
+		<p class="status float" role="status">Chargement de la gare…</p>
 	{:else if st.status === 'error'}
-		<p class="status error" role="alert">{st.message}</p>
+		<p class="status float error" role="alert">
+			<Icon name="alert" size={20} />{st.message}
+		</p>
 	{/if}
 
 	{#if ready && !selected}
-		<a class="add" href={placeHref}><Icon name="pancarte" size={20} />Ajouter une pancarte</a>
-	{/if}
-	{#if ready}
-		<button class="locate" type="button" aria-label="Me localiser" onclick={() => mapRef?.locate()}>
-			<Icon name="locate" />
+		<button
+			class="locate float"
+			type="button"
+			data-map-avoid
+			aria-label="Me localiser"
+			onclick={() => mapRef?.locate()}
+		>
+			<Icon name="locate" size={20} />
 		</button>
+		<a class="add" href={placeHref} data-map-avoid
+			><Icon name="plus" size={20} />Ajouter une pancarte</a
+		>
 	{/if}
 
 	{#if selected}
-		<section class="sheet" aria-live="polite" aria-label="Objet sélectionné">
+		<section class="sheet" aria-live="polite" aria-label="Objet sélectionné" data-map-avoid>
 			<div class="sheet-head">
-				<span class="dot {selected.kind}"><Icon name={selected.kind} size={22} /></span>
-				<div>
+				<span class="fam {selected.kind}"><Icon name={selected.kind} size={20} /></span>
+				<div class="titles">
 					<h2>{selected.title}</h2>
 					<p>{selected.detail}</p>
 				</div>
@@ -151,36 +170,39 @@
 					aria-label="Fermer"
 					onclick={() => (selected = undefined)}
 				>
-					✕
+					<Icon name="close" size={20} />
 				</button>
 			</div>
-			{#if selected.quests}
-				<ul>
-					{#each selected.quests.split(',') as q (q)}<li>{QUEST_TEXT[q] ?? q}</li>{/each}
+			{#if selected.quests || selected.edited}
+				<ul class="facts">
+					{#each (selected.quests ? selected.quests.split(',') : []).slice(0, 3) as q (q)}
+						{@const ico = QUEST_ICON[q] ?? 'question'}
+						<li class={ico}><Icon name={ico} size={18} />{QUEST_TEXT[q] ?? q}</li>
+					{/each}
+					{#if selected.edited}
+						<li class="edited">
+							<Icon name="send" size={18} />Modifié sur ce téléphone, en attente d’envoi.
+						</li>
+					{/if}
 				</ul>
 			{/if}
-			{#if selected.edited}
-				<p class="soon">
-					<Icon name="download" size={16} /> Modifié sur ce téléphone, en attente d’envoi.
-				</p>
-			{/if}
-			{#if isLocal(selected.osm)}
-				<a class="btn btn-secondary" href={resolve('/contributions')}>Voir mes contributions</a>
-			{:else}
-				<div class="actions">
+			<div class="actions">
+				{#if isLocal(selected.osm)}
+					<a class="btn-sm" href={resolve('/contributions')}>Voir mes contributions</a>
+				{:else}
 					<a
-						class="btn"
+						class="btn-sm renseigner"
 						href={resolve(`/gare/saisie?id=${encodeURIComponent(id)}&osm=${selected.osm}`)}
-						>{selected.status === 'ok' ? 'Vérifier ou corriger' : 'Renseigner'}</a
+						><Icon name="pen" size={18} />Renseigner</a
 					>
 					{#if selected.kind === 'voie'}
-						<a class="btn btn-secondary" href={placeHref}>Pancarte ici</a>
+						<a class="btn-quiet" href={placeHref}>Pancarte ici</a>
 					{/if}
-				</div>
-				<a class="osm" href={`${srv().web}/${selected.osm}`} rel="external">
-					Voir sur OpenStreetMap
-				</a>
-			{/if}
+					<a class="btn-quiet osm" href={`${srv().web}/${selected.osm}`} rel="external">
+						Voir sur OpenStreetMap<Icon name="ext" size={16} />
+					</a>
+				{/if}
+			</div>
 		</section>
 	{/if}
 </div>
@@ -190,15 +212,16 @@
 		position: relative;
 		height: 100dvh;
 		overflow: hidden;
-		background: #7d786e;
+		background: #8c877c;
 	}
 	.top {
 		position: absolute;
-		inset: 0 0 auto;
-		padding: 12px;
+		top: calc(8px + env(safe-area-inset-top));
+		left: calc(8px + env(safe-area-inset-left));
+		right: calc(8px + env(safe-area-inset-right));
 		display: flex;
 		flex-direction: column;
-		gap: 10px;
+		gap: 2px;
 		pointer-events: none;
 	}
 	.top > * {
@@ -207,175 +230,248 @@
 	.bar {
 		display: flex;
 		align-items: center;
-		gap: 4px;
-		padding: 4px 12px 4px 4px;
-		border-radius: 16px;
-		background: var(--bg);
-		box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+		gap: 2px;
+		min-height: 48px;
+		padding: 0 4px 0 0;
 	}
 	h1 {
+		flex: 1 1 auto;
+		min-width: 0;
 		margin: 0;
-		font-size: 1.125rem;
+		font-size: 1.0625rem;
+		line-height: 1.3;
+		overflow-wrap: anywhere;
 	}
-	.icon-btn {
-		width: 48px;
-		height: 48px;
+	.where {
 		flex-shrink: 0;
 		display: flex;
 		align-items: center;
-		justify-content: center;
+		gap: 6px;
+		min-height: 44px;
+		padding: 0 8px;
 		border: 0;
+		border-radius: var(--radius);
 		background: transparent;
-		color: var(--text);
-		font-size: 1.25rem;
+		color: var(--text-2);
+		font: 600 0.875rem/1.2 var(--font);
 		cursor: pointer;
+	}
+	.where.on {
+		color: var(--ok);
+	}
+	.live {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: currentColor;
 	}
 	.filters {
 		display: flex;
-		gap: 8px;
+		gap: 6px;
 		flex-wrap: wrap;
 		align-self: flex-start;
+		pointer-events: none;
 	}
+	/* Puce : visuel 32 px, zone tactile 44 px (marge transparente). */
 	.chip {
+		display: flex;
+		align-items: center;
 		min-height: 44px;
-		padding: 0 14px;
-		border: 2px solid #fff;
-		border-radius: 22px;
-		font: 700 0.9375rem var(--font);
-		color: #fff;
-		box-shadow: 0 1px 4px rgb(0 0 0 / 0.3);
+		padding: 6px 0;
+		border: 0;
+		background: none;
+		color: var(--text);
+		font: 600 0.875rem/1 var(--font);
 		cursor: pointer;
+		pointer-events: auto;
+		position: relative;
+		isolation: isolate;
+		gap: 6px;
+		padding-inline: 12px;
 	}
-	.chip.quai {
-		background: #00707a;
-	}
-	.chip.voie {
-		background: #6a3fb5;
-	}
-	.chip.pancarte {
-		background: #a34a00;
+	.chip::before {
+		content: '';
+		position: absolute;
+		inset: 6px 0;
+		z-index: -1;
+		border: 1px solid var(--overlay-line);
+		border-radius: var(--radius-pill);
+		background: var(--overlay);
+		box-shadow: var(--shadow-float);
 	}
 	.chip[aria-pressed='false'] {
-		background: #fff;
-		color: #1a1d21;
+		color: var(--text-2);
+	}
+	.chip[aria-pressed='false']::before {
+		border: 1px dashed var(--border-strong);
+		box-shadow: none;
+	}
+	.pict {
+		flex-shrink: 0;
+		box-sizing: border-box;
+	}
+	.chip.quai .pict {
+		width: 12px;
+		height: 8px;
+		border: 1.5px solid var(--quai);
+		border-radius: 1px;
+		background: var(--quai-soft);
+	}
+	.chip.voie .pict {
+		width: 14px;
+		height: 3px;
+		border-radius: 2px;
+		background: var(--voie);
+	}
+	.chip.pancarte .pict {
+		width: 9px;
+		height: 9px;
+		border: 1.5px solid var(--pancarte);
+		border-radius: 1px;
+		background: var(--bg);
+	}
+	.chip[aria-pressed='false'] .pict {
+		opacity: 0.35;
 	}
 	.status {
 		position: absolute;
 		inset: 45% 16px auto;
 		margin: 0;
-		padding: 14px;
-		border-radius: 14px;
-		background: var(--bg);
+		padding: 12px 14px;
+		display: flex;
+		gap: 8px;
+		justify-content: center;
 		text-align: center;
 	}
-	.status.error {
-		border: 2px solid var(--danger);
-	}
-	.where {
-		display: flex;
-		align-items: center;
-		gap: 4px;
-		margin-left: auto;
-		min-height: 36px;
-		padding: 0 10px;
-		border: 2px solid var(--border);
-		border-radius: 18px;
-		background: var(--bg);
-		color: var(--text-2);
-		font: 700 0.8125rem var(--font);
-		cursor: pointer;
-	}
-	.where.on {
-		border-color: var(--ok);
-		color: var(--ok);
-	}
-	.add {
-		position: absolute;
-		right: 16px;
-		bottom: calc(24px + env(safe-area-inset-bottom));
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		min-height: 52px;
-		padding: 0 18px;
-		border-radius: 26px;
-		background: var(--primary);
-		color: var(--on-primary);
-		font-weight: 700;
-		text-decoration: none;
-		box-shadow: 0 2px 8px rgb(0 0 0 / 0.3);
-	}
-	.actions {
-		display: flex;
-		gap: 8px;
-	}
-	.actions .btn {
-		min-height: 52px;
+	.status.error :global(svg) {
+		flex-shrink: 0;
+		color: var(--danger);
 	}
 	.locate {
 		position: absolute;
-		left: 16px;
-		bottom: calc(24px + env(safe-area-inset-bottom));
-		width: 52px;
-		height: 52px;
-		border: 0;
-		border-radius: 26px;
-		background: var(--bg);
-		color: var(--primary);
-		box-shadow: 0 2px 8px rgb(0 0 0 / 0.3);
+		left: calc(12px + env(safe-area-inset-left));
+		bottom: calc(32px + env(safe-area-inset-bottom));
+		width: 44px;
+		height: 44px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		padding: 0;
 		cursor: pointer;
 	}
+	.add {
+		position: absolute;
+		right: calc(12px + env(safe-area-inset-right));
+		bottom: calc(32px + env(safe-area-inset-bottom));
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		min-height: 44px;
+		padding: 0 16px 0 12px;
+		border-radius: 22px;
+		background: var(--primary);
+		color: var(--on-primary);
+		font-weight: 600;
+		font-size: 0.9375rem;
+		text-decoration: none;
+		box-shadow: 0 2px 6px rgb(0 0 0 / 0.28);
+	}
+	/* Feuille basse compacte (décision 5) : titre, 1 à 3 constats, un seul bouton discret. */
 	.sheet {
 		position: absolute;
-		inset: auto 0 0;
-		padding: 14px 20px calc(20px + env(safe-area-inset-bottom));
-		border-radius: 20px 20px 0 0;
+		left: calc(8px + env(safe-area-inset-left));
+		right: calc(8px + env(safe-area-inset-right));
+		bottom: calc(24px + env(safe-area-inset-bottom)); /* au-dessus de l'attribution */
+		max-width: 560px;
+		margin: 0 auto;
+		padding: 8px 8px 6px 12px;
+		border: 1px solid var(--overlay-line);
+		border-radius: var(--radius-sheet);
 		background: var(--bg);
-		box-shadow: 0 -2px 12px rgb(0 0 0 / 0.25);
+		box-shadow: var(--shadow-sheet);
 		display: flex;
 		flex-direction: column;
-		gap: 8px;
+		gap: 6px;
 	}
 	.sheet-head {
 		display: flex;
 		align-items: flex-start;
-		gap: 12px;
+		gap: 10px;
 	}
-	.sheet-head > div {
+	.titles {
 		flex-grow: 1;
-	}
-	.dot {
-		color: var(--quai);
+		min-width: 0;
 		padding-top: 4px;
 	}
-	.dot.voie {
+	.fam {
+		flex-shrink: 0;
+		width: 36px;
+		height: 36px;
+		margin-top: 4px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: var(--radius);
+		background: var(--quai-soft);
+		color: var(--quai);
+	}
+	.fam.voie {
+		background: var(--voie-soft);
 		color: var(--voie);
 	}
-	.dot.pancarte {
+	.fam.pancarte {
+		background: var(--pancarte-soft);
 		color: var(--pancarte);
 	}
 	h2 {
 		margin: 0;
 		font-size: 1.125rem;
+		line-height: 1.3;
 	}
-	.sheet p {
+	.titles p {
 		margin: 0;
+		font-size: 0.875rem;
 		color: var(--text-2);
 	}
-	ul {
+	.facts {
+		list-style: none;
 		margin: 0;
-		padding-left: 1.2em;
-	}
-	.soon {
-		font-size: 0.9375rem;
-	}
-	.osm {
-		font-weight: 700;
-		min-height: 44px;
+		padding: 0;
 		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		font-size: 0.9375rem;
+		line-height: 1.35;
+	}
+	.facts li {
+		display: flex;
+		align-items: flex-start;
+		gap: 8px;
+	}
+	.facts :global(svg) {
+		flex-shrink: 0;
+		margin-top: 1px;
+		color: var(--missing);
+	}
+	.facts .alert :global(svg) {
+		color: var(--danger);
+	}
+	.facts .clock :global(svg),
+	.facts .edited :global(svg) {
+		color: var(--text-2);
+	}
+	.actions {
+		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
+		gap: 4px 8px;
+	}
+	.renseigner {
+		padding: 0 14px 0 10px;
+		border-color: var(--primary);
+		color: var(--primary);
+	}
+	.btn-quiet {
+		padding: 0 6px;
 	}
 </style>

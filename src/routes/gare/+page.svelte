@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import BottomNav from '#lib/BottomNav.svelte';
 	import Icon from '#lib/Icon.svelte';
+	import type { IconName } from '#lib/icons.js';
 	import { current, openStation } from '#lib/current.svelte.js';
 	import { editsOf, loadEdits, pending, settings } from '#lib/edits.svelte.js';
 	import { groupQuests, type Kind } from '#lib/questText.js';
@@ -62,13 +63,18 @@
 			: []
 	);
 
-	const iconOf: Record<Kind, 'quai' | 'voie' | 'pancarte' | 'alerte' | 'verif'> = {
+	const iconOf: Record<Kind, IconName> = {
 		quai: 'quai',
 		voie: 'voie',
 		pancarte: 'pancarte',
-		alerte: 'alerte',
-		verif: 'verif'
+		alerte: 'alert',
+		verif: 'check'
 	};
+	/** Jauge segmentée : un segment par objet jusqu'à 12, une barre continue au-delà. */
+	const segments = (done: number, total: number) =>
+		total <= 12
+			? Array.from({ length: total }, (_, i) => i < done)
+			: Array.from({ length: 12 }, (_, i) => i < Math.round((done / total) * 12));
 	const mapQuery = (focus?: string) =>
 		`id=${encodeURIComponent(id)}${focus ? `&focus=${focus}` : ''}`;
 	// Serveur de test : une gare encore vide peut être recopiée depuis la vraie carte.
@@ -96,45 +102,49 @@
 <svelte:head><title>{station?.name ?? 'Gare'} — stationcomplete</title></svelte:head>
 
 <div class="screen">
-	<header>
-		<div class="row">
-			<a class="icon-btn" href={resolve('/gares')} aria-label="Changer de gare">
-				<Icon name="back" />
-			</a>
+	<header class="head">
+		<a class="icon-btn" href={resolve('/gares')} aria-label="Changer de gare">
+			<Icon name="back" />
+		</a>
+		<div class="titles">
 			<h1>{station?.name ?? 'Gare'}</h1>
 			{#if ready}
-				<button
-					class="icon-btn"
-					type="button"
-					aria-label="Recharger les données depuis OpenStreetMap"
-					onclick={() => openStation(id, { force: true })}
-				>
-					<Icon name="refresh" />
-				</button>
+				<span class="sub">
+					{#if ready.fromCache}Données enregistrées sur ce téléphone du {fmtDate(
+							ready.fetchedAt
+						)}{:else}Données OpenStreetMap à jour{/if}
+				</span>
 			{/if}
 		</div>
 		{#if ready}
-			<p class="meta">
-				{#if ready.fromCache}<Icon name="download" size={16} /> Données enregistrées sur ce téléphone
-					du {fmtDate(ready.fetchedAt)}{:else}Données OpenStreetMap à jour{/if}
-			</p>
+			<button
+				class="icon-btn"
+				type="button"
+				aria-label="Recharger les données depuis OpenStreetMap"
+				onclick={() => openStation(id, { force: true })}
+			>
+				<Icon name="refresh" />
+			</button>
 		{/if}
 	</header>
 
 	<main>
 		{#if settings.demo}
-			<p class="demo" role="note">
-				Mode démonstration : saisie possible hors de la gare, mais ces saisies ne partiront pas sur
-				la vraie carte.
+			<p class="banner" role="note">
+				<Icon name="info" size={18} />
+				<span
+					>Mode démonstration : saisie possible hors de la gare, mais ces saisies ne partiront pas
+					sur la vraie carte.</span
+				>
 			</p>
 		{/if}
 		{#if myEdits.length}
-			<a class="pending" href={resolve('/contributions')}>
-				<Icon name="download" size={20} />
+			<a class="row-link" href={resolve('/contributions')}>
+				<Icon name="send" size={20} />
 				<span
 					>{myEdits.length} saisie{myEdits.length > 1 ? 's' : ''} en attente d’envoi dans cette gare</span
 				>
-				<Icon name="chevron" size={18} />
+				<Icon name="chev" size={18} />
 			</a>
 		{/if}
 
@@ -145,42 +155,48 @@
 		{:else if st.status === 'loading'}
 			<p class="note" role="status">Chargement des données de la gare depuis OpenStreetMap…</p>
 		{:else if st.status === 'error'}
-			<div class="card error" role="alert">
-				<p>{st.message}</p>
-				<button class="btn" type="button" onclick={() => openStation(id, { force: true })}>
-					Réessayer
-				</button>
+			<div class="banner err" role="alert">
+				<Icon name="alert" size={18} />
+				<div class="stack">
+					<p>{st.message}</p>
+					<button class="btn-sm" type="button" onclick={() => openStation(id, { force: true })}>
+						Réessayer
+					</button>
+				</div>
 			</div>
 		{:else if ready}
 			{#if server.id === 'dev' && !analysis?.platforms.length}
-				<div class="card" role="note">
-					<p>
-						<strong>Cette gare n’existe pas encore sur le serveur de test.</strong> Recopiez-y ses quais,
-						voies et pancartes depuis la vraie carte pour essayer la saisie et l’envoi.
-					</p>
-					{#if !configured()}
-						<p>La connexion au serveur de test n’est pas encore configurée.</p>
-					{:else if !(mounted && signedIn())}
-						<button class="btn" type="button" onclick={() => login()}
-							>Se connecter au serveur de test</button
-						>
-					{:else}
-						<button class="btn" type="button" disabled={seeding === 'busy'} onclick={seed}>
-							{seeding === 'busy' ? 'Copie en cours…' : 'Recopier la vraie gare ici'}
-						</button>
-					{/if}
-					{#if seedMsg}<p role="status">{seedMsg}</p>{/if}
+				<div class="banner" role="note">
+					<Icon name="info" size={18} />
+					<div class="stack">
+						<p>
+							<strong>Cette gare n’existe pas encore sur le serveur de test.</strong> Recopiez-y ses quais,
+							voies et pancartes depuis la vraie carte pour essayer la saisie et l’envoi.
+						</p>
+						{#if !configured()}
+							<p>La connexion au serveur de test n’est pas encore configurée.</p>
+						{:else if !(mounted && signedIn())}
+							<button class="btn-sm" type="button" onclick={() => login()}
+								>Se connecter au serveur de test</button
+							>
+						{:else}
+							<button class="btn-sm" type="button" disabled={seeding === 'busy'} onclick={seed}>
+								{seeding === 'busy' ? 'Copie en cours…' : 'Recopier la vraie gare ici'}
+							</button>
+						{/if}
+						{#if seedMsg}<p role="status">{seedMsg}</p>{/if}
+					</div>
 				</div>
 			{/if}
 			<section class="gauges" aria-label="Complétude de la gare">
 				{#each gauges as g (g.kind)}
 					<div class="gauge {g.kind}">
-						<span class="g-title"><Icon name={g.kind} size={20} />{g.label}</span>
+						<span class="g-title"><Icon name={g.kind} size={18} />{g.label}</span>
 						{#if g.total}
 							<span class="g-num">{g.done}/{g.total}</span>
 							<span class="g-unit">{g.unit}</span>
 							<span class="bar" aria-hidden="true">
-								<span style="width: {Math.round((g.done / g.total) * 100)}%"></span>
+								{#each segments(g.done, g.total) as on, i (i)}<span class:on></span>{/each}
 							</span>
 						{:else}
 							<span class="g-num">—</span>
@@ -190,46 +206,52 @@
 				{/each}
 			</section>
 
-			<div class="card offline" role="group" aria-label="Hors-ligne">
+			<div class="offline" role="group" aria-label="Hors-ligne">
 				{#if progress.station === id}
-					<p role="status">
-						Téléchargement des photos aériennes… {progress.done} / {progress.total}
+					<p class="row" role="status">
+						<Icon name="download" size={20} />
+						<span>Téléchargement des photos aériennes… {progress.done} / {progress.total}</span>
 					</p>
 					<progress max={progress.total} value={progress.done}></progress>
 				{:else if dl}
-					<p>
-						<Icon name="download" size={18} /> <strong>Disponible hors-ligne</strong> · {mo(
-							dl.bytes
-						)} · le
-						{fmtDate(dl.at)}
-					</p>
-					<button class="btn-small" type="button" onclick={() => downloadStation(ready.station)}
-						>Mettre à jour</button
-					>
+					<div class="row">
+						<Icon name="check" size={20} />
+						<span
+							><strong>Disponible hors-ligne</strong> · {mo(dl.bytes)} · le {fmtDate(dl.at)}</span
+						>
+						<button class="btn-quiet" type="button" onclick={() => downloadStation(ready.station)}
+							>Mettre à jour</button
+						>
+					</div>
 				{:else}
-					<p>Pas de réseau en gare ? Emportez les données et la photo aérienne.</p>
-					<button class="btn-small" type="button" onclick={() => downloadStation(ready.station)}>
-						<Icon name="download" size={18} /> Télécharger pour le hors-ligne (≈ {mo(
-							estimate(ready.station).bytes
-						)})
+					<button class="row row-btn" type="button" onclick={() => downloadStation(ready.station)}>
+						<Icon name="download" size={20} />
+						<span
+							>Emporter la gare hors-ligne <span class="dim"
+								>· ≈ {mo(estimate(ready.station).bytes)}</span
+							></span
+						>
 					</button>
 				{/if}
 				{#if progress.error && !progress.station}<p class="err" role="alert">
-						{progress.error}
+						<Icon name="alert" size={18} />{progress.error}
 					</p>{/if}
 			</div>
 
 			<div class="list-head">
 				<h2>À faire ici</h2>
-				<a class="btn-map" href={resolve(`/gare/carte?${mapQuery()}`)}
-					><Icon name="map" size={20} />Carte</a
-				>
+				<div class="seg views" role="group" aria-label="Affichage">
+					<span aria-current="true"><Icon name="list" size={18} />Liste</span>
+					<a href={resolve(`/gare/carte?${mapQuery()}`)}><Icon name="map" size={18} />Carte</a>
+				</div>
 			</div>
 
 			{#if !groups.length}
-				<p class="card ok"><Icon name="verif" /> Tout est renseigné dans cette gare. Bravo !</p>
+				<p class="banner ok">
+					<Icon name="check" size={18} /> Tout est renseigné dans cette gare. Bravo !
+				</p>
 			{:else}
-				<ul class="quests">
+				<ul class="group quests">
 					{#each groups as g (g.id)}
 						{@const first = g.quests[0]}
 						{@const target = first.target ?? first.platform}
@@ -242,7 +264,7 @@
 											`/gare/carte?${mapQuery(target ? `${target.type}/${target.id}` : undefined)}`
 										)}
 							>
-								<Icon name={iconOf[g.kind]} size={26} />
+								<span class="q-ico"><Icon name={iconOf[g.kind]} size={20} /></span>
 								<span class="q-text">
 									<span class="q-title">{g.title}</span>
 									{#if g.subtitle}<span class="q-sub">{g.subtitle}</span>{/if}
@@ -250,7 +272,7 @@
 											><Icon name="lock" size={14} /> À faire en gare</span
 										>{/if}
 								</span>
-								<Icon name="chevron" size={20} />
+								<Icon name="chev" size={18} />
 							</a>
 						</li>
 					{/each}
@@ -258,7 +280,7 @@
 			{/if}
 			{#if analysis?.platforms.length}
 				<a class="draw" href={resolve(`/gare/dessiner?id=${encodeURIComponent(id)}`)}>
-					<Icon name="quai" size={20} /> Un quai manque sur la carte ? Le dessiner</a
+					<Icon name="pen" size={18} /> Un quai manque sur la carte ? Le dessiner</a
 				>
 			{/if}
 			<p class="attribution">© contributeurs OpenStreetMap, ODbL</p>
@@ -268,153 +290,114 @@
 </div>
 
 <style>
+	/* Coque d'appli : seul le contenu défile, la barre basse ne recouvre jamais rien. */
 	.screen {
-		min-height: 100dvh;
+		height: 100dvh;
 		display: flex;
 		flex-direction: column;
-		background: var(--surface);
 	}
-	header {
-		background: var(--bg);
-		border-bottom: 1px solid var(--border);
-		padding: 8px 8px 12px;
-	}
-	.row {
-		display: flex;
-		align-items: center;
-		gap: 4px;
-		max-width: 640px;
-		margin: 0 auto;
-	}
-	h1 {
+	.titles {
 		flex-grow: 1;
-		margin: 0;
-		font-size: 1.375rem;
-		line-height: 1.25;
-	}
-	.icon-btn {
-		width: 48px;
-		height: 48px;
-		flex-shrink: 0;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		border: 0;
-		background: transparent;
-		color: var(--text);
-		cursor: pointer;
-	}
-	.meta {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		max-width: 640px;
-		margin: 2px auto 0;
-		padding-left: 52px;
-		font-size: 0.875rem;
-		color: var(--text-2);
+		min-width: 0;
 	}
 	main {
-		flex-grow: 1;
+		flex: 1 1 auto;
+		min-height: 0;
+		overflow-y: auto;
 		width: 100%;
-		max-width: 640px;
-		margin: 0 auto;
-		padding: 16px;
+		padding: 12px 16px 16px;
+		/* colonne de 640 px au plus, barre de défilement au bord de l'écran */
+		padding-inline: max(16px, calc((100% - 640px) / 2));
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
+		gap: 12px;
 	}
-	.demo {
+	main > :global(*) {
+		flex-shrink: 0;
+	}
+	.stack {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 8px;
+	}
+	.stack p {
 		margin: 0;
-		padding: 10px 14px;
-		border-radius: 12px;
-		background: var(--bg);
-		border: 1px dashed var(--text-2);
-		font-size: 0.9375rem;
 	}
 	.note {
 		margin: 0;
 		color: var(--text-2);
 	}
-	.offline p {
-		margin: 0;
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		flex-wrap: wrap;
-	}
-	.offline progress {
-		width: 100%;
-		height: 8px;
-		accent-color: var(--primary);
-	}
-	.err {
-		color: var(--danger);
-		font-weight: 700;
-	}
-	.btn-small {
-		align-self: flex-start;
-		display: inline-flex;
-		align-items: center;
-		gap: 6px;
-		min-height: 44px;
-		padding: 0 14px;
-		border: 2px solid var(--primary);
-		border-radius: 12px;
-		background: var(--bg);
-		color: var(--primary);
-		font: 700 0.9375rem var(--font);
-		cursor: pointer;
-	}
-	.pending {
+	.row-link,
+	.row {
 		display: flex;
 		align-items: center;
 		gap: 10px;
-		min-height: 52px;
-		padding: 8px 14px;
-		border-radius: var(--radius);
+		min-height: 48px;
+		margin: 0;
+		padding: 4px 12px;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-lg);
 		background: var(--bg);
-		border: 2px solid var(--primary);
-		color: var(--primary);
-		font-weight: 700;
+		color: var(--text);
 		text-decoration: none;
+		font-size: 0.9375rem;
 	}
-	.pending span {
+	.row-link > :global(svg:first-child),
+	.row > :global(svg:first-child) {
+		flex-shrink: 0;
+		color: var(--primary);
+	}
+	.row-link span,
+	.row span {
 		flex-grow: 1;
 	}
-	.card {
-		margin: 0;
-		padding: 14px;
-		border-radius: var(--radius);
-		background: var(--bg);
+	.row-link > :global(svg:last-child) {
+		color: var(--text-3);
+	}
+	.row-btn {
+		width: 100%;
+		font: inherit;
+		font-size: 0.9375rem;
+		text-align: left;
+		cursor: pointer;
+	}
+	.dim {
+		color: var(--text-2);
+	}
+	.offline {
 		display: flex;
 		flex-direction: column;
-		gap: 12px;
+		gap: 6px;
 	}
-	.card p {
-		margin: 0;
+	.offline progress {
+		width: 100%;
+		height: 6px;
+		accent-color: var(--primary);
 	}
-	.card.error {
-		border: 2px solid var(--danger);
-	}
-	.card.ok {
-		flex-direction: row;
+	.err {
+		display: flex;
 		align-items: center;
-		color: var(--ok);
-		font-weight: 700;
+		gap: 6px;
+		margin: 0;
+		font-size: 0.875rem;
+	}
+	.err :global(svg) {
+		flex-shrink: 0;
+		color: var(--danger);
 	}
 	.gauges {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: 10px;
+		gap: 8px;
 	}
 	.gauge {
-		background: var(--bg);
-		border-radius: var(--radius);
-		padding: 12px;
+		border: 1px solid var(--border);
+		border-radius: var(--radius-lg);
+		padding: 10px;
 		display: flex;
 		flex-direction: column;
-		gap: 4px;
+		gap: 2px;
 		--c: var(--quai);
 	}
 	.gauge.voie {
@@ -428,101 +411,112 @@
 		align-items: center;
 		gap: 6px;
 		color: var(--c);
-		font-weight: 700;
-		font-size: 0.9375rem;
+		font-weight: 600;
+		font-size: 0.875rem;
 	}
 	.g-num {
 		font-size: 1.5rem;
-		font-weight: 700;
+		line-height: 1.33;
+		font-weight: 600;
 		font-variant-numeric: tabular-nums;
 	}
 	.g-unit {
-		font-size: 0.8125rem;
+		font-size: 0.875rem;
 		color: var(--text-2);
 		line-height: 1.3;
 	}
 	.bar {
-		height: 6px;
-		border-radius: 3px;
-		background: var(--border);
-		overflow: hidden;
+		display: flex;
+		gap: 2px;
+		height: 4px;
+		margin-top: 6px;
 	}
 	.bar span {
-		display: block;
-		height: 100%;
+		flex: 1 1 0;
+		border-radius: 1px;
+		background: var(--border);
+	}
+	.bar span.on {
 		background: var(--c);
 	}
 	.list-head {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
+		gap: 8px;
+		margin-top: 4px;
 	}
 	h2 {
 		margin: 0;
-		font-size: 1.125rem;
+		font-size: 1.0625rem;
 	}
-	.btn-map {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		min-height: 44px;
-		padding: 0 16px;
-		border-radius: 22px;
-		border: 2px solid var(--primary);
-		color: var(--primary);
-		font-weight: 700;
-		text-decoration: none;
+	.views {
+		flex-shrink: 0;
 	}
-	.quests {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
+	.views > span,
+	.views > a {
+		padding: 0 12px;
 	}
 	.quest {
 		display: flex;
 		align-items: center;
 		gap: 12px;
-		min-height: 64px;
-		padding: 10px 14px;
-		border-radius: var(--radius);
-		background: var(--bg);
+		min-height: 56px;
+		padding: 12px;
 		color: var(--text);
 		text-decoration: none;
 		--c: var(--text-2);
+		--s: var(--surface);
 	}
-	.quest > :global(svg:first-child) {
-		color: var(--c);
+	.quest > :global(svg:last-child) {
 		flex-shrink: 0;
+		color: var(--text-3);
+	}
+	.q-ico {
+		flex-shrink: 0;
+		align-self: flex-start;
+		width: 36px;
+		height: 36px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: var(--radius);
+		background: var(--s);
+		color: var(--c);
 	}
 	.quest.quai {
 		--c: var(--quai);
+		--s: var(--quai-soft);
 	}
 	.quest.voie {
 		--c: var(--voie);
+		--s: var(--voie-soft);
 	}
 	.quest.pancarte {
 		--c: var(--pancarte);
+		--s: var(--pancarte-soft);
 	}
 	.quest.verif {
 		--c: var(--ok);
+		--s: var(--ok-soft);
 	}
 	.quest.alerte {
 		--c: var(--danger);
-		border: 2px solid var(--danger);
+		--s: var(--danger-soft);
 	}
 	.q-text {
 		flex-grow: 1;
 		display: flex;
 		flex-direction: column;
+		gap: 1px;
 	}
 	.q-title {
-		font-weight: 700;
+		font-weight: 600;
+		line-height: 1.35;
 	}
 	.q-sub {
 		font-size: 0.875rem;
+		line-height: 1.43;
 		color: var(--text-2);
 	}
 	.onsite {
@@ -534,11 +528,12 @@
 		display: flex;
 		align-items: center;
 		gap: 8px;
-		min-height: 48px;
-		font-weight: 700;
+		min-height: 44px;
+		font-weight: 600;
+		font-size: 0.9375rem;
 	}
 	.attribution {
-		margin: 8px 0 0;
+		margin: 4px 0 0;
 		font-size: 0.8125rem;
 		color: var(--text-2);
 		text-align: center;

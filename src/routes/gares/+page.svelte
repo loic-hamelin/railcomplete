@@ -62,7 +62,7 @@
 	<main>
 		<h1>Choisir une gare</h1>
 		<label class="search">
-			<Icon name="search" />
+			<Icon name="search" size={20} />
 			<span class="visually-hidden">Rechercher une gare</span>
 			<input
 				type="search"
@@ -72,20 +72,27 @@
 				enterkeyhint="search"
 			/>
 		</label>
-		<button class="chip" type="button" onclick={locate} disabled={!stations.length || locating}>
+		<button
+			class="btn-sm near"
+			type="button"
+			onclick={locate}
+			disabled={!stations.length || locating}
+		>
 			<Icon name="locate" size={20} />
 			{locating ? 'Localisation…' : 'Gares autour de moi'}
 		</button>
-		{#if geoError}<p class="note" role="status">{geoError}</p>{/if}
+		{#if geoError}<p class="banner warn" role="status">
+				<Icon name="alert" size={18} />{geoError}
+			</p>{/if}
 
 		{#if error}
-			<p class="note error" role="alert">{error}</p>
+			<p class="banner err" role="alert"><Icon name="alert" size={18} />{error}</p>
 		{:else if !stations.length}
 			<p class="note" role="status">Chargement de la liste des gares…</p>
 		{/if}
 
 		{#snippet list(title: string, items: { s: Station; d?: number }[])}
-			<h2>{title}</h2>
+			<h2 class="overline">{title}</h2>
 			<ul>
 				{#each items as { s, d } (s.id)}
 					<li>
@@ -124,71 +131,67 @@
 </div>
 
 <style>
+	/* Coque d'appli : seul le contenu défile, la barre basse ne recouvre jamais rien. */
 	.screen {
-		min-height: 100dvh;
+		height: 100dvh;
 		display: flex;
 		flex-direction: column;
 	}
 	main {
-		flex-grow: 1;
+		flex: 1 1 auto;
+		min-height: 0;
+		overflow-y: auto;
 		width: 100%;
-		max-width: 640px;
-		margin: 0 auto;
-		padding: 24px 20px;
+		padding: 20px 16px;
+		/* colonne de 640 px au plus, barre de défilement au bord de l'écran */
+		padding-inline: max(16px, calc((100% - 640px) / 2));
 		display: flex;
 		flex-direction: column;
-		gap: 14px;
+		gap: 12px;
+	}
+	main > :global(*) {
+		flex-shrink: 0;
 	}
 	h1 {
-		margin: 0;
-		font-size: 1.625rem;
+		margin: 0 0 4px;
+		font-size: 1.5rem;
+		line-height: 1.33;
 	}
-	h2 {
-		margin: 12px 0 0;
-		font-size: 0.875rem;
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
-		color: var(--text-2);
+	.overline {
+		margin-bottom: 0;
 	}
 	.search {
 		display: flex;
 		align-items: center;
 		gap: 10px;
-		min-height: 54px;
-		padding: 0 16px;
-		border: 2px solid var(--text-2);
+		min-height: 48px;
+		padding: 0 12px;
+		border: 1px solid var(--border-strong);
 		border-radius: var(--radius);
+		background: var(--bg);
 		color: var(--text-2);
 	}
 	.search:focus-within {
-		border-color: var(--primary);
+		outline: 2px solid var(--primary);
+		outline-offset: 2px;
 	}
 	input {
 		flex-grow: 1;
+		min-width: 0;
 		border: 0;
 		outline: none;
 		background: transparent;
 		color: var(--text);
-		font: 1.0625rem var(--font);
-		min-height: 48px;
+		font: 1rem var(--font);
+		min-height: 44px;
 	}
-	.chip {
+	input::placeholder {
+		color: var(--text-3);
+	}
+	.near {
 		align-self: flex-start;
-		display: flex;
-		align-items: center;
-		gap: 8px;
 		min-height: 48px;
-		padding: 0 18px;
-		border: 2px solid var(--primary);
-		border-radius: 24px;
-		background: transparent;
-		color: var(--primary);
-		font: 700 1rem var(--font);
-		cursor: pointer;
-	}
-	.chip:disabled {
-		opacity: 0.6;
-		cursor: default;
+		padding: 0 16px 0 12px;
 	}
 	ul {
 		list-style: none;
@@ -198,26 +201,25 @@
 	li a {
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
-		padding: 12px 0;
-		min-height: 48px;
+		justify-content: center;
+		gap: 1px;
+		padding: 10px 0;
+		min-height: 56px;
 		border-bottom: 1px solid var(--border);
 		color: var(--text);
 		text-decoration: none;
 	}
 	.name {
-		font-size: 1.125rem;
-		font-weight: 700;
+		font-size: 1rem;
+		font-weight: 600;
 	}
 	.sub {
-		font-size: 0.9375rem;
+		font-size: 0.875rem;
 		color: var(--text-2);
 	}
 	.note {
 		margin: 0;
+		font-size: 0.875rem;
 		color: var(--text-2);
-	}
-	.error {
-		color: var(--danger);
 	}
 </style>

@@ -8,6 +8,7 @@
 	import { isRail, isStopSign, type OsmNode, type OsmWay } from '#lib/core/osm.js';
 	import { current, openStation } from '#lib/current.svelte.js';
 	import { editsOf, loadEdits, pending } from '#lib/edits.svelte.js';
+	import NudgePad from '#lib/map/NudgePad.svelte';
 	import PlacementMap from '#lib/map/PlacementMap.svelte';
 	import { distanceM } from '#lib/stations.js';
 	import { stationView } from '#lib/view.js';
@@ -80,21 +81,8 @@
 
 <svelte:head><title>Placer une pancarte — stationcomplete</title></svelte:head>
 
+<!-- Carte plein écran ; en-tête, contrôles et actions flottent au-dessus (décision 6). -->
 <div class="screen">
-	<header>
-		<div class="row">
-			<a
-				class="icon-btn"
-				href={resolve(`/gare/carte?id=${encodeURIComponent(id)}`)}
-				aria-label="Annuler"><span aria-hidden="true">✕</span></a
-			>
-			<h1>Placer la pancarte</h1>
-		</div>
-		<p>
-			Placez la croix <strong>sur la voie</strong>, au niveau du panneau. Faites glisser la carte.
-		</p>
-	</header>
-
 	<div class="mapbox">
 		{#if view && start}
 			<PlacementMap
@@ -104,18 +92,44 @@
 				elements={view.elements}
 				onsnap={(s) => ((snap = s), (near = undefined))}
 			/>
-			<div class="zoom">
-				<button type="button" aria-label="Zoomer" onclick={() => mapRef?.zoom(1)}>+</button>
-				<button type="button" aria-label="Dézoomer" onclick={() => mapRef?.zoom(-1)}>−</button>
-			</div>
 		{:else}
-			<p class="status" role="status">Chargement…</p>
+			<p class="status float" role="status">Chargement…</p>
 		{/if}
 	</div>
 
-	<section class="panel">
+	<div class="stack">
+		<header class="top float">
+			<div class="row">
+				<a
+					class="icon-btn"
+					href={resolve(`/gare/carte?id=${encodeURIComponent(id)}`)}
+					aria-label="Annuler"><Icon name="close" size={22} /></a
+				>
+				<h1>Placer la pancarte</h1>
+			</div>
+			<p>
+				Placez la croix <strong>sur la voie</strong>, au niveau du panneau. Faites glisser la carte.
+			</p>
+		</header>
+
+		{#if view && start}
+			<div class="tools">
+				<div class="zoom float">
+					<button type="button" aria-label="Zoomer" onclick={() => mapRef?.zoom(1)}
+						><Icon name="plus" size={20} /></button
+					>
+					<button type="button" aria-label="Dézoomer" onclick={() => mapRef?.zoom(-1)}
+						><Icon name="minus" size={20} /></button
+					>
+				</div>
+				<NudgePad onnudge={(dx, dy) => mapRef?.nudge(dx, dy)} />
+			</div>
+		{/if}
+	</div>
+
+	<section class="panel float" aria-label="Position de la pancarte">
 		<div class="snap" class:ok={!!snap} role="status" aria-live="polite">
-			<Icon name={snap ? 'verif' : 'alerte'} size={24} />
+			<Icon name={snap ? 'check' : 'alert'} size={20} />
 			{#if snap}
 				<span
 					><strong>Accrochée à la voie</strong> · écart {snap.distM.toFixed(1).replace('.', ',')} m</span
@@ -137,37 +151,7 @@
 					<button class="btn" type="button" onclick={go}>C’est une autre</button>
 				</div>
 			</div>
-		{/if}
-
-		<div class="pad" role="group" aria-label="Déplacer la croix de 20 cm">
-			<span></span>
-			<button
-				type="button"
-				aria-label="Déplacer la croix vers le haut"
-				onclick={() => mapRef?.nudge(0, -1)}>▲</button
-			>
-			<span></span>
-			<button
-				type="button"
-				aria-label="Déplacer la croix vers la gauche"
-				onclick={() => mapRef?.nudge(-1, 0)}>◀</button
-			>
-			<span class="step">20 cm</span>
-			<button
-				type="button"
-				aria-label="Déplacer la croix vers la droite"
-				onclick={() => mapRef?.nudge(1, 0)}>▶</button
-			>
-			<span></span>
-			<button
-				type="button"
-				aria-label="Déplacer la croix vers le bas"
-				onclick={() => mapRef?.nudge(0, 1)}>▼</button
-			>
-			<span></span>
-		</div>
-
-		{#if !near}
+		{:else}
 			<button class="btn" type="button" disabled={!snap} onclick={validate}
 				>Valider la position</button
 			>
@@ -177,76 +161,102 @@
 
 <style>
 	.screen {
+		position: relative;
 		height: 100dvh;
+		overflow: hidden;
+		background: #8c877c;
+	}
+	.mapbox {
+		position: absolute;
+		inset: 0;
+	}
+	.status {
+		position: absolute;
+		inset: 45% 16px auto;
+		margin: 0;
+		padding: 12px;
+		text-align: center;
+	}
+	.stack {
+		position: absolute;
+		top: calc(8px + env(safe-area-inset-top));
+		left: calc(8px + env(safe-area-inset-left));
+		right: calc(8px + env(safe-area-inset-right));
 		display: flex;
 		flex-direction: column;
+		gap: 8px;
+		pointer-events: none;
 	}
-	header {
-		padding: 8px 16px 10px 4px;
+	.stack > * {
+		pointer-events: auto;
+	}
+	.top {
+		padding: 2px 12px 8px 2px;
 	}
 	.row {
 		display: flex;
 		align-items: center;
-		gap: 4px;
-	}
-	header p {
-		margin: 0 0 0 16px;
-		color: var(--text-2);
+		gap: 2px;
 	}
 	h1 {
 		margin: 0;
-		font-size: 1.25rem;
+		font-size: 1.0625rem;
+		line-height: 1.4;
 	}
-	.icon-btn {
-		width: 48px;
-		height: 48px;
+	.top p {
+		margin: 0 0 0 12px;
+		font-size: 0.875rem;
+		line-height: 1.43;
+		color: var(--text-2);
+	}
+	.top p strong {
+		color: var(--text);
+	}
+	.tools {
+		align-self: flex-end;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 8px;
+	}
+	.zoom {
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+	}
+	.zoom button {
+		width: 44px;
+		height: 44px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		padding: 0;
+		border: 0;
+		background: transparent;
 		color: var(--text);
-		text-decoration: none;
-		font-size: 1.25rem;
+		cursor: pointer;
 	}
-	.mapbox {
-		position: relative;
-		flex: 1 1 auto;
-		min-height: 260px;
+	.zoom button + button {
+		border-top: 1px solid var(--overlay-line);
 	}
-	.status {
-		padding: 16px;
-	}
-	.zoom {
+	.panel {
 		position: absolute;
-		right: 12px;
-		top: 12px;
+		left: calc(8px + env(safe-area-inset-left));
+		right: calc(8px + env(safe-area-inset-right));
+		bottom: calc(24px + env(safe-area-inset-bottom)); /* au-dessus de l'attribution */
+		max-width: 560px;
+		margin: 0 auto;
+		padding: 8px;
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
 	}
-	.zoom button {
-		width: 48px;
-		height: 48px;
-		border: 0;
-		border-radius: 12px;
-		background: var(--bg);
-		color: var(--text);
-		font: 700 1.5rem system-ui;
-		box-shadow: 0 1px 4px rgb(0 0 0 / 0.3);
-		cursor: pointer;
-	}
-	.panel {
-		padding: 12px 20px calc(16px + env(safe-area-inset-bottom));
-		display: flex;
-		flex-direction: column;
-		gap: 12px;
-	}
 	.snap {
 		display: flex;
 		align-items: center;
-		gap: 10px;
-		padding: 10px 14px;
-		border-radius: var(--radius);
-		background: var(--surface);
+		gap: 8px;
+		padding: 4px 6px;
+		font-size: 0.9375rem;
 		color: var(--missing);
 	}
 	.snap span {
@@ -256,42 +266,17 @@
 		color: var(--ok);
 	}
 	.near {
-		padding: 12px;
+		padding: 10px;
 		border-radius: var(--radius);
-		border: 2px solid var(--pancarte);
+		background: var(--pancarte-soft);
 	}
 	.near p {
-		margin: 0 0 10px;
+		margin: 0 0 8px;
+		font-size: 0.9375rem;
 	}
 	.two {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 8px;
-	}
-	.pad {
-		align-self: center;
-		display: grid;
-		grid-template-columns: repeat(3, 56px);
-		gap: 4px;
-	}
-	.pad button {
-		height: 48px;
-		border: 2px solid var(--border);
-		border-radius: 12px;
-		background: var(--bg);
-		color: var(--text);
-		font-size: 1rem;
-		cursor: pointer;
-	}
-	.step {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 0.75rem;
-		color: var(--text-2);
-	}
-	.btn:disabled {
-		opacity: 0.5;
-		cursor: default;
 	}
 </style>

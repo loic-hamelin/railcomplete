@@ -3,13 +3,18 @@
 </script>
 
 <a href={resolve('/')} class="logo" aria-label="stationcomplete, accueil">
-	<svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-		<path
-			d="M9 3v22M19 3v22M6 8h16M6 14h16M6 20h16"
-			stroke="currentColor"
-			stroke-width="2.4"
-			stroke-linecap="round"
-		/>
+	<svg
+		width="24"
+		height="24"
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		stroke-width="1.5"
+		stroke-linecap="round"
+		aria-hidden="true"
+	>
+		<rect x="3" y="3" width="18" height="18" rx="4" />
+		<path d="M3 9.5h18M3 14.5h18M8 7v10M12 7v10M16 7v10" />
 	</svg>
 	stationcomplete
 </a>
@@ -20,9 +25,9 @@
 		align-items: center;
 		gap: 8px;
 		min-height: 48px;
-		font-weight: 700;
-		font-size: 1.125rem;
-		color: var(--primary);
+		font-weight: 600;
+		font-size: 1.0625rem;
+		color: var(--text);
 		text-decoration: none;
 	}
 </style>

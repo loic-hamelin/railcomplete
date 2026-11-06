@@ -68,24 +68,28 @@
 						>
 						<span>{g.edits.length} saisie{g.edits.length > 1 ? 's' : ''}</span>
 					</h2>
-					<ul>
+					<ul class="group">
 						{#each g.edits as e (e.id)}
 							<li class={icon(e)}>
-								<Icon name={icon(e)} size={24} />
+								<Icon name={icon(e)} size={20} />
 								<span class="txt">
 									<span class="sum">{e.summary}</span>
 									<span class="meta"
 										>{e.kind === 'node' ? 'Nouvelle pancarte' : 'Modification'} · {when(
 											e.createdAt
-										)}</span
+										)}{#if e.conflict}
+											· <span class="review"><Icon name="alert" size={14} /> À revoir</span>{:else}
+											· <span class="wait"><Icon name="clock" size={14} /> En attente</span
+											>{/if}</span
 									>
 								</span>
 								{#if confirmId === e.id}
-									<button class="danger" type="button" onclick={() => removeEdit(e.id)}
+									<button class="btn-sm danger" type="button" onclick={() => removeEdit(e.id)}
 										>Confirmer</button
 									>
 								{:else}
 									<button
+										class="btn-sm"
 										type="button"
 										aria-label={`Retirer : ${e.summary}`}
 										onclick={() => (confirmId = e.id)}>Retirer</button
@@ -106,28 +110,36 @@
 </div>
 
 <style>
+	/* Coque d'appli : seul le contenu défile, la barre basse ne recouvre jamais rien. */
 	.screen {
-		min-height: 100dvh;
+		height: 100dvh;
 		display: flex;
 		flex-direction: column;
 	}
 	main {
-		flex-grow: 1;
+		flex: 1 1 auto;
+		min-height: 0;
+		overflow-y: auto;
 		width: 100%;
-		max-width: 640px;
-		margin: 0 auto;
-		padding: 24px 20px;
+		padding: 20px 16px;
+		/* colonne de 640 px au plus, barre de défilement au bord de l'écran */
+		padding-inline: max(16px, calc((100% - 640px) / 2));
 		display: flex;
 		flex-direction: column;
-		gap: 16px;
+		gap: 12px;
+	}
+	main > :global(*) {
+		flex-shrink: 0;
 	}
 	h1 {
 		margin: 0;
-		font-size: 1.625rem;
+		font-size: 1.5rem;
+		line-height: 1.33;
 	}
 	.intro,
 	.note {
 		margin: 0;
+		font-size: 0.9375rem;
 		color: var(--text-2);
 	}
 	.empty {
@@ -138,29 +150,30 @@
 	.empty p {
 		margin: 0;
 	}
+	section {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
 	h2 {
 		display: flex;
 		justify-content: space-between;
 		align-items: baseline;
-		margin: 8px 0 4px;
-		font-size: 1.0625rem;
+		gap: 8px;
+		margin: 8px 0 0;
+		font-size: 1rem;
 	}
 	h2 span {
 		font-size: 0.875rem;
 		font-weight: 400;
 		color: var(--text-2);
 	}
-	ul {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-	}
 	li {
 		display: flex;
 		align-items: center;
 		gap: 12px;
-		padding: 10px 0;
-		border-bottom: 1px solid var(--border);
+		min-height: 56px;
+		padding: 8px 8px 8px 12px;
 	}
 	li > :global(svg) {
 		flex-shrink: 0;
@@ -174,30 +187,29 @@
 	}
 	.txt {
 		flex-grow: 1;
+		min-width: 0;
 		display: flex;
 		flex-direction: column;
 	}
 	.sum {
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.meta {
 		font-size: 0.875rem;
 		color: var(--text-2);
 	}
-	.send {
-		margin-top: 10px;
+	.meta :global(svg) {
+		vertical-align: -2px;
 	}
-	li button {
-		min-height: 44px;
-		padding: 0 12px;
-		border: 2px solid var(--border);
-		border-radius: 12px;
-		background: var(--bg);
-		color: var(--text);
-		font: 700 0.875rem var(--font);
-		cursor: pointer;
+	.wait {
+		font-weight: 600;
+		color: var(--text-2);
 	}
-	li button.danger {
+	.review {
+		font-weight: 600;
+		color: var(--missing);
+	}
+	.btn-sm.danger {
 		border-color: var(--danger);
 		color: var(--danger);
 	}

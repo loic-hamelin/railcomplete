@@ -114,7 +114,7 @@
 	}
 	.err {
 		color: var(--danger);
-		font-weight: 700;
+		font-weight: 600;
 	}
 	.ok {
 		color: var(--ok);

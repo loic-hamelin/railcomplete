@@ -47,4 +47,4 @@ Chaque envoi sur la branche `main` déclenche le workflow `.github/workflows/dep
 - Code : [GPL-3.0-or-later](LICENSE)
 - Données contribuées : © contributeurs OpenStreetMap, licence [ODbL](https://opendatacommons.org/licenses/odbl/)
 - Photographies aériennes : IGN – BD ORTHO, Licence Ouverte 2.0
-- Police : Atkinson Hyperlegible (SIL Open Font License)
+- Police : Atkinson Hyperlegible Next (SIL Open Font License)
