@@ -1,0 +1,49 @@
+''À coller tel quel sur le wiki OSM, dans une nouvelle page nommée « FR:Stationcomplete ».''
+
+'''stationcomplete''' est une application web pour téléphone (PWA), libre et gratuite, qui aide chacun à compléter les données des '''gares françaises''' dans OpenStreetMap : numéros des quais, numéros des voies et pancartes d'arrêt des trains. Ces données servent à tous, notamment aux outils de conception ferroviaire comme [https://osrd.fr/ OSRD].
+
+* Site : https://stationcomplete.org
+* Code source (GPL-3.0 ou ultérieure) : https://github.com/loic-hamelin/stationcomplete
+* Contact : contact@stationcomplete.org, ou les tickets GitHub
+* Auteur : Loïc Hamelin (projet personnel, bénévole)
+
+== Fonctionnement ==
+L'utilisateur choisit une gare. L'appli lit les données de la gare par l'API OSM (requête <code>map</code> sur l'emprise de la gare, au plus une fois par jour) et propose de petites tâches : un quai sans numéro, une voie sans numéro local, une pancarte d'arrêt à placer, une donnée à vérifier. Les saisies restent sur le téléphone jusqu'à ce que l'utilisateur les relise et les envoie.
+
+* Les numéros ne peuvent être saisis '''que sur place''' (position vérifiée sur le téléphone, jamais envoyée). À distance, on peut seulement placer ou vérifier des objets sur la photo aérienne.
+* Fond de carte : BD ORTHO de l'IGN (Licence Ouverte 2.0), précision visée de l'ordre du mètre.
+* L'appli ne supprime jamais d'objet et ne modifie que les clés listées ci-dessous.
+
+== Ce que l'appli modifie ==
+{| class="wikitable"
+! Objet !! Clés écrites !! Remarque
+|-
+| Quai (<code>railway=platform</code>, way ou multipolygone) || <code>ref</code>, <code>local_ref</code>, <code>check_date</code> || <code>ref</code> = numéros des voies le long du quai (« 1;3 ») ; <code>local_ref</code> = numéro ou lettre affiché sur le quai, s'il diffère
+|-
+| Voie (<code>railway=rail</code>) || [[FR:Key:railway:track_ref|<code>railway:track_ref</code>]], <code>check_date</code> || numéro local de la voie en gare
+|-
+| Pancarte d'arrêt (nouveau nœud sur la voie) || <code>railway=signal</code>, <code>railway:signal:direction</code>, <code>railway:signal:position</code>, <code>railway:signal:stop=FR:passenger_stop</code> et les sous-clés <code>railway:signal:stop:*</code> || schéma [[FR:Tag:railway=signal|signaux français]] et [[Key:railway:signal:stop]] ; pancartes TT, nV (3 à 10), L, Z57
+|-
+| Quai absent d'OSM (nouveau way fermé) || <code>railway=platform</code>, <code>public_transport=platform</code>, <code>train=yes</code>, <code>area=yes</code> || polygone tracé sur la photo aérienne, bord accroché à 1,5 m de l'axe de la voie ; jamais de nœud partagé avec la voie
+|-
+| Vérification || <code>check_date</code> || quand l'utilisateur confirme sur place qu'une donnée est juste
+|}
+
+== Groupes de modifications (changesets) ==
+* '''Un changeset par gare''', envoyé après relecture par l'utilisateur, sous son propre compte.
+* Tags : <code>created_by=stationcomplete <version></code>, <code>hashtags=#stationcomplete</code>, <code>comment</code> (modifiable par l'utilisateur), <code>source=survey</code> pour les saisies faites sur place, <code>imagery_used=BDOrtho IGN</code> quand un objet a été placé sur la photo.
+* Avant l'envoi, les objets sont relus sur l'API : si quelqu'un les a modifiés entre-temps, la saisie est mise de côté « à revoir » au lieu d'écraser son travail.
+* Pour retrouver tous les changesets : recherche du hashtag ''#stationcomplete'' sur [https://osmcha.org OSMCha].
+
+== Garde-fous ==
+* Chaque modification résulte d'une action explicite de l'utilisateur : ce n'est pas une modification automatisée.
+* Changesets petits et locaux (une seule gare).
+* Envoi transactionnel, sans doublon même après une coupure réseau.
+* Interrupteur d'arrêt d'urgence : l'auteur peut suspendre tous les envois en quelques minutes en cas de problème.
+* Respect de la [https://operations.osmfoundation.org/policies/api/ politique d'usage de l'API] : 2 requêtes simultanées au maximum, cache local, en-tête Referer (stationcomplete.org) transmis par le navigateur.
+
+== Phase pilote ==
+Avant l'ouverture à tous, 3 à 5 testeurs utilisent l'appli dans quelques gares. Leurs changesets sont relus par un cartographe ferroviaire expérimenté. Pendant cette phase, seuls les comptes des testeurs peuvent envoyer vers OpenStreetMap.
+
+== Signaler un problème ==
+Si un changeset #stationcomplete vous paraît faux, commentez-le directement sur OSM (l'auteur du changeset est prévenu) et écrivez à contact@stationcomplete.org : un défaut de l'appli sera corrigé, et les envois suspendus si nécessaire.

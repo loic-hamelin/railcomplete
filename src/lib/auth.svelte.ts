@@ -5,7 +5,8 @@ import { osmAuth } from 'osm-auth';
 import { readPref, writePref } from './cache.js';
 import { server, srv } from './osmserver.svelte.js';
 
-export const SCOPES = 'read_prefs write_api write_notes';
+// write_notes sera demandé le jour où l'appli créera des notes OSM (pas encore le cas).
+export const SCOPES = 'read_prefs write_api';
 
 type User = { name: string; id: number };
 export const account = $state<{ user?: User; checking: boolean; error?: string }>({

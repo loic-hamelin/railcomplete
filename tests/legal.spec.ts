@@ -42,3 +42,11 @@ test('effacer toutes les données du téléphone', async ({ page }) => {
 	expect(left.filter((k) => k.startsWith('rc:') || k.includes('oauth'))).toEqual([]);
 	expect(left).toContain('autre-site');
 });
+
+test('thème sombre : contrastes conformes sur les pages principales', async ({ page }) => {
+	await page.emulateMedia({ colorScheme: 'dark' });
+	for (const path of ['/', '/reglages/', '/donnees-personnelles/', '/a-propos/']) {
+		await page.goto(path);
+		await expectAccessible(page);
+	}
+});

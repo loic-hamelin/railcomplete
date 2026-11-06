@@ -48,3 +48,19 @@ describe('blocage des envois', () => {
 		expect(uploadBlock(pilot, '0.4', false, 'Autre')).toBeUndefined();
 	});
 });
+
+describe('static/config.json publié', () => {
+	it('est un JSON valide, avec des champs bien typés (sinon le déploiement échoue)', async () => {
+		const { readFileSync } = await import('node:fs');
+		const raw = JSON.parse(readFileSync('static/config.json', 'utf8'));
+		expect(typeof raw.uploadsEnabled).toBe('boolean');
+		expect(raw.minVersion).toMatch(/^\d+(\.\d+)*$/);
+		expect(raw.message === null || typeof raw.message === 'string').toBe(true);
+		expect(
+			raw.pilotUsers === null ||
+				(Array.isArray(raw.pilotUsers) &&
+					raw.pilotUsers.every((u: unknown) => typeof u === 'string'))
+		).toBe(true);
+		expect(parseConfig(raw)).toEqual({ ...raw, message: raw.message?.trim() || null });
+	});
+});
