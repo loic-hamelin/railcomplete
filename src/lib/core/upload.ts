@@ -196,6 +196,28 @@ export function copyForTest(
 			flush();
 		}
 	}
+	// Quais décrits par une relation (multipolygone) : on recopie le contour extérieur comme un
+	// quai simple, avec les tags de la relation.
+	const waysById = new Map(
+		elements.filter((e): e is OsmWay => e.type === 'way').map((w) => [w.id, w])
+	);
+	for (const e of elements) {
+		if (e.type !== 'relation') continue;
+		const r = e as OsmRelation;
+		const t = r.tags ?? {};
+		if (t.railway !== 'platform' && t.public_transport !== 'platform') continue;
+		for (const m of r.members) {
+			const w = m.type === 'way' && m.role !== 'inner' ? waysById.get(m.ref) : undefined;
+			if (w && w.nodes.some((id) => nodes.has(id) && inside(nodes.get(id)!)))
+				pieces.push({
+					nodes: w.nodes.filter((id) => nodes.has(id)),
+					tags: {
+						...(w.tags ?? {}),
+						...Object.fromEntries(Object.entries(t).filter(([k]) => k !== 'type'))
+					}
+				});
+		}
+	}
 	// Simplification du tracé (Douglas-Peucker) : on garde les extrémités et les nœuds avec tags.
 	const tol = opts.toleranceM ?? 0.5;
 	const lat0 = bbox ? (bbox[1] + bbox[3]) / 2 : 46;
