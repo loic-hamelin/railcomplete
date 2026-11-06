@@ -32,6 +32,16 @@ Décisions de Loïc :
 
 Non repris pour l'instant : mode « Plein soleil », mini-carte en tête de E7, « ancien → nouveau » barré sur E8 (le résumé reste celui du cœur métier).
 
+## Lot 7 — Modifier un quai existant (6 novembre 2026)
+
+Demande de Loïc : « pouvoir éditer les quais déjà présents ». Trois actions, toutes depuis la feuille basse d'un quai sur E5 :
+
+1. **Modifier la forme** (quai en surface) : déplacer, ajouter, retirer des sommets — nouvel écran **E12**.
+2. **Redessiner en surface** (quai tracé en ligne) : même écran, contour neuf autour de l'ancienne ligne affichée en pointillés.
+3. **Supprimer ce quai** : confirmation dans la feuille, motif obligatoire.
+
+Forme et suppression « en double » sont permises **à distance** (photo aérienne), comme le dessin E11. Le motif « N'existe plus » exige d'être sur place (`canSurvey`). Les numéros restent saisis par « Renseigner » (E7), sur place. Règles OSM : architecture § 4.4.4.
+
 ---
 
 ## 0 bis. Décisions validées (5 novembre 2026)
@@ -287,6 +297,8 @@ Conventions des wireframes : largeur ~ 360 dp ; `[ Bouton ]` ; `( )` bouton rond
 - **Contenu** : fond ortho IGN (ou plan OSM en option), géométries des quais et voies, pastilles d'état (complet ✓, manquant ?, à vérifier !), pancartes.
 - **Composants** : carte plein écran ; filtres en puces (Quais · Voies · Pancartes) ; bouton « Me localiser » (GPS ponctuel) ; bouton « Fond » (Ortho / Plan) ; bouton flottant « + Ajouter » en bas à droite (zone pouce) ; feuille basse de résumé d'objet au toucher.
 - **Actions** : toucher un objet → feuille basse (Vérifier / Corriger) ; « + Ajouter » → choix du type → E6 ; filtrer ; changer de fond.
+- **Quai sélectionné (lot 7)** : à côté du bouton compact « Renseigner », un lien discret avec icône « Modifier la forme » (« Redessiner en surface » si le quai est une ligne) vers E12, puis un bouton « Plus d'actions » (⋮) qui déplie sous les actions : « Supprimer ce quai… » et « Voir sur OpenStreetMap ». Quai en multipolygone ou relation : pas de lien de forme ; le menu dit « Quai complexe : à modifier avec un éditeur comme iD ou JOSM ».
+- **Suppression (lot 7)** : la feuille montre la confirmation (jamais `confirm()`) : motif en boutons radio « En double avec un autre quai » / « N'existe plus » (désactivé hors place, avec cadenas et « Sur place seulement : la photo aérienne peut être ancienne ») ; constats : relations dont le quai sera retiré (« Il sera aussi retiré de la zone d'arrêt Gare d'Ambérieu et de 5 lignes »), nombre de points supprimés et conservés, saisies du même quai qui seront retirées ; boutons « Annuler » / « Supprimer le quai » (filet rouge). Refus (relation qui deviendrait vide, multipolygone) : message et lien OSM, pas de bouton de suppression. Après enregistrement, le quai disparaît de la carte locale et un bandeau flottant le confirme, avec un lien vers Mes contributions (pour annuler).
 - **États** : chargement (tuiles grises + spinner discret) ; erreur tuiles (« Image aérienne indisponible — fond Plan affiché ») ; hors-ligne hors zone téléchargée (« Zone non téléchargée ») ; GPS imprécis (cercle de précision affiché + « Position à ±8 m : utilisez l'image pour placer précisément »).
 
 ```
@@ -413,6 +425,7 @@ Conventions des wireframes : largeur ~ 360 dp ; `[ Bouton ]` ; `( )` bouton rond
 - **Contenu** : modifications groupées par gare (1 changeset par gare), commentaire de changeset prérempli (« Numéros de quais et pancartes d'arrêt, gare d'Ambérieu-en-Bugey — via StationComplete »), source, état réseau.
 - **Composants** : liste de modifications (icône, résumé, ancien → nouveau, supprimer), champ commentaire, bouton principal « Envoyer dans OSM », interrupteur « Envoyer automatiquement au retour du réseau ».
 - **Actions** : envoyer, modifier/supprimer une modification, résoudre un conflit, se connecter (si sans compte).
+- **Lot 7** : résumés « Quai A : forme modifiée (26 → 27 points) », « Quai voies 9 redessiné en surface », « Quai B-C supprimé (en double) — retiré de la zone d'arrêt X et de 5 lignes » ; icônes forme / corbeille dans la couleur des quais ; nature en clair (« Forme du quai », « Suppression · motif : … »). Le commentaire proposé suit les saisies et cite le motif des suppressions. Forme ou suppression « à revoir » : pas de « Garder », mais « Refaire » (E5 centrée sur le quai, données relues) et « Retirer ».
 - **États** : vide (« Rien à envoyer. Vos contributions apparaîtront ici. ») ; envoi en cours (barre de progression + « Envoi 2/5… ») ; succès (« Envoyé ✓ — voir le changeset ↗ ») ; erreur (« Envoi interrompu, vos modifications sont conservées — Réessayer ») ; hors-ligne (bouton remplacé par « En attente du réseau », bandeau) ; non connecté (« Connectez-vous à OSM pour publier ») ; conflit (ligne marquée « À revoir » → comparaison Votre version / Version OSM, choix « Garder la mienne » / « Garder OSM »).
 
 ```
@@ -446,6 +459,7 @@ Conventions des wireframes : largeur ~ 360 dp ; `[ Bouton ]` ; `( )` bouton rond
 - **Contenu** : compteurs (modifications envoyées, gares touchées), 3 segments : En attente · À revoir · Envoyées.
 - **Composants** : contrôle segmenté, lignes d'historique (icône, gare, résumé, date relative, statut texte + icône), accès E8.
 - **Actions** : ouvrir E8, ouvrir changeset OSM ↗, modifier une contribution en attente.
+- **Lot 7** : mêmes résumés, icônes et natures que E8 ; « À revoir » affiché avec le motif ; « Retirer » annule aussi une suppression de quai en attente.
 - **États** : vide (« Aucune contribution pour l'instant. Choisissez une gare pour commencer. » + bouton) ; chargement (squelettes) ; hors-ligne (historique local seul, statuts « Envoyées » non rafraîchis) ; erreur de synchronisation de l'historique (message discret, non bloquant).
 
 ```
@@ -534,6 +548,19 @@ Conventions des wireframes : largeur ~ 360 dp ; `[ Bouton ]` ; `( )` bouton rond
 │ └──────────────────────────┘ │
 └──────────────────────────────┘
 ```
+
+### E12 — Modifier un quai (ajout lot 7)
+
+- **Objectif** : corriger la forme d'un quai existant, ou remplacer un quai tracé en ligne par une surface, sur la photo aérienne, sans casser les objets voisins.
+- **Route** : `/gare/forme?id=<gare>&osm=way/<id>`, chargée à la demande (hors budget de démarrage).
+- **Reprend E11** : carte plein écran, croix fixe au centre (accrochage au bord de voie à 1,5 m, croix jaune), en-tête flottant (fermer, titre, nombre de points, consigne), zoom et pavé de flèches repliable « Ajuster au centimètre », panneau bas flottant.
+- **Sommets** : chaque sommet est un bouton de 44 px (« Point 2 : le sélectionner »). Sommet **verrouillé** (tagué, partagé avec un autre way ou membre d'une relation) : carré sombre cerclé de blanc, libellé « Point 3 : relié à un autre objet, non modifiable » ; sélectionnable, mais « Déplacer » et « Retirer » sont désactivés. Repère « + » au milieu de chaque côté (« Ajouter un point entre 2 et 3 ») : insère un point, aussitôt sélectionné.
+- **Sélection** : la carte se recentre pour que le point soit sous la croix ; on fait glisser la carte (ou le pavé) puis « Déplacer le point ici ». « Retirer ce point » (au moins 3 points). Longueurs affichées seulement pour les deux côtés du point sélectionné.
+- **Actions** : « Annuler » (dernière action, pile d'historique), « Terminer » (contrôles puis enregistrement, retour à E5 centrée sur le quai), « Quitter sans enregistrer » (✕).
+- **Redessiner en surface** : contour vide au départ, ancienne ligne en pointillés ; « Ajouter un point » au réticule ; les points verrouillés de l'ancienne ligne apparaissent en carrés pointillés (« Point relié 2 de l'ancienne ligne : l'ajouter au contour ») et doivent tous être repris, sinon « Terminer » refuse avec un message (et renvoie vers iD/JOSM).
+- **Contrôles à « Terminer »** : `checkShape` (≥ 3 points, pas de côtés croisés, 20–800 m, ne croise pas une voie, ne chevauche pas un autre quai — le quai lui-même exclu), verrous respectés, au moins un changement.
+- **Accessibilité** : alternatives sans glisser (pavé, boutons), annonces `aria-live` (« Point 4 ajouté entre 3 et 4 », « Point 2 déplacé », « Dernière action annulée »), erreurs en `role=alert`, cibles ≥ 44 px, clair et sombre, axe sans violation (canevas exclu, marqueurs testés).
+- **États** : chargement ; quai introuvable ; quai complexe (multipolygone) → message, lien OSM, retour.
 
 ---
 

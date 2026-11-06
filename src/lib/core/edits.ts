@@ -61,14 +61,209 @@ export interface NewWayEdit extends EditBase {
 	summary: string;
 }
 
-export type Edit = TagEdit | NewNodeEdit | NewWayEdit;
+/** Point d'un contour de quai : nœud existant (id > 0) ou nouveau (id < 0). */
+export interface RingNode {
+	id: number;
+	lon: number;
+	lat: number;
+}
+
+/** Nœud du quai tel qu'il était sur OpenStreetMap au moment de la saisie (lot 7). */
+export interface OrigNode extends RingNode {
+	version?: number;
+	/** Tagué, partagé avec un autre way ou membre d'une relation : jamais déplacé ni supprimé. */
+	locked: boolean;
+}
+
+/**
+ * Forme d'un quai existant corrigée (E12) : le way garde son identifiant (historique et
+ * relations conservés), seule sa liste de nœuds change. « area » : quai tracé en ligne
+ * redessiné en surface (contour fermé, area=yes ajouté).
+ */
+export interface ShapeEdit extends EditBase {
+	kind: 'shape';
+	target: `way/${number}`;
+	/** Version du way au moment de la saisie : toute autre version à l'envoi → « à revoir ». */
+	version?: number;
+	mode: 'reshape' | 'area';
+	/** Nœuds d'origine, dans l'ordre, sans répéter le premier d'un contour fermé. */
+	before: OrigNode[];
+	/** Nouveau contour fermé, sans répéter le premier point. */
+	nodes: RingNode[];
+	/** Tags saisis sur la fiche du même quai, envoyés dans la même modification du way. */
+	tags?: Record<string, string | null>;
+	base?: Record<string, string | null>;
+	/** Nom du quai (« Quai A »), pour les résumés. */
+	name: string;
+	/** Résumés séparés de la forme et des tags ; `summary` les réunit. */
+	shapeSummary: string;
+	tagSummary?: string;
+	summary: string;
+}
+
+/** Relation dont un quai supprimé est retiré (zone d'arrêt, ligne…). */
+export interface RelationRef {
+	id: number;
+	kind: 'stop_area' | 'route' | 'other';
+	name: string;
+}
+
+/** Suppression d'un quai (way) : ses nœuds devenus orphelins sont supprimés avec lui. */
+export interface DeleteEdit extends EditBase {
+	kind: 'delete';
+	target: `way/${number}`;
+	version?: number;
+	/** « duplicate » : en double (permis à distance) ; « gone » : n'existe plus (sur place). */
+	reason: 'duplicate' | 'gone';
+	before: OrigNode[];
+	/** Relations dont le quai est retiré, lues au moment de la saisie (pour le résumé). */
+	relations: RelationRef[];
+	/** Nom du quai (« Quai A »), pour les résumés et le commentaire du changeset. */
+	name: string;
+	summary: string;
+}
+
+export type Edit = TagEdit | NewNodeEdit | NewWayEdit | ShapeEdit | DeleteEdit;
 
 /** Clé de l'objet principal d'une saisie (« way/-3 », « node/-1 », « way/123 »). */
 export const editKey = (e: Edit): ElementKey =>
-	e.kind === 'tags' ? e.target : e.kind === 'node' ? `node/${e.tempId}` : `way/${e.tempId}`;
+	e.kind === 'tags' || e.kind === 'shape' || e.kind === 'delete'
+		? e.target
+		: e.kind === 'node'
+			? `node/${e.tempId}`
+			: `way/${e.tempId}`;
+
+/** Applique des changements de tags (null ou vide = retirer). */
+export function changeTags(tags: Tags | undefined, changes: Record<string, string | null> = {}) {
+	const out: Tags = { ...(tags ?? {}) };
+	for (const [k, v] of Object.entries(changes)) {
+		if (v === null || v === '') delete out[k];
+		else out[k] = v;
+	}
+	return out;
+}
+
+/** Tags ajoutés par un « redessiner en surface ». */
+export const AREA_TAGS = { area: 'yes' } as const;
+
+/** Famille d'objet d'une saisie (couleur de la ligne dans les listes E8 et E9). */
+export const editFamily = (e: Edit): 'quai' | 'voie' | 'pancarte' =>
+	e.kind === 'node' || (e.kind === 'tags' && e.target.startsWith('node/'))
+		? 'pancarte'
+		: e.kind !== 'tags' || e.summary.startsWith('Quai')
+			? 'quai'
+			: 'voie';
+
+/** Icône d'une saisie : la famille, ou la nature du changement pour un quai existant. */
+export const editIcon = (e: Edit) =>
+	e.kind === 'shape' ? 'shape' : e.kind === 'delete' ? 'trash' : editFamily(e);
+
+/** Nature d'une saisie, en clair (« Forme du quai », « Suppression »…). */
+export function editLabel(e: Edit) {
+	if (e.kind === 'node') return 'Nouvelle pancarte';
+	if (e.kind === 'way') return 'Nouveau quai';
+	if (e.kind === 'shape') return e.mode === 'area' ? 'Quai redessiné en surface' : 'Forme du quai';
+	if (e.kind === 'delete')
+		return `Suppression · motif : ${e.reason === 'duplicate' ? 'en double avec un autre quai' : 'n’existe plus'}`;
+	return 'Modification';
+}
 
 export const newEditId = () =>
 	`${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+/**
+ * Range une nouvelle saisie parmi les saisies en attente (`list`, même serveur) :
+ * - tags d'un objet pas encore envoyé → dans la saisie qui le crée ;
+ * - tags d'un objet déjà saisi → fusion avec la saisie précédente ;
+ * - quai existant (lot 7) : forme et tags dans une seule saisie (un seul <modify> du way) ;
+ *   une suppression remplace toutes les autres saisies sur ce quai ;
+ *   des tags sur un quai marqué à supprimer sont refusés (exception).
+ * Renvoie la saisie à enregistrer et les identifiants des saisies à retirer.
+ */
+export function mergeEdit(list: Edit[], edit: Edit): { edit?: Edit; drop: string[] } {
+	if (edit.kind === 'tags' && Number(edit.target.split('/')[1]) < 0) {
+		const target = edit.target;
+		const creator = list.find(
+			(e) => (e.kind === 'node' || e.kind === 'way') && editKey(e) === target
+		);
+		if (!creator || (creator.kind !== 'node' && creator.kind !== 'way')) return { drop: [] };
+		const summary = edit.summary.startsWith('Quai') ? `${edit.summary} (dessiné)` : creator.summary;
+		return {
+			edit: {
+				...creator,
+				tags: changeTags(creator.tags, edit.tags),
+				summary,
+				...(edit.demo ? { demo: true } : {})
+			},
+			drop: []
+		};
+	}
+	const onTarget = (target: string) =>
+		list.filter(
+			(e) => (e.kind === 'tags' || e.kind === 'shape' || e.kind === 'delete') && e.target === target
+		);
+	const drop: string[] = [];
+	if (edit.kind === 'tags' && edit.target.startsWith('way/')) {
+		const others = onTarget(edit.target);
+		if (others.some((e) => e.kind === 'delete' && !e.conflict))
+			throw new Error('Ce quai est marqué à supprimer : retirez d’abord cette saisie.');
+		const shape = others.find((e) => e.kind === 'shape' && !e.conflict);
+		if (shape?.kind === 'shape') return { edit: withTags(shape, edit), drop: [] };
+	}
+	if (edit.kind === 'shape') {
+		const others = onTarget(edit.target);
+		for (const o of others)
+			if (o.kind === 'tags') edit = withTags(edit, o);
+			else if (o.kind === 'shape' && o.tags)
+				edit = withTags(edit, { tags: o.tags, base: o.base, summary: o.tagSummary ?? '' });
+		drop.push(...others.map((e) => e.id));
+		return { edit, drop };
+	}
+	if (edit.kind === 'delete') return { edit, drop: onTarget(edit.target).map((e) => e.id) };
+
+	const e = edit;
+	const same =
+		e.kind === 'tags'
+			? list.find((x) => x.kind === 'tags' && x.target === e.target)
+			: list.find(
+					(x) =>
+						(x.kind === 'node' || x.kind === 'way') && x.kind === e.kind && x.tempId === e.tempId
+				);
+	if (same?.kind === 'tags' && e.kind === 'tags')
+		// Fusion : la nouvelle saisie complète la précédente sur le même objet.
+		return {
+			edit: {
+				...e,
+				id: same.id,
+				tags: { ...same.tags, ...e.tags },
+				base: { ...e.base, ...same.base },
+				version: same.version ?? e.version
+			},
+			drop
+		};
+	return { edit: same ? { ...e, id: same.id } : e, drop };
+}
+
+/** Range des tags saisis sur la fiche d'un quai dans sa saisie de forme. */
+function withTags(
+	shape: ShapeEdit,
+	t: {
+		tags: Record<string, string | null>;
+		base?: Record<string, string | null>;
+		summary: string;
+		demo?: boolean;
+	}
+): ShapeEdit {
+	const tagSummary = t.summary || shape.tagSummary;
+	return {
+		...shape,
+		tags: { ...shape.tags, ...t.tags },
+		base: { ...t.base, ...shape.base },
+		tagSummary,
+		summary: tagSummary ? `${shape.shapeSummary} ; ${tagSummary}` : shape.shapeSummary,
+		...(t.demo || shape.demo ? { demo: true } : {})
+	};
+}
 
 /** Applique les modifications locales aux éléments OSM, sans modifier l'original. */
 export function applyEdits(elements: OsmElement[], edits: Edit[]): OsmElement[] {
@@ -81,12 +276,33 @@ export function applyEdits(elements: OsmElement[], edits: Edit[]): OsmElement[] 
 		if (ed.kind === 'tags') {
 			const e = out.get(ed.target);
 			if (!e) continue;
-			const tags: Tags = { ...(e.tags ?? {}) };
-			for (const [k, v] of Object.entries(ed.tags)) {
-				if (v === null || v === '') delete tags[k];
-				else tags[k] = v;
+			out.set(ed.target, { ...e, tags: changeTags(e.tags, ed.tags) } as OsmElement);
+		} else if (ed.kind === 'shape') {
+			const w = out.get(ed.target) as OsmWay | undefined;
+			if (!w || !ed.nodes.length) continue;
+			for (const n of ed.nodes) {
+				const prev = out.get(`node/${n.id}`) as OsmNode | undefined;
+				out.set(
+					`node/${n.id}`,
+					prev
+						? { ...prev, lon: n.lon, lat: n.lat }
+						: { type: 'node', id: n.id, lon: n.lon, lat: n.lat }
+				);
 			}
-			out.set(ed.target, { ...e, tags } as OsmElement);
+			const ids = ed.nodes.map((n) => n.id);
+			let tags = changeTags(w.tags, ed.tags);
+			if (ed.mode === 'area') tags = { ...tags, ...AREA_TAGS };
+			out.set(ed.target, { ...w, nodes: [...ids, ids[0]], tags });
+		} else if (ed.kind === 'delete') {
+			// Le quai disparaît de la vue locale, et des relations qui le contenaient.
+			if (!out.delete(ed.target)) continue;
+			const id = Number(ed.target.split('/')[1]);
+			for (const [k, e] of out)
+				if (e.type === 'relation' && e.members.some((m) => m.type === 'way' && m.ref === id))
+					out.set(k, {
+						...e,
+						members: e.members.filter((m) => !(m.type === 'way' && m.ref === id))
+					});
 		} else if (ed.kind === 'way') {
 			for (const n of ed.nodes)
 				out.set(`node/${n.id}`, { type: 'node', id: n.id, lon: n.lon, lat: n.lat });

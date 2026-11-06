@@ -3,7 +3,7 @@
 	import { resolve } from '$app/paths';
 	import BottomNav from '#lib/BottomNav.svelte';
 	import Icon from '#lib/Icon.svelte';
-	import type { Edit } from '#lib/core/edits.js';
+	import { editFamily, editIcon, editLabel, type Edit } from '#lib/core/edits.js';
 	import { loadEdits, mine, pending, removeEdit } from '#lib/edits.svelte.js';
 	import { srv } from '#lib/osmserver.svelte.js';
 	import { loadStations, type Station } from '#lib/stations.js';
@@ -28,16 +28,7 @@
 		for (const e of mine()) (by[e.station] ??= []).push(e);
 		return Object.entries(by).map(([station, edits]) => ({ station, edits }));
 	});
-	const icon = (e: Edit) =>
-		e.kind === 'node'
-			? 'pancarte'
-			: e.kind === 'way'
-				? 'quai'
-				: e.target.startsWith('node/')
-					? 'pancarte'
-					: e.summary.startsWith('Quai')
-						? 'quai'
-						: 'voie';
+	const icon = (e: Edit) => editIcon(e);
 	const when = (t: number) =>
 		new Date(t).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
 </script>
@@ -70,14 +61,12 @@
 					</h2>
 					<ul class="group">
 						{#each g.edits as e (e.id)}
-							<li class={icon(e)}>
+							<li class={editFamily(e)}>
 								<Icon name={icon(e)} size={20} />
 								<span class="txt">
 									<span class="sum">{e.summary}</span>
 									<span class="meta"
-										>{e.kind === 'node' ? 'Nouvelle pancarte' : 'Modification'} · {when(
-											e.createdAt
-										)}{#if e.conflict}
+										>{editLabel(e)} · {when(e.createdAt)}{#if e.conflict}
 											· <span class="review"><Icon name="alert" size={14} /> À revoir</span>{:else}
 											· <span class="wait"><Icon name="clock" size={14} /> En attente</span
 											>{/if}</span

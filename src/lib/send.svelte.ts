@@ -13,9 +13,12 @@ import {
 	changesetTags,
 	changesetXml,
 	conflictTarget,
+	deletedWays,
 	elementsToFetch,
 	osmChangeXml,
-	planUpload
+	planUpload,
+	proposedComment,
+	usageToCheck
 } from './core/upload.js';
 import { uploadBlock } from './core/remote.js';
 import { account, osmFetch } from './auth.svelte.js';
@@ -64,6 +67,16 @@ async function call(path: string, init: { method?: string; body?: string; xml?: 
 	return { body, retryAfter: r.headers.get('Retry-After') };
 }
 
+/** Lance les tâches deux par deux au plus (sobriété envers le serveur OSM). */
+async function pool<T>(tasks: (() => Promise<T>)[], size = 2): Promise<T[]> {
+	const out: T[] = [];
+	for (let i = 0; i < tasks.length; i += size)
+		out.push(...(await Promise.all(tasks.slice(i, i + size).map((t) => t()))));
+	return out;
+}
+
+const elementsOf = (body: string) => JSON.parse(body).elements as OsmElement[];
+
 async function readFresh(edits: Edit[]): Promise<OsmElement[]> {
 	const ids = elementsToFetch(edits);
 	const out: OsmElement[] = [];
@@ -76,14 +89,14 @@ async function readFresh(edits: Edit[]): Promise<OsmElement[]> {
 			const chunk = list.slice(i, i + 200);
 			try {
 				const { body } = await call(`/api/0.6/${type}.json?${type}=${chunk.join(',')}`);
-				out.push(...(JSON.parse(body).elements as OsmElement[]));
+				out.push(...elementsOf(body));
 			} catch (e) {
 				// 404/410 : un objet a été supprimé ; on relit un par un pour isoler les autres.
 				if (!(e instanceof HttpError) || ![404, 410].includes(e.status)) throw e;
 				for (const id of chunk) {
 					try {
 						const one = await call(`/api/0.6/${type.slice(0, -1)}/${id}.json`);
-						out.push(...(JSON.parse(one.body).elements as OsmElement[]));
+						out.push(...elementsOf(one.body));
 					} catch (err) {
 						if (!(err instanceof HttpError) || ![404, 410].includes(err.status)) throw err;
 					}
@@ -91,6 +104,45 @@ async function readFresh(edits: Edit[]): Promise<OsmElement[]> {
 			}
 		}
 	}
+	// Quais modifiés en forme ou supprimés (lot 7) : usage à jour de chacun de leurs nœuds.
+	// Une lecture /map de la petite emprise du quai suffit (elle renvoie tous les ways et
+	// relations de ses nœuds) ; si elle est refusée (emprise trop chargée), on relit nœud par
+	// nœud ses ways et ses relations, deux appels à la fois au plus.
+	for (const u of usageToCheck(edits)) {
+		try {
+			const { body } = await call(
+				`/api/0.6/map.json?bbox=${u.bbox.map((x) => x.toFixed(7)).join(',')}`
+			);
+			out.push(...elementsOf(body));
+		} catch (e) {
+			if (!(e instanceof HttpError) || ![400, 509].includes(e.status)) throw e;
+			for (let i = 0; i < u.nodes.length; i += 200)
+				try {
+					const { body } = await call(
+						`/api/0.6/nodes.json?nodes=${u.nodes.slice(i, i + 200).join(',')}`
+					);
+					out.push(...elementsOf(body));
+				} catch (err) {
+					// Un nœud supprimé entre-temps : il manquera, la saisie passera « à revoir ».
+					if (!(err instanceof HttpError) || ![404, 410].includes(err.status)) throw err;
+				}
+			const lists = await pool(
+				u.nodes.flatMap((n) =>
+					['ways', 'relations'].map(
+						(what) => async () => elementsOf((await call(`/api/0.6/node/${n}/${what}.json`)).body)
+					)
+				)
+			);
+			out.push(...lists.flat());
+		}
+	}
+	// Relations des quais supprimés : relues explicitement (on les modifiera).
+	const rels = await pool(
+		deletedWays(edits).map(
+			(w) => async () => elementsOf((await call(`/api/0.6/way/${w}/relations.json`)).body)
+		)
+	);
+	out.push(...rels.flat());
 	return out;
 }
 
@@ -168,14 +220,22 @@ export async function sendStation(
 		if (!plan.sent.length) return { sent: 0, conflicts: plan.conflicts.length };
 
 		const sentEdits = edits.filter((e) => plan.sent.includes(e.id));
+		// Relevé sur place : numéros, pancartes, et « n'existe plus ». Image : dessin et formes.
+		const read = (t?: Record<string, unknown>) =>
+			!!t && !Object.keys(t).every((k) => k === 'check_date');
 		const tags = changesetTags({
-			comment:
-				comment || `Gare de ${stationName} : numéros de quais et de voies, pancartes d'arrêt`,
+			comment: comment || proposedComment(stationName, sentEdits),
 			version: APP_VERSION,
 			survey: sentEdits.some(
-				(e) => e.kind === 'node' || !Object.keys(e.tags).every((k) => k === 'check_date')
+				(e) =>
+					e.kind === 'node' ||
+					(e.kind === 'tags' && read(e.tags)) ||
+					(e.kind === 'shape' && read(e.tags)) ||
+					(e.kind === 'delete' && e.reason === 'gone')
 			),
-			imagery: sentEdits.some((e) => e.kind !== 'tags')
+			imagery: sentEdits.some(
+				(e) => e.kind !== 'tags' && !(e.kind === 'delete' && e.reason === 'gone')
+			)
 		});
 
 		sending.step = 'opening';
@@ -201,16 +261,18 @@ export async function sendStation(
 		} catch (e) {
 			if (e instanceof HttpError && [409, 412].includes(e.status)) {
 				// Conflit sur un objet précis : il passe « à revoir », les autres restent prêts.
+				// (412 : un objet à supprimer est encore utilisé, ou un objet référencé a disparu.)
 				const target = conflictTarget(e.body);
-				const hit = sentEdits.filter(
-					(ed) =>
-						!target ||
-						(ed.kind === 'tags'
-							? ed.target === target
-							: ed.kind === 'node' && `way/${ed.way}` === target)
-				);
+				const matched = sentEdits.filter((ed) => target && plan.touched[ed.id]?.includes(target));
+				const hit = matched.length ? matched : sentEdits;
 				await updateEdits(
-					hit.map((ed) => ({ ...ed, conflict: 'Modifié sur OpenStreetMap pendant l’envoi.' }))
+					hit.map((ed) => ({
+						...ed,
+						conflict:
+							e.status === 412
+								? 'Refusé par OpenStreetMap pendant l’envoi : un objet est encore utilisé ou a disparu. Rien n’a été envoyé.'
+								: 'Modifié sur OpenStreetMap pendant l’envoi.'
+					}))
 				);
 				await closeChangeset(changeset);
 				setJob(station, undefined);

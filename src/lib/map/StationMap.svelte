@@ -21,7 +21,7 @@
 		plus,
 		visiblePart
 	} from './style.js';
-	import { onMount, tick } from 'svelte';
+	import { onMount, tick, untrack } from 'svelte';
 
 	type Kind = FeatureProps['kind'];
 	type F = FeatureCollection['features'][number];
@@ -185,6 +185,11 @@
 			for (const id of layers[k])
 				map.setLayoutProperty(id, 'visibility', visible[k] ? 'visible' : 'none');
 		relayout();
+	}
+
+	/** Replace les étiquettes (la feuille basse a changé de hauteur). */
+	export function refreshLabels() {
+		tick().then(relayout);
 	}
 
 	export function locate() {
@@ -444,6 +449,21 @@
 		if (selectedId !== undefined)
 			map.setFeatureState({ source: 'gare', id: selectedId }, { selected: true });
 	}
+
+	// Saisie faite sans quitter la carte (suppression d'un quai, lot 7) : on met à jour la
+	// source et les étiquettes, sans recréer la carte.
+	let shownData: FeatureCollection | undefined = untrack(() => data);
+	$effect(() => {
+		const d = data;
+		if (d === shownData || !map?.getSource('gare')) return;
+		shownData = d;
+		(map.getSource('gare') as import('maplibre-gl').GeoJSONSource).setData(
+			d as unknown as import('maplibre-gl').GeoJSONSourceSpecification['data']
+		);
+		selectedId = undefined;
+		addLabels();
+		highlight();
+	});
 
 	$effect(() => {
 		void selected;

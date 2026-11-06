@@ -4,7 +4,7 @@
 	import { page } from '$app/state';
 	import Icon from '#lib/Icon.svelte';
 	import { account, configured, login, signedIn } from '#lib/auth.svelte.js';
-	import { editKey, type Edit } from '#lib/core/edits.js';
+	import { editFamily, editIcon, editKey, editLabel, type Edit } from '#lib/core/edits.js';
 	import { openStation } from '#lib/current.svelte.js';
 	import { editsOf, loadEdits, pending, removeEdit, updateEdits } from '#lib/edits.svelte.js';
 	import {
@@ -16,6 +16,7 @@
 	} from '#lib/send.svelte.js';
 	import { server, srv } from '#lib/osmserver.svelte.js';
 	import { uploadBlock } from '#lib/core/remote.js';
+	import { proposedComment } from '#lib/core/upload.js';
 	import { refreshConfig, remote } from '#lib/remote.svelte.js';
 	import { dequeue, enqueue, isQueued } from '#lib/offline.svelte.js';
 	import { loadStations, type Station } from '#lib/stations.js';
@@ -28,6 +29,14 @@
 	let result = $state<SendResult | undefined>();
 	const id = $derived(mounted ? (page.url.searchParams.get('id') ?? '') : '');
 
+	// Description proposée d'après les saisies (motif des suppressions compris), tant que la
+	// personne ne l'a pas modifiée.
+	let commentEdited = $state(false);
+	$effect(() => {
+		if (station && pending.loaded && !commentEdited)
+			comment = proposedComment(station.name, ready.length ? ready : edits);
+	});
+
 	onMount(() => {
 		mounted = true;
 		online = navigator.onLine;
@@ -38,8 +47,6 @@
 		refreshConfig();
 		loadStations().then((d) => {
 			station = d.stations.find((s) => s.id === page.url.searchParams.get('id'));
-			if (station && !comment)
-				comment = `Gare de ${station.name} : numéros de quais et de voies, pancartes d’arrêt`;
 		});
 		return () => {
 			removeEventListener('online', up);
@@ -67,20 +74,19 @@
 		uploading: 'Envoi des modifications…',
 		closing: 'Fermeture…'
 	};
-	const icon = (e: Edit) =>
-		e.kind === 'node' || (e.kind === 'tags' && e.target.startsWith('node/'))
-			? 'pancarte'
-			: e.kind === 'way' || e.summary.startsWith('Quai')
-				? 'quai'
-				: 'voie';
+	const icon = (e: Edit) => editIcon(e);
+	const family = (e: Edit) => editFamily(e);
 
 	async function send() {
 		result = undefined;
 		result = await sendStation(id, station?.name ?? id, comment);
-		if (result.changeset) openStation(id, { force: true });
+		// Données relues après un envoi, ou après un conflit (pour refaire sur la carte à jour).
+		if (result.changeset || result.conflicts) openStation(id, { force: true });
 	}
 	async function retry(e: Edit) {
 		// Sans version de référence, la saisie s'appliquera telle quelle à la version à jour.
+		// (Jamais pour une forme ou une suppression de quai : elles se refont sur la carte.)
+		if (e.kind === 'shape' || e.kind === 'delete') return;
 		await updateEdits([
 			e.kind === 'tags'
 				? { ...e, conflict: undefined, version: undefined, base: undefined }
@@ -168,13 +174,11 @@
 				<h2 class="overline">Prêtes à partir ({ready.length})</h2>
 				<ul class="group">
 					{#each ready as e (e.id)}
-						<li class={icon(e)}>
+						<li class={family(e)}>
 							<Icon name={icon(e)} size={20} />
 							<span class="txt"
 								><span class="sum">{e.summary}</span><span class="meta"
-									>{e.kind === 'node' ? 'Nouvelle pancarte' : 'Modification'}{e.demo
-										? ' · mode démonstration'
-										: ''}</span
+									>{editLabel(e)}{e.demo ? ' · mode démonstration' : ''}</span
 								></span
 							>
 							{#if real && e.demo}
@@ -198,13 +202,22 @@
 								><span class="sum">{e.summary}</span><span class="meta">{e.conflict}</span></span
 							>
 							<span class="acts">
-								<a
-									class="btn-sm"
-									href={resolve(
-										`/gare/saisie?id=${encodeURIComponent(id)}&osm=${e.kind === 'node' ? `way/${e.way}` : editKey(e)}`
-									)}>Ouvrir</a
-								>
-								<button class="btn-sm" type="button" onclick={() => retry(e)}>Garder</button>
+								{#if e.kind === 'shape' || e.kind === 'delete'}
+									<!-- Forme ou suppression : jamais renvoyée telle quelle, on la refait sur la carte à jour. -->
+									<a
+										class="btn-sm"
+										href={resolve(`/gare/carte?id=${encodeURIComponent(id)}&focus=${e.target}`)}
+										>Refaire</a
+									>
+								{:else}
+									<a
+										class="btn-sm"
+										href={resolve(
+											`/gare/saisie?id=${encodeURIComponent(id)}&osm=${e.kind === 'node' ? `way/${e.way}` : editKey(e)}`
+										)}>Ouvrir</a
+									>
+									<button class="btn-sm" type="button" onclick={() => retry(e)}>Garder</button>
+								{/if}
 								<button class="btn-sm" type="button" onclick={() => removeEdit(e.id)}
 									>Retirer</button
 								>
@@ -214,14 +227,19 @@
 				</ul>
 				<p class="hint">
 					« Garder » renvoie votre saisie telle quelle : vérifiez d’abord sur place qu’elle est
-					juste.
+					juste. Une forme ou une suppression de quai se refait sur la carte à jour.
 				</p>
 			{/if}
 
 			{#if ready.length && srv().canUpload}
 				<label class="field">
 					<span>Description publique de l’envoi</span>
-					<textarea class="input" rows="3" maxlength="255" bind:value={comment}></textarea>
+					<textarea
+						class="input"
+						rows="3"
+						maxlength="255"
+						bind:value={comment}
+						oninput={() => (commentEdited = true)}></textarea>
 				</label>
 				<p class="hint">
 					Visible par tous sur OpenStreetMap, avec votre pseudo et la mention #stationcomplete.

@@ -2,20 +2,36 @@
 // à jour, détection des conflits, et fabrication des documents XML (changeset, osmChange).
 // Code pur, testé sans réseau.
 
-import type { Edit, NewNodeEdit, NewWayEdit, TagEdit } from './edits';
+import {
+	AREA_TAGS,
+	changeTags,
+	type DeleteEdit,
+	type Edit,
+	type NewNodeEdit,
+	type NewWayEdit,
+	type OrigNode,
+	type ShapeEdit,
+	type TagEdit
+} from './edits';
 import type { BBox, OsmElement, OsmNode, OsmRelation, OsmWay, Tags } from './osm';
+import { COMPLEX, REASONS, hasTags, shapeDiff } from './shape';
 
 export interface Plan {
 	/** Objets à créer : nœuds d'abord, puis ways (quais dessinés). */
 	create: (OsmNode | OsmWay)[];
 	modify: OsmElement[];
+	/** Objets à supprimer : ways d'abord, puis nœuds (ordre exigé par l'API). */
+	delete: OsmElement[];
 	/** Saisies qui partent dans ce changeset. */
 	sent: string[];
 	/** Saisies écartées, avec la raison (affichée « à revoir »). */
 	conflicts: { id: string; reason: string }[];
+	/** Objets touchés par chaque saisie envoyée (« way/12 »…), pour attribuer un refus du serveur. */
+	touched: Record<string, string[]>;
 }
 
 const key = (e: { type: string; id: number }) => `${e.type}/${e.id}`;
+const wayId = (target: string) => Number(target.split('/')[1]);
 
 /** Identifiants des objets à relire sur le serveur juste avant l'envoi. */
 export function elementsToFetch(edits: Edit[]) {
@@ -35,19 +51,92 @@ export function elementsToFetch(edits: Edit[]) {
 }
 
 /**
+ * Nœuds dont il faut connaître l'usage à jour (ways, relations) avant l'envoi : les nœuds
+ * d'origine des quais modifiés en forme ou supprimés, groupés par saisie, avec l'emprise
+ * (+ 10 m) qui les contient. Une lecture /map de cette emprise renvoie, pour chacun d'eux,
+ * tous les ways qui l'utilisent et toutes les relations qui le contiennent.
+ */
+export function usageToCheck(edits: Edit[]) {
+	const out: { edit: string; nodes: number[]; bbox: BBox }[] = [];
+	for (const e of edits) {
+		if (e.kind !== 'shape' && e.kind !== 'delete') continue;
+		if (!e.before.length) continue;
+		const lons = e.before.map((n) => n.lon),
+			lats = e.before.map((n) => n.lat);
+		const lat = (Math.min(...lats) + Math.max(...lats)) / 2;
+		const dLat = 10 / 111_320,
+			dLon = 10 / (111_320 * Math.cos((lat * Math.PI) / 180));
+		out.push({
+			edit: e.id,
+			nodes: e.before.map((n) => n.id),
+			bbox: [
+				Math.min(...lons) - dLon,
+				Math.min(...lats) - dLat,
+				Math.max(...lons) + dLon,
+				Math.max(...lats) + dLat
+			]
+		});
+	}
+	return out;
+}
+
+/** Ways quais supprimés (leurs relations sont relues explicitement avant l'envoi). */
+export const deletedWays = (edits: Edit[]) =>
+	edits.filter((e): e is DeleteEdit => e.kind === 'delete').map((e) => wayId(e.target));
+
+const CHANGED =
+	'Le quai a été modifié entre-temps sur OpenStreetMap : rien n’a été envoyé pour lui. Refaites la modification sur la carte à jour.';
+const NODE_CHANGED =
+	'Un point du quai a été modifié ou relié à un autre objet entre-temps sur OpenStreetMap : rien n’a été envoyé pour lui. Refaites la modification sur la carte à jour.';
+
+/**
  * Applique les saisies aux versions à jour lues sur le serveur.
  * Une saisie est écartée si l'objet a disparu, ou si quelqu'un a changé entre-temps un tag
  * qu'elle modifie (on ne réécrit jamais le travail d'un autre sans relecture humaine).
+ * Pour les formes et les suppressions de quai, `fresh` doit contenir, pour chaque nœud
+ * d'origine, tous les ways et relations qui l'utilisent (voir usageToCheck).
  */
 export function planUpload(edits: Edit[], fresh: OsmElement[]): Plan {
 	const byKey = new Map(fresh.map((e) => [key(e), structuredClone(e)]));
 	const modified = new Set<string>();
-	const plan: Plan = { create: [], modify: [], sent: [], conflicts: [] };
+	const plan: Plan = { create: [], modify: [], delete: [], sent: [], conflicts: [], touched: {} };
+
+	// Usage à jour des nœuds (d'après les données relues, avant toute modification).
+	const waysOf = new Map<number, Set<number>>();
+	const relationsOf = new Map<string, OsmRelation[]>();
+	for (const e of fresh) {
+		if (e.type === 'way')
+			for (const n of e.nodes) {
+				if (!waysOf.has(n)) waysOf.set(n, new Set());
+				waysOf.get(n)!.add(e.id);
+			}
+		else if (e.type === 'relation')
+			for (const m of e.members) {
+				const k = `${m.type}/${m.ref}`;
+				relationsOf.set(k, [...(relationsOf.get(k) ?? []), e]);
+			}
+	}
+	/** Nœud libre sur le serveur : sans tag, dans aucun autre way, dans aucune relation. */
+	const freeNow = (id: number, owners: number[]) => {
+		const n = byKey.get(`node/${id}`) as OsmNode | undefined;
+		if (!n) return undefined;
+		const others = [...(waysOf.get(id) ?? [])].filter((w) => !owners.includes(w));
+		return !hasTags(n.tags) && !others.length && !(relationsOf.get(`node/${id}`) ?? []).length
+			? n
+			: undefined;
+	};
+	const sameVersion = (n: OsmNode, o?: OrigNode) =>
+		o?.version === undefined || n.version === o.version;
+	const conflict = (id: string, reason: string) => plan.conflicts.push({ id, reason });
+	const sent = (id: string, touched: string[]) => {
+		plan.sent.push(id);
+		plan.touched[id] = touched;
+	};
 
 	for (const ed of edits.filter((e): e is TagEdit => e.kind === 'tags')) {
 		const el = byKey.get(ed.target);
 		if (!el) {
-			plan.conflicts.push({ id: ed.id, reason: 'Objet supprimé entre-temps sur OpenStreetMap.' });
+			conflict(ed.id, 'Objet supprimé entre-temps sur OpenStreetMap.');
 			continue;
 		}
 		const tags: Tags = { ...(el.tags ?? {}) };
@@ -59,57 +148,182 @@ export function planUpload(edits: Edit[], fresh: OsmElement[]): Plan {
 				if (now !== before && now !== (v || null)) clash = k;
 			}
 		if (clash) {
-			plan.conflicts.push({
-				id: ed.id,
-				reason: `Modifié par quelqu’un d’autre entre-temps (${clash}).`
-			});
+			conflict(ed.id, `Modifié par quelqu’un d’autre entre-temps (${clash}).`);
 			continue;
 		}
-		for (const [k, v] of Object.entries(ed.tags)) {
-			if (v === null || v === '') delete tags[k];
-			else tags[k] = v;
-		}
-		el.tags = tags;
+		el.tags = changeTags(tags, ed.tags);
 		modified.add(ed.target);
-		plan.sent.push(ed.id);
+		sent(ed.id, [ed.target]);
 	}
 
 	for (const ed of edits.filter((e): e is NewNodeEdit => e.kind === 'node')) {
 		const w = byKey.get(`way/${ed.way}`) as OsmWay | undefined;
 		if (!w) {
-			plan.conflicts.push({ id: ed.id, reason: 'La voie a été supprimée entre-temps.' });
+			conflict(ed.id, 'La voie a été supprimée entre-temps.');
 			continue;
 		}
 		// Retrouve la place par le nœud voisin ; à défaut, par l'indice si la voie n'a pas bougé.
 		let at = ed.afterNode !== undefined ? w.nodes.indexOf(ed.afterNode) : -1;
 		if (at < 0 && (ed.wayVersion === undefined || ed.wayVersion === w.version)) at = ed.after;
 		if (at < 0 || at >= w.nodes.length - 1) {
-			plan.conflicts.push({ id: ed.id, reason: 'La voie a été redessinée entre-temps.' });
+			conflict(ed.id, 'La voie a été redessinée entre-temps.');
 			continue;
 		}
 		w.nodes = [...w.nodes.slice(0, at + 1), ed.tempId, ...w.nodes.slice(at + 1)];
 		plan.create.push({ type: 'node', id: ed.tempId, lat: ed.lat, lon: ed.lon, tags: ed.tags });
 		modified.add(key(w));
-		plan.sent.push(ed.id);
+		sent(ed.id, [key(w)]);
+	}
+
+	// Formes de quais corrigées : même way, nouvelle liste de nœuds (lot 7).
+	const deleteNodes: OsmNode[] = [];
+	const deleteWays: OsmWay[] = [];
+	for (const ed of edits.filter((e): e is ShapeEdit => e.kind === 'shape')) {
+		const w = byKey.get(ed.target) as OsmWay | undefined;
+		if (!w) {
+			conflict(ed.id, 'Quai supprimé entre-temps sur OpenStreetMap.');
+			continue;
+		}
+		if (ed.version !== undefined && w.version !== ed.version) {
+			conflict(ed.id, CHANGED);
+			continue;
+		}
+		const id = wayId(ed.target);
+		if (
+			w.tags?.type === 'multipolygon' ||
+			(relationsOf.get(ed.target) ?? []).some((r) => r.tags?.type === 'multipolygon')
+		) {
+			conflict(ed.id, COMPLEX);
+			continue;
+		}
+		const d = shapeDiff(ed.before, ed.nodes);
+		const orig = new Map(ed.before.map((n) => [n.id, n]));
+		if (
+			ed.nodes.length < 3 ||
+			d.foreign.length ||
+			new Set(ed.nodes.map((n) => n.id)).size !== ed.nodes.length
+		) {
+			conflict(ed.id, 'Contour du quai invalide.');
+			continue;
+		}
+		// Nœuds déplacés : libres et inchangés sur le serveur. Nœuds retirés : supprimés s'ils
+		// sont libres ; un nœud déjà relié à la saisie est seulement retiré du way.
+		let ok = true;
+		const moves: OsmNode[] = [];
+		const drops: OsmNode[] = [];
+		for (const n of d.moved) {
+			const o = orig.get(n.id)!;
+			const now = freeNow(n.id, [id]);
+			if (o.locked || !now || !sameVersion(now, o)) ok = false;
+			else moves.push({ ...now, lon: n.lon, lat: n.lat });
+		}
+		for (const o of d.removed) {
+			if (o.locked) continue;
+			const now = freeNow(o.id, [id]);
+			if (!now || !sameVersion(now, o)) ok = false;
+			else drops.push(now);
+		}
+		if (!ok) {
+			conflict(ed.id, NODE_CHANGED);
+			continue;
+		}
+		for (const n of moves) {
+			byKey.set(key(n), n);
+			modified.add(key(n));
+		}
+		for (const n of d.added) plan.create.push({ type: 'node', id: n.id, lat: n.lat, lon: n.lon });
+		const ids = ed.nodes.map((n) => n.id);
+		w.nodes = [...ids, ids[0]];
+		w.tags = changeTags(w.tags, ed.tags);
+		if (ed.mode === 'area') w.tags = { ...w.tags, ...AREA_TAGS };
+		modified.add(ed.target);
+		deleteNodes.push(...drops);
+		sent(ed.id, [ed.target, ...moves.map(key), ...drops.map(key)]);
+	}
+
+	// Quais supprimés : way, nœuds orphelins, et retrait des relations qui le contenaient.
+	for (const ed of edits.filter((e): e is DeleteEdit => e.kind === 'delete')) {
+		const w = byKey.get(ed.target) as OsmWay | undefined;
+		if (!w) {
+			conflict(ed.id, 'Quai déjà supprimé sur OpenStreetMap.');
+			continue;
+		}
+		if (ed.version !== undefined && w.version !== ed.version) {
+			conflict(ed.id, CHANGED);
+			continue;
+		}
+		const id = wayId(ed.target);
+		const parents = (relationsOf.get(ed.target) ?? []).map((r) => byKey.get(key(r)) as OsmRelation);
+		if (w.tags?.type === 'multipolygon' || parents.some((r) => r.tags?.type === 'multipolygon')) {
+			conflict(ed.id, COMPLEX);
+			continue;
+		}
+		const emptied = parents.find((r) => r.members.every((m) => m.type === 'way' && m.ref === id));
+		if (emptied) {
+			conflict(
+				ed.id,
+				`La relation ${emptied.tags?.name ?? emptied.id} ne contiendrait plus rien : suppression à faire avec un éditeur comme iD ou JOSM.`
+			);
+			continue;
+		}
+		const orig = new Map(ed.before.map((n) => [n.id, n]));
+		let ok = true;
+		const drops: OsmNode[] = [];
+		for (const n of new Set(w.nodes)) {
+			const o = orig.get(n);
+			const now = freeNow(n, [id]);
+			if (now && sameVersion(now, o)) drops.push(now);
+			// Nœud libre à la saisie, devenu relié ou modifié depuis : on ne décide pas à l'aveugle.
+			else if (!o || !o.locked) ok = false;
+		}
+		if (!ok) {
+			conflict(ed.id, NODE_CHANGED);
+			continue;
+		}
+		for (const r of parents) {
+			r.members = r.members.filter((m) => !(m.type === 'way' && m.ref === id));
+			modified.add(key(r));
+		}
+		deleteWays.push(w);
+		deleteNodes.push(...drops);
+		sent(ed.id, [ed.target, ...parents.map(key), ...drops.map(key)]);
 	}
 
 	// Quais dessinés : nœuds puis way fermé, tous nouveaux.
 	const newWays: OsmWay[] = [];
 	for (const ed of edits.filter((e): e is NewWayEdit => e.kind === 'way')) {
 		if (ed.nodes.length < 3) {
-			plan.conflicts.push({ id: ed.id, reason: 'Contour du quai incomplet.' });
+			conflict(ed.id, 'Contour du quai incomplet.');
 			continue;
 		}
 		for (const n of ed.nodes) plan.create.push({ type: 'node', id: n.id, lat: n.lat, lon: n.lon });
 		const ids = ed.nodes.map((n) => n.id);
 		newWays.push({ type: 'way', id: ed.tempId, nodes: [...ids, ids[0]], tags: ed.tags });
-		plan.sent.push(ed.id);
+		sent(ed.id, [`way/${ed.tempId}`]);
 	}
 	// Les ways créés viennent après tous les nœuds créés (ordre exigé par l'API).
 	plan.create.push(...newWays);
 
-	plan.modify = [...modified].map((k) => byKey.get(k)!);
+	const gone = new Set([...deleteWays, ...deleteNodes].map(key));
+	plan.modify = [...modified].filter((k) => !gone.has(k)).map((k) => byKey.get(k)!);
+	plan.delete = [...deleteWays, ...new Map(deleteNodes.map((n) => [n.id, n])).values()];
 	return plan;
+}
+
+/**
+ * Commentaire proposé pour le changeset d'une gare, d'après les saisies : le motif d'une
+ * suppression y figure toujours (transparence envers les autres contributeurs).
+ */
+export function proposedComment(stationName: string, edits: Edit[]) {
+	const parts: string[] = [];
+	if (edits.some((e) => e.kind === 'tags' || e.kind === 'node'))
+		parts.push('numéros de quais et de voies, pancartes d’arrêt');
+	if (edits.some((e) => e.kind === 'way')) parts.push('quai dessiné');
+	if (edits.some((e) => e.kind === 'shape')) parts.push('forme de quai corrigée');
+	for (const e of edits)
+		if (e.kind === 'delete') parts.push(`${e.name} supprimé (${REASONS[e.reason].toLowerCase()})`);
+	if (!parts.length) parts.push('numéros de quais et de voies, pancartes d’arrêt');
+	return `Gare de ${stationName} : ${parts.join(' ; ')}`;
 }
 
 // ---------- XML ----------
@@ -149,13 +363,27 @@ function elementXml(e: OsmElement, changeset: number, create: boolean) {
 	return `<relation ${head}>${members}${tagsXml(r.tags)}</relation>`;
 }
 
-export function osmChangeXml(changeset: number, plan: Pick<Plan, 'create' | 'modify'>) {
+/**
+ * osmChange d'un envoi : create → modify → delete (le retrait d'une relation et la nouvelle
+ * liste de nœuds d'un way passent avant la suppression des objets qu'ils ne référencent plus).
+ * Pas de « if-unused » : l'usage est vérifié avant, et un refus 412 met la saisie « à revoir ».
+ */
+export function osmChangeXml(
+	changeset: number,
+	plan: Pick<Plan, 'create' | 'modify'> & Partial<Pick<Plan, 'delete'>>
+) {
 	const create = plan.create.map((e) => elementXml(e, changeset, true)).join('');
 	const modify = plan.modify.map((e) => elementXml(e, changeset, false)).join('');
+	const order = { relation: 0, way: 1, node: 2 };
+	const del = [...(plan.delete ?? [])]
+		.sort((a, b) => order[a.type] - order[b.type])
+		.map((e) => elementXml(e, changeset, false))
+		.join('');
 	return (
 		`<osmChange version="0.6" generator="stationcomplete">` +
 		(create ? `<create>${create}</create>` : '') +
 		(modify ? `<modify>${modify}</modify>` : '') +
+		(del ? `<delete>${del}</delete>` : '') +
 		`</osmChange>`
 	);
 }
@@ -285,13 +513,24 @@ export function copyForTest(
 	return out;
 }
 
-/** Correspondance des identifiants provisoires → définitifs, d'après la réponse <diffResult>. */
+/**
+ * Correspondance des identifiants provisoires → définitifs, d'après la réponse <diffResult>.
+ * Un objet supprimé n'a ni new_id ni new_version : `deleted` vaut alors true.
+ */
 export function parseDiffResult(xml: string) {
-	const out = new Map<string, { newId: number; version: number }>();
-	for (const m of xml.matchAll(
-		/<(node|way|relation)\s+old_id="(-?\d+)"\s+new_id="(\d+)"\s+new_version="(\d+)"/g
-	))
-		out.set(`${m[1]}/${m[2]}`, { newId: Number(m[3]), version: Number(m[4]) });
+	const out = new Map<string, { newId?: number; version?: number; deleted: boolean }>();
+	for (const m of xml.matchAll(/<(node|way|relation)\b([^>]*?)\/?>/g)) {
+		const attr = (k: string) => m[2].match(new RegExp(`\\b${k}="(-?\\d+)"`))?.[1];
+		const old = attr('old_id');
+		if (old === undefined) continue;
+		const newId = attr('new_id'),
+			version = attr('new_version');
+		out.set(`${m[1]}/${old}`, {
+			newId: newId === undefined ? undefined : Number(newId),
+			version: version === undefined ? undefined : Number(version),
+			deleted: newId === undefined
+		});
+	}
 	return out;
 }
 

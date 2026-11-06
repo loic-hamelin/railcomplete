@@ -3,9 +3,24 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import Icon from '#lib/Icon.svelte';
+	import { newEditId } from '#lib/core/edits.js';
 	import type { FeatureProps } from '#lib/core/features.js';
+	import { OsmData } from '#lib/core/osm.js';
+	import {
+		REASONS,
+		deleteSummary,
+		platformName,
+		platformShape,
+		relationsPhrase
+	} from '#lib/core/shape.js';
 	import { current, openStation } from '#lib/current.svelte.js';
-	import { editsOf, loadEdits, pending } from '#lib/edits.svelte.js';
+	import {
+		editsOf,
+		editsReplacedByDelete,
+		loadEdits,
+		pending,
+		saveEdit
+	} from '#lib/edits.svelte.js';
 	import { canSurvey, checkOnSite, where } from '#lib/onsite.svelte.js';
 	import { srv } from '#lib/osmserver.svelte.js';
 	import { stationView } from '#lib/view.js';
@@ -52,7 +67,73 @@
 	const isLocal = (osm: string) => osm.startsWith('node/-');
 	const visible = $state({ quai: true, voie: true, pancarte: true });
 	let selected = $state<FeatureProps | undefined>();
-	let mapRef = $state<{ locate: () => void }>();
+	let mapRef = $state<{ locate: () => void; refreshLabels: () => void }>();
+
+	// ---------- Quai existant : forme et suppression (lot 7) ----------
+	let more = $state(false);
+	let deleting = $state(false);
+	let reason = $state<'duplicate' | 'gone' | undefined>();
+	let notice = $state('');
+	let deleteError = $state('');
+	const select = (p: FeatureProps | undefined) => {
+		selected = p;
+		more = false;
+		deleting = false;
+		reason = undefined;
+		deleteError = '';
+		if (p) notice = '';
+	};
+	$effect(() => {
+		// La feuille grandit (menu, confirmation) : les étiquettes s'écartent d'elle.
+		void more;
+		void deleting;
+		untrack(() => mapRef?.refreshLabels());
+	});
+	const quaiWay = $derived(
+		selected?.kind === 'quai' && /^way\/\d+$/.test(selected.osm)
+			? Number(selected.osm.slice(4))
+			: undefined
+	);
+	// Quai tel qu'il est sur OpenStreetMap (données lues) : contour, verrous, relations.
+	const shapeOf = $derived(
+		ready && quaiWay !== undefined ? platformShape(new OsmData(ready.elements), quaiWay) : undefined
+	);
+	// Forme affichée (avec vos saisies) : une ligne déjà redessinée se modifie comme une surface.
+	const shownClosed = $derived.by(() => {
+		const w = view?.elements.find((e) => e.type === 'way' && e.id === quaiWay);
+		return !!w && w.type === 'way' && w.nodes.length > 3 && w.nodes[0] === w.nodes.at(-1);
+	});
+	const replaced = $derived(
+		deleting && selected ? editsReplacedByDelete(id, selected.osm).filter((e) => !e.conflict) : []
+	);
+
+	async function confirmDelete() {
+		deleteError = '';
+		if (!shapeOf || !selected || !ready) return;
+		if (!reason) return (deleteError = 'Choisissez le motif de la suppression.');
+		if (reason === 'gone' && !survey)
+			return (deleteError = '« N’existe plus » se constate sur place seulement.');
+		const name = platformName(shapeOf.way.tags);
+		try {
+			await saveEdit({
+				kind: 'delete',
+				id: newEditId(),
+				station: id,
+				createdAt: Date.now(),
+				target: `way/${shapeOf.way.id}`,
+				version: shapeOf.way.version,
+				reason,
+				before: shapeOf.nodes,
+				relations: shapeOf.relations,
+				name,
+				summary: deleteSummary(name, reason, shapeOf.relations)
+			});
+			select(undefined);
+			notice = `${name} : suppression en attente d’envoi. Pour l’annuler, retirez-la dans vos contributions.`;
+		} catch {
+			deleteError = "L'enregistrement sur ce téléphone a échoué. Réessayez.";
+		}
+	}
 
 	const QUEST_TEXT: Record<string, string> = {
 		Q1: 'Numéro du quai à relever',
@@ -88,7 +169,7 @@
 			{visible}
 			{focus}
 			selected={selected?.osm}
-			onselect={(p) => (selected = p)}
+			onselect={select}
 		/>
 	{/if}
 
@@ -141,6 +222,13 @@
 		</p>
 	{/if}
 
+	{#if notice && !selected}
+		<p class="notice float" role="status">
+			<Icon name="check" size={18} /><span>{notice}</span>
+			<a href={resolve('/contributions')}>Mes contributions</a>
+		</p>
+	{/if}
+
 	{#if ready && !selected}
 		<button
 			class="locate float"
@@ -168,7 +256,7 @@
 					class="icon-btn"
 					type="button"
 					aria-label="Fermer"
-					onclick={() => (selected = undefined)}
+					onclick={() => select(undefined)}
 				>
 					<Icon name="close" size={20} />
 				</button>
@@ -186,23 +274,136 @@
 					{/if}
 				</ul>
 			{/if}
-			<div class="actions">
-				{#if isLocal(selected.osm)}
-					<a class="btn-sm" href={resolve('/contributions')}>Voir mes contributions</a>
-				{:else}
-					<a
-						class="btn-sm renseigner"
-						href={resolve(`/gare/saisie?id=${encodeURIComponent(id)}&osm=${selected.osm}`)}
-						><Icon name="pen" size={18} />Renseigner</a
-					>
-					{#if selected.kind === 'voie'}
-						<a class="btn-quiet" href={placeHref}>Pancarte ici</a>
+			{#if deleting && shapeOf}
+				{@const lost = shapeOf.nodes.filter((n) => !n.locked).length}
+				{@const kept = shapeOf.nodes.length - lost}
+				<div class="confirm">
+					<h3>Supprimer ce quai ?</h3>
+					{#if shapeOf.refused || shapeOf.deleteRefused}
+						<p class="banner err" role="alert">
+							<Icon name="alert" size={18} />{shapeOf.refused ?? shapeOf.deleteRefused}
+						</p>
+					{:else}
+						<fieldset>
+							<legend>Motif (visible dans la description publique de l’envoi)</legend>
+							<label class="choice">
+								<input type="radio" name="motif" value="duplicate" bind:group={reason} />
+								{REASONS.duplicate}
+							</label>
+							<label class="choice" class:off={!survey}>
+								<input
+									type="radio"
+									name="motif"
+									value="gone"
+									disabled={!survey}
+									aria-describedby="gone-hint"
+									bind:group={reason}
+								/>
+								{REASONS.gone}
+							</label>
+							<p id="gone-hint" class="hint">
+								{#if survey}Constaté sur place.{:else}<Icon name="lock" size={14} /> Sur place seulement
+									: la photo aérienne peut être ancienne.{/if}
+							</p>
+						</fieldset>
+						<ul class="facts">
+							{#if shapeOf.relations.length}
+								<li class="info">
+									<Icon name="info" size={18} />Il sera aussi {relationsPhrase(shapeOf.relations)}.
+								</li>
+							{/if}
+							<li class="info">
+								<Icon name="info" size={18} />{lost} point{lost > 1 ? 's' : ''} supprimé{lost > 1
+									? 's'
+									: ''}{kept
+									? ` ; ${kept} relié${kept > 1 ? 's' : ''} à d’autres objets, conservé${kept > 1 ? 's' : ''}`
+									: ''}.
+							</li>
+							{#if replaced.length}
+								<li class="alert">
+									<Icon name="alert" size={18} />Vos saisies sur ce quai seront retirées : {replaced
+										.map((e) => `« ${e.summary} »`)
+										.join(', ')}.
+								</li>
+							{/if}
+						</ul>
 					{/if}
-					<a class="btn-quiet osm" href={`${srv().web}/${selected.osm}`} rel="external">
-						Voir sur OpenStreetMap<Icon name="ext" size={16} />
-					</a>
+					{#if deleteError}<p class="banner err" role="alert">{deleteError}</p>{/if}
+					<div class="actions">
+						<button class="btn-sm" type="button" onclick={() => (deleting = false)}>Annuler</button>
+						{#if !shapeOf.refused && !shapeOf.deleteRefused}
+							<button class="btn-sm danger" type="button" onclick={confirmDelete}
+								><Icon name="trash" size={18} />Supprimer le quai</button
+							>
+						{:else}
+							<a class="btn-quiet osm" href={`${srv().web}/${selected.osm}`} rel="external">
+								Voir sur OpenStreetMap<Icon name="ext" size={16} />
+							</a>
+						{/if}
+					</div>
+				</div>
+			{:else}
+				<div class="actions">
+					{#if isLocal(selected.osm)}
+						<a class="btn-sm" href={resolve('/contributions')}>Voir mes contributions</a>
+					{:else}
+						<a
+							class="btn-sm renseigner"
+							href={resolve(`/gare/saisie?id=${encodeURIComponent(id)}&osm=${selected.osm}`)}
+							><Icon name="pen" size={18} />Renseigner</a
+						>
+						{#if selected.kind === 'voie'}
+							<a class="btn-quiet" href={placeHref}>Pancarte ici</a>
+						{/if}
+						{#if selected.kind === 'quai'}
+							{#if shapeOf && !shapeOf.refused}
+								<a
+									class="btn-quiet"
+									href={resolve(`/gare/forme?id=${encodeURIComponent(id)}&osm=${selected.osm}`)}
+									><Icon name="shape" size={18} />{shownClosed
+										? 'Modifier la forme'
+										: 'Redessiner en surface'}</a
+								>
+							{/if}
+							<button
+								class="icon-btn more"
+								type="button"
+								aria-label="Plus d’actions"
+								aria-expanded={more}
+								aria-controls="quai-more"
+								onclick={() => (more = !more)}><Icon name="more" size={20} /></button
+							>
+						{:else}
+							<a class="btn-quiet osm" href={`${srv().web}/${selected.osm}`} rel="external">
+								Voir sur OpenStreetMap<Icon name="ext" size={16} />
+							</a>
+						{/if}
+					{/if}
+				</div>
+				{#if more && selected.kind === 'quai'}
+					<ul class="menu" id="quai-more">
+						{#if shapeOf?.refused || !shapeOf}
+							<li class="note">
+								<Icon name="info" size={18} />{shapeOf?.refused ??
+									(selected.osm.startsWith('way/-')
+										? 'Quai dessiné sur ce téléphone : pour changer sa forme, retirez-le dans vos contributions et redessinez-le.'
+										: 'Quai complexe : à modifier avec un éditeur comme iD ou JOSM.')}
+							</li>
+						{:else}
+							<li>
+								<button class="btn-quiet danger" type="button" onclick={() => (deleting = true)}
+									><Icon name="trash" size={18} />Supprimer ce quai…</button
+								>
+							</li>
+						{/if}
+						<li>
+							<a class="btn-quiet osm" href={`${srv().web}/${selected.osm}`} rel="external">
+								Voir sur OpenStreetMap<Icon name="ext" size={16} />
+							</a>
+						</li>
+					</ul>
 				{/if}
-			</div>
+			{/if}
 		</section>
 	{/if}
 </div>
@@ -473,5 +674,111 @@
 	}
 	.btn-quiet {
 		padding: 0 6px;
+	}
+	.more {
+		width: 44px;
+		height: 44px;
+		margin-left: auto;
+		color: var(--text-2);
+	}
+	/* Menu « Plus d'actions » : liste discrète sous les actions (lot 7). */
+	.menu {
+		list-style: none;
+		margin: 0;
+		padding: 2px 0 0;
+		border-top: 1px solid var(--border);
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+	}
+	.menu .note {
+		display: flex;
+		gap: 8px;
+		padding: 8px 6px;
+		font-size: 0.9375rem;
+	}
+	.menu .note :global(svg) {
+		flex-shrink: 0;
+		color: var(--text-2);
+	}
+	.btn-quiet.danger {
+		color: var(--danger);
+	}
+	.confirm {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		padding-top: 4px;
+		border-top: 1px solid var(--border);
+	}
+	h3 {
+		margin: 4px 0 0;
+		font-size: 1rem;
+	}
+	fieldset {
+		margin: 0;
+		padding: 0;
+		border: 0;
+		display: flex;
+		flex-direction: column;
+	}
+	legend {
+		padding: 0;
+		margin-bottom: 2px;
+		font-size: 0.875rem;
+		color: var(--text-2);
+	}
+	.choice {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		min-height: 44px;
+		font-size: 0.9375rem;
+		cursor: pointer;
+	}
+	.choice input {
+		width: 20px;
+		height: 20px;
+		margin: 0;
+		accent-color: var(--primary);
+	}
+	.choice.off {
+		color: var(--text-2);
+		cursor: default;
+	}
+	.hint {
+		margin: 0 0 0 30px;
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		font-size: 0.875rem;
+		color: var(--text-2);
+	}
+	.facts .info :global(svg) {
+		color: var(--text-2);
+	}
+	.btn-sm.danger {
+		border-color: var(--danger);
+		color: var(--danger);
+	}
+	.notice {
+		position: absolute;
+		left: calc(8px + env(safe-area-inset-left));
+		right: calc(8px + env(safe-area-inset-right));
+		bottom: calc(88px + env(safe-area-inset-bottom));
+		max-width: 560px;
+		margin: 0 auto;
+		padding: 10px 12px;
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 4px 8px;
+		font-size: 0.9375rem;
+	}
+	.notice :global(svg) {
+		color: var(--ok);
+	}
+	.notice span {
+		flex: 1 1 200px;
 	}
 </style>

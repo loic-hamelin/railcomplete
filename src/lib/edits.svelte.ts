@@ -2,7 +2,7 @@
 // Stockées dans IndexedDB : elles survivent à la fermeture de l'appli et au mode avion.
 
 import { deleteEdit, getAllEdits, putEdit, readPref, writePref } from './cache.js';
-import { editKey, type Edit } from './core/edits.js';
+import { mergeEdit, type Edit } from './core/edits.js';
 import { server } from './osmserver.svelte.js';
 
 export const pending = $state<{ list: Edit[]; loaded: boolean }>({ list: [], loaded: false });
@@ -20,42 +20,25 @@ export function loadEdits() {
 export const mine = () => pending.list.filter((e) => (e.server ?? 'prod') === server.id);
 export const editsOf = (station: string) => mine().filter((e) => e.station === station);
 
-/** Enregistre une saisie ; remplace une saisie précédente sur le même objet. */
+/** Autres saisies qui seraient retirées par la suppression de ce quai (à annoncer avant). */
+export const editsReplacedByDelete = (station: string, target: string) =>
+	editsOf(station).filter(
+		(e) => (e.kind === 'tags' || e.kind === 'shape' || e.kind === 'delete') && e.target === target
+	);
+
+/** Enregistre une saisie ; la fusionne avec les saisies précédentes sur le même objet. */
 export async function saveEdit(edit: Edit) {
 	await loadEdits();
-	edit = { ...edit, server: server.id, ...(settings.demo ? { demo: true } : {}) };
-	// Tags saisis sur un objet pas encore envoyé (pancarte posée, quai dessiné) : on les range
-	// directement dans la saisie qui le crée, l'objet n'existant pas encore sur le serveur.
-	if (edit.kind === 'tags' && Number(edit.target.split('/')[1]) < 0) {
-		const tags = edit.tags;
-		const target = edit.target;
-		const creator = pending.list.find((e) => e.kind !== 'tags' && editKey(e) === target);
-		if (!creator || creator.kind === 'tags') return;
-		const merged: Record<string, string> = { ...creator.tags };
-		for (const [k, v] of Object.entries(tags)) {
-			if (v === null || v === '') delete merged[k];
-			else merged[k] = v;
-		}
-		const summary = edit.summary.startsWith('Quai') ? `${edit.summary} (dessiné)` : creator.summary;
-		edit = { ...creator, tags: merged, summary, ...(edit.demo ? { demo: true } : {}) };
-	}
-	const same = pending.list.find((e) =>
-		edit.kind === 'tags'
-			? e.kind === 'tags' && e.target === edit.target
-			: e.kind === edit.kind && e.tempId === edit.tempId
-	);
-	if (same && same.kind === 'tags' && edit.kind === 'tags') {
-		// Fusion : la nouvelle saisie complète la précédente sur le même objet.
-		edit = {
-			...edit,
-			id: same.id,
-			tags: { ...same.tags, ...edit.tags },
-			base: { ...edit.base, ...same.base },
-			version: same.version ?? edit.version
-		};
-	} else if (same) edit = { ...edit, id: same.id };
-	await putEdit($state.snapshot(edit) as Edit);
-	pending.list = [...pending.list.filter((e) => e.id !== edit.id), edit];
+	const merged = mergeEdit(mine(), {
+		...edit,
+		server: server.id,
+		...(settings.demo ? { demo: true } : {})
+	});
+	if (!merged.edit) return;
+	const { edit: out, drop } = merged;
+	for (const id of drop.filter((d) => d !== out.id)) await deleteEdit(id);
+	await putEdit($state.snapshot(out) as Edit);
+	pending.list = [...pending.list.filter((e) => e.id !== out.id && !drop.includes(e.id)), out];
 }
 
 /** Met à jour des saisies existantes (conflit marqué, par exemple). */

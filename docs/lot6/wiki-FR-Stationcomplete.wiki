@@ -10,9 +10,9 @@
 == Fonctionnement ==
 L'utilisateur choisit une gare. L'appli lit les données de la gare par l'API OSM (requête <code>map</code> sur l'emprise de la gare, au plus une fois par jour) et propose de petites tâches : un quai sans numéro, une voie sans numéro local, une pancarte d'arrêt à placer, une donnée à vérifier. Les saisies restent sur le téléphone jusqu'à ce que l'utilisateur les relise et les envoie.
 
-* Les numéros ne peuvent être saisis '''que sur place''' (position vérifiée sur le téléphone, jamais envoyée). À distance, on peut seulement placer ou vérifier des objets sur la photo aérienne.
+* Les numéros ne peuvent être saisis '''que sur place''' (position vérifiée sur le téléphone, jamais envoyée). À distance, on peut seulement placer ou vérifier des objets, dessiner un quai absent ou corriger la forme d'un quai sur la photo aérienne.
 * Fond de carte : BD ORTHO de l'IGN (Licence Ouverte 2.0), précision visée de l'ordre du mètre.
-* L'appli ne supprime jamais d'objet et ne modifie que les clés listées ci-dessous.
+* L'appli ne modifie que les clés listées ci-dessous. Elle peut aussi corriger la '''forme''' d'un quai et '''supprimer''' un quai (en double, ou disparu constaté sur place), selon les règles décrites plus bas ; elle ne supprime aucun autre type d'objet.
 
 == Ce que l'appli modifie ==
 {| class="wikitable"
@@ -25,6 +25,12 @@ L'utilisateur choisit une gare. L'appli lit les données de la gare par l'API OS
 | Pancarte d'arrêt (nouveau nœud sur la voie) || <code>railway=signal</code>, <code>railway:signal:direction</code>, <code>railway:signal:position</code>, <code>railway:signal:stop=FR:passenger_stop</code> et les sous-clés <code>railway:signal:stop:*</code> || schéma [[FR:Tag:railway=signal|signaux français]] et [[Key:railway:signal:stop]] ; pancartes TT, nV (3 à 10), L, Z57
 |-
 | Quai absent d'OSM (nouveau way fermé) || <code>railway=platform</code>, <code>public_transport=platform</code>, <code>train=yes</code>, <code>area=yes</code> || polygone tracé sur la photo aérienne, bord accroché à 1,5 m de l'axe de la voie ; jamais de nœud partagé avec la voie
+|-
+| Forme d'un quai existant (way) || liste de nœuds du way ; position des nœuds libres déplacés ; nouveaux nœuds ; nœuds libres retirés supprimés || même identifiant de way (historique et relations conservés). Possible à distance, sur la photo aérienne
+|-
+| Quai tracé en ligne, redessiné en surface || liste de nœuds (contour fermé), <code>area=yes</code> ajouté || même way, autres tags conservés ; les nœuds reliés à d'autres objets sont repris dans le contour
+|-
+| Suppression d'un quai (way) || suppression du way et de ses nœuds devenus orphelins ; retrait du quai des relations qui le contenaient (zone d'arrêt <code>public_transport=stop_area</code>, lignes) || motif obligatoire, écrit dans le commentaire du changeset : « en double avec un autre quai » (possible à distance) ou « n'existe plus » (sur place seulement, la photo pouvant être ancienne)
 |-
 | Vérification || <code>check_date</code> || quand l'utilisateur confirme sur place qu'une donnée est juste
 |}
@@ -40,6 +46,12 @@ L'utilisateur choisit une gare. L'appli lit les données de la gare par l'API OS
 * Changesets petits et locaux (une seule gare).
 * Envoi transactionnel, sans doublon même après une coupure réseau.
 * Interrupteur d'arrêt d'urgence : l'auteur peut suspendre tous les envois en quelques minutes en cas de problème.
+* Formes et suppressions de quais :
+** un nœud qui porte des tags, appartient à un autre way ou à une relation n'est '''jamais déplacé ni supprimé''' (on peut ajouter des points autour) ;
+** le way garde toujours son identifiant : il n'est jamais supprimé puis recréé ;
+** les quais décrits par un multipolygone ne sont pas modifiables dans l'appli (renvoi vers iD ou JOSM), de même qu'une suppression qui viderait une relation ;
+** juste avant l'envoi, l'appli relit sur l'API la version du way, celle de chaque nœud déplacé ou supprimé, et les ways et relations de ces nœuds : au moindre changement, rien n'est envoyé pour ce quai (« à revoir ») ;
+** pas de <code>if-unused</code> : un refus de l'API (412) met la saisie « à revoir », sans échec silencieux.
 * Respect de la [https://operations.osmfoundation.org/policies/api/ politique d'usage de l'API] : 2 requêtes simultanées au maximum, cache local, en-tête Referer (stationcomplete.org) transmis par le navigateur.
 
 == Phase pilote ==

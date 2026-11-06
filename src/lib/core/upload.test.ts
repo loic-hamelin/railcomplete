@@ -116,7 +116,7 @@ describe('XML', () => {
 		const d = parseDiffResult(
 			'<diffResult><node old_id="-1" new_id="99" new_version="1"/><way old_id="10" new_id="10" new_version="4"/></diffResult>'
 		);
-		expect(d.get('node/-1')).toEqual({ newId: 99, version: 1 });
+		expect(d.get('node/-1')).toEqual({ newId: 99, version: 1, deleted: false });
 		expect(conflictTarget('Version mismatch: Provided 3, server had: 4 of Way 10')).toBe('way/10');
 	});
 

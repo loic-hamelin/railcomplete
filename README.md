@@ -15,6 +15,7 @@ Site : <https://stationcomplete.org>
 - Lot 3 : connexion au compte OpenStreetMap (OAuth2 PKCE) et envoi d'un changeset par gare, résilient aux coupures et aux conflits. Envoi ouvert sur le serveur de test uniquement (production au lot 6).
 - Lot 4 : hors-ligne — téléchargement d'une gare (données + photos aériennes, taille affichée), consultation et saisie sans réseau, envoi programmé qui part tout seul au retour du réseau, gestion des gares téléchargées.
 - Lot 5 : dessin d'un quai absent d'OSM (polygone au réticule, accrochage parallèle à 1,5 m de l'axe de la voie, contrôles de forme), puis numérotation et envoi.
+- Lot 7 : modifier un quai existant — forme (déplacer, ajouter, retirer des sommets ; nœuds reliés à d'autres objets jamais déplacés), quai tracé en ligne redessiné en surface (même way), suppression d'un quai avec motif et retrait de sa zone d'arrêt.
 
 ## Développer sur son ordinateur
 

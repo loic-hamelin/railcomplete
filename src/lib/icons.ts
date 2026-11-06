@@ -41,6 +41,9 @@ export const ICONS = {
 	pen: '<path d="M4 20l4.2-1L19 8.2 15.8 5 5 15.8z"/><path d="M13.5 7.3l3.2 3.2"/>',
 	more: '<circle cx="12" cy="5.5" r=".9"/><circle cx="12" cy="12" r=".9"/><circle cx="12" cy="18.5" r=".9"/>',
 	sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>',
+	// Lot 7 : forme d'un quai (contour et sommets).
+	shape:
+		'<path d="M5 7l12-2 2 10-14 3z"/><circle cx="5" cy="7" r="1.6"/><circle cx="17" cy="5" r="1.6"/><circle cx="19" cy="15" r="1.6"/><circle cx="5" cy="18" r="1.6"/>',
 	// Ajout pour l'intégration : pavé de micro-déplacement (quatre flèches).
 	nudge:
 		'<path d="M12 4v16M4 12h16M9.5 6.5L12 4l2.5 2.5M9.5 17.5L12 20l2.5-2.5M6.5 9.5L4 12l2.5 2.5M17.5 9.5L20 12l-2.5 2.5"/>'
