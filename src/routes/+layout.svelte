@@ -5,6 +5,7 @@
 	import font400 from '@fontsource/atkinson-hyperlegible-next/files/atkinson-hyperlegible-next-latin-400-normal.woff2?url';
 	import NetStatus from '#lib/NetStatus.svelte';
 	import { loadTheme } from '#lib/theme.svelte.js';
+	import { t } from '#lib/i18n/t.js';
 	import type { LayoutProps } from './$types';
 	import { onMount } from 'svelte';
 
@@ -34,10 +35,7 @@
 	<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
 	<meta name="apple-mobile-web-app-title" content="stationcomplete" />
 	<meta name="mobile-web-app-capable" content="yes" />
-	<meta
-		name="description"
-		content="stationcomplete : complétez les données ferroviaires des gares dans OpenStreetMap."
-	/>
+	<meta name="description" content={t('meta.description')} />
 </svelte:head>
 
 {@render children()}

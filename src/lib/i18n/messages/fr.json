@@ -1,0 +1,965 @@
+{
+	"common": {
+		"and": "et",
+		"closeMessage": "Fermer le message",
+		"logoLabel": "stationcomplete, accueil",
+		"cancel": "Annuler",
+		"remove": "Supprimer",
+		"loading": "Chargement…",
+		"confirm": "Confirmer",
+		"retry": "Réessayer",
+		"osmAttribution": "© contributeurs OpenStreetMap, ODbL",
+		"close": "Fermer",
+		"saveFailed": "L'enregistrement sur ce téléphone a échoué. Réessayez.",
+		"seeOnOsm": "Voir sur OpenStreetMap",
+		"quoted": "« {text} »",
+		"no": "Non",
+		"yes": "Oui",
+		"save": "Enregistrer",
+		"zoomIn": "Zoomer",
+		"zoomOut": "Dézoomer"
+	},
+	"format": {
+		"mb": "{n} Mo"
+	},
+	"platform": {
+		"named": "Quai {ref}",
+		"noRef": "Quai sans numéro",
+		"plain": "Quai",
+		"tracks": "Quai voies {refs}"
+	},
+	"track": {
+		"named": "Voie {ref}",
+		"noRef": "Voie sans numéro"
+	},
+	"sign": {
+		"named": "Pancarte « {label} »",
+		"label": {
+			"stop": "Arrêt",
+			"all": "Tous"
+		},
+		"check": {
+			"type": "Choisissez le panneau que vous voyez.",
+			"vehicles": "Indiquez le nombre de véhicules écrit sur le panneau.",
+			"length": "Indiquez la longueur écrite sur le panneau (en mètres).",
+			"caption": "Recopiez le texte de la pancarte.",
+			"direction": "Indiquez le sens des trains qui lisent ce panneau.",
+			"position": "Indiquez de quel côté se trouve le panneau."
+		},
+		"type": {
+			"long": "Train long",
+			"short": "Train court",
+			"all": "Tous trains",
+			"other": "Autre / illisible",
+			"otherShort": "Autre",
+			"usum": "US / UM (bientôt)",
+			"usumPending": "En attente de validation du schéma OSM"
+		},
+		"reason": {
+			"gone": "N’existe plus",
+			"duplicate": "En double",
+			"misplaced": "Mal placée"
+		},
+		"reasonInline": {
+			"gone": "n’existe plus",
+			"duplicate": "en double",
+			"misplaced": "mal placée"
+		}
+	},
+	"feature": {
+		"platformLettered": "{length} · lettre dans « ref » : les numéros de voies sont attendus",
+		"platformTracks": "Voies {refs} · {length}",
+		"platformNoRef": "{length} · numéros des voies à relever sur place",
+		"trackRef": "Numéro de voie renseigné",
+		"trackNoRef": "Numéro affiché en gare à relever sur place",
+		"trackAway": "Ne longe aucun quai cartographié",
+		"signLegacy": "Ancien format de tags, à confirmer sur place",
+		"signDirection": "Sens renseigné",
+		"signNoDirection": "Sens des trains à relever sur place"
+	},
+	"quest": {
+		"q0": {
+			"title": "Aucun quai cartographié",
+			"subtitle": "Vous pourrez le dessiner sur la photo aérienne"
+		},
+		"q1": {
+			"title": "{count, plural, one {# quai sans numéro} other {# quais sans numéro}}"
+		},
+		"q2": {
+			"title": "{count, plural, one {# voie à quai sans numéro} other {# voies à quai sans numéro}}"
+		},
+		"q3": {
+			"title": "{count, plural, one {# quai dont les numéros sont à vérifier} other {# quais dont les numéros sont à vérifier}}",
+			"subtitle": "Les numéros du quai et ceux des voies ne correspondent pas"
+		},
+		"q4": {
+			"title": "{count, plural, one {# côté de quai sans pancarte d’arrêt} other {# côtés de quai sans pancarte d’arrêt}}"
+		},
+		"q5": {
+			"title": "{count, plural, one {# pancarte à compléter} other {# pancartes à compléter}}"
+		},
+		"q6": {
+			"title": "{count, plural, one {# objet à vérifier} other {# objets à vérifier}}",
+			"subtitle": "Faisable aussi à distance"
+		},
+		"q7": {
+			"title": "{count, plural, one {# numéro de voie mal placé} other {# numéros de voie mal placés}}",
+			"duplicate": "Deux voies portent le numéro {ref}",
+			"subtitle": "À vérifier en priorité"
+		}
+	},
+	"signRemoval": {
+		"why": {
+			"shared": "point partagé avec un autre objet (autre voie, aiguillage…)",
+			"repeated": "point répété dans la voie",
+			"extra": "porte d’autres informations ({keys})",
+			"relation": "membre d’une relation",
+			"shift": "le retirer déplacerait la voie de {shift} m",
+			"end": "extrémité de la voie"
+		},
+		"summary": "Pancarte « {label} » supprimée ({reason}) — {mode, select, remove {point retiré de la voie} other {point gardé dans la voie, tags retirés}}",
+		"phraseNoWay": "Le point de la pancarte sera supprimé.",
+		"phraseRemove": "Le point sera retiré de la voie puis supprimé : la forme de la voie ne change pas.",
+		"phraseUntag": "Le point reste dans la voie ({why}) : seuls les tags de la pancarte sont retirés. La forme de la voie ne change jamais."
+	},
+	"shape": {
+		"complex": "Quai complexe : à modifier avec un éditeur comme iD ou JOSM.",
+		"reason": {
+			"duplicate": "En double avec un autre quai",
+			"gone": "N’existe plus"
+		},
+		"reasonInline": {
+			"duplicate": "en double",
+			"gone": "n’existe plus"
+		},
+		"reasonComment": {
+			"duplicate": "en double avec un autre quai",
+			"gone": "n’existe plus"
+		},
+		"relationNo": "n° {id}",
+		"rel": {
+			"stopArea": "de la zone d’arrêt {name}",
+			"route": "de la ligne {name}",
+			"routes": "de {count} lignes",
+			"other": "de la relation {name}",
+			"others": "de {count} autres relations",
+			"removed": "retiré {list}"
+		},
+		"summary": {
+			"area": "{name} redessiné en surface",
+			"reshape": "{name} : forme modifiée ({before} → {after} points)",
+			"delete": "{name} supprimé ({why})"
+		},
+		"link": {
+			"relation": "membre d’une relation",
+			"repeated": "point répété dans le contour",
+			"infoWhat": "point avec des informations ({what})"
+		},
+		"tags": "tags",
+		"notice": {
+			"shared": "{count, plural, one {# point sur {total} est partagé avec d’autres objets ({objects}) : il suivra vos modifications.} other {# points sur {total} sont partagés avec d’autres objets ({objects}) : ils suivront vos modifications.}}",
+			"taggedInfo": "Le point {point} est un point avec des informations : le déplacer déplace l’objet qu’il décrit.",
+			"tagged": "Le point {point} est {a} : le déplacer déplace {the}.",
+			"taggedMany": "Les points {points} portent des informations ({what}) : les déplacer déplace ces objets."
+		},
+		"point": {
+			"alsoOf": "Ce point est aussi un point de : {list} — {count, plural, one {{g, select, f {elle suivra} other {il suivra}}} other {{g, select, f {elles suivront} other {ils suivront}}}} le déplacement.",
+			"info": "Ce point porte des informations : il sera déplacé avec elles.",
+			"is": "Ce point est {a} : {g, select, f {elle sera déplacée} other {il sera déplacé}}.",
+			"removeEdge": "Il ne peut pas être retiré du contour : le bord du quai en a besoin.",
+			"removeWays": "Retiré, il reste dans {list} ; seul le quai change.",
+			"removeMap": "Retiré, il reste sur la carte ; seul le quai change."
+		},
+		"shared": {
+			"info": "porte des informations",
+			"alsoOf": "aussi un point {list}",
+			"linked": "relié à {list}",
+			"plain": "partagé"
+		},
+		"followers": {
+			"ways": "{list} {g, select, f {{count, plural, one {ajustée} other {ajustées}}} other {{count, plural, one {ajusté} other {ajustés}}}} aussi",
+			"tags": "{list} {g, select, f {{count, plural, one {déplacée} other {déplacées}}} other {{count, plural, one {déplacé} other {déplacés}}}}"
+		},
+		"deleteRefused": "Ce quai est le seul membre de la relation {name} : à supprimer avec un éditeur comme iD ou JOSM.",
+		"lock": {
+			"foreign": "Un point vient d’un autre objet : forme refusée.",
+			"twice": "Un point apparaît deux fois dans le contour.",
+			"movedLinked": "Un point relié à un autre objet a été déplacé : forme refusée.",
+			"movedRepeated": "Un point répété dans le contour a été déplacé : forme refusée.",
+			"areaLinked": "{count, plural, one {Le point {points} de l’ancienne ligne est relié à d’autres objets : il doit faire partie du contour. Touchez ce point (carrés) pour l’ajouter, ou utilisez un éditeur comme iD ou JOSM.} other {Les points {points} de l’ancienne ligne sont reliés à d’autres objets : ils doivent faire partie du contour. Touchez ces points (carrés) pour les ajouter, ou utilisez un éditeur comme iD ou JOSM.}}",
+			"edge": "{count, plural, one {Le point {points} est aussi un point du bord du quai : le retirer du contour le laisserait dans le bord. Déplacez-le plutôt, ou utilisez JOSM ou iD.} other {Les points {points} sont aussi des points du bord du quai : les retirer du contour les laisserait dans le bord. Déplacez-les plutôt, ou utilisez JOSM ou iD.}}",
+			"repeated": "{count, plural, one {Le point {points} apparaît plusieurs fois dans le contour : il ne peut pas être retiré.} other {Les points {points} apparaissent plusieurs fois dans le contour : ils ne peuvent pas être retirés.}}"
+		}
+	},
+	"obj": {
+		"platformEdge": {
+			"name": "bord du quai",
+			"a": "le bord du quai",
+			"of": "du bord du quai",
+			"the": "le bord du quai",
+			"g": "m"
+		},
+		"roof": {
+			"name": "toit",
+			"a": "le toit",
+			"of": "du toit",
+			"the": "le toit",
+			"g": "m"
+		},
+		"indoor": {
+			"name": "espace intérieur",
+			"a": "un espace intérieur",
+			"of": "d’un espace intérieur",
+			"the": "l’espace intérieur",
+			"g": "m"
+		},
+		"steps": {
+			"name": "escalier",
+			"a": "un escalier",
+			"of": "d’un escalier",
+			"the": "l’escalier",
+			"g": "m"
+		},
+		"footway": {
+			"name": "chemin piéton",
+			"a": "un chemin piéton",
+			"of": "d’un chemin piéton",
+			"the": "le chemin piéton",
+			"g": "m"
+		},
+		"elevator": {
+			"name": "ascenseur",
+			"a": "un ascenseur",
+			"of": "d’un ascenseur",
+			"the": "l’ascenseur",
+			"g": "m"
+		},
+		"road": {
+			"name": "route",
+			"a": "une route",
+			"of": "d’une route",
+			"the": "la route",
+			"g": "f"
+		},
+		"station": {
+			"name": "gare",
+			"a": "la gare",
+			"of": "de la gare",
+			"the": "la gare",
+			"g": "f"
+		},
+		"building": {
+			"name": "bâtiment",
+			"a": "un bâtiment",
+			"of": "d’un bâtiment",
+			"the": "le bâtiment",
+			"g": "m"
+		},
+		"otherPlatform": {
+			"name": "autre quai",
+			"a": "un autre quai",
+			"of": "d’un autre quai",
+			"the": "l’autre quai",
+			"g": "m"
+		},
+		"railway": {
+			"name": "voie ou installation ferroviaire",
+			"a": "une voie ou installation ferroviaire",
+			"of": "d’une voie ou installation ferroviaire",
+			"the": "la voie ou installation ferroviaire",
+			"g": "f"
+		},
+		"barrierLine": {
+			"name": "clôture ou mur",
+			"a": "une clôture ou un mur",
+			"of": "d’une clôture ou un mur",
+			"the": "la clôture ou mur",
+			"g": "m"
+		},
+		"area": {
+			"name": "zone",
+			"a": "une zone",
+			"of": "d’une zone",
+			"the": "la zone",
+			"g": "f"
+		},
+		"other": {
+			"name": "autre objet",
+			"a": "un autre objet",
+			"of": "d’un autre objet",
+			"the": "l’autre objet",
+			"g": "m"
+		},
+		"entrance": {
+			"name": "entrée",
+			"a": "une entrée",
+			"of": "d’une entrée",
+			"the": "l’entrée",
+			"g": "f"
+		},
+		"busStop": {
+			"name": "arrêt de bus",
+			"a": "un arrêt de bus",
+			"of": "d’un arrêt de bus",
+			"the": "l’arrêt de bus",
+			"g": "m"
+		},
+		"barrier": {
+			"name": "barrière",
+			"a": "une barrière",
+			"of": "d’une barrière",
+			"the": "la barrière",
+			"g": "f"
+		},
+		"railwayNode": {
+			"name": "élément ferroviaire",
+			"a": "un élément ferroviaire",
+			"of": "d’un élément ferroviaire",
+			"the": "l’élément ferroviaire",
+			"g": "m"
+		},
+		"info": {
+			"name": "point avec des informations",
+			"a": "un point avec des informations",
+			"of": "d’un point avec des informations",
+			"the": "le point avec des informations",
+			"g": "m"
+		}
+	},
+	"draw": {
+		"check": {
+			"points": "Placez au moins 3 points.",
+			"crossing": "Des côtés du quai se croisent : déplacez ou retirez un point.",
+			"short": "Quai trop court ({length}, minimum {min}).",
+			"long": "Quai trop long ({length}, maximum {max}).",
+			"track": "Le quai croise une voie : le bord doit rester le long de la voie.",
+			"overlap": "Le quai chevauche un quai déjà cartographié."
+		},
+		"lost": {
+			"track": "{track} ({gap})",
+			"theTrack": "la voie {ref}",
+			"aTrack": "une voie sans numéro",
+			"gap": "bord à {gap}",
+			"notParallel": "bord plus parallèle à la voie",
+			"message": "Le quai ne longe plus {list}. Vérifiez la forme : le bord du quai doit suivre la voie."
+		}
+	},
+	"upload": {
+		"conflict": {
+			"changed": "Le quai a été modifié entre-temps sur OpenStreetMap : rien n’a été envoyé pour lui. Refaites la modification sur la carte à jour.",
+			"signChanged": "La pancarte ou sa voie a été modifiée entre-temps sur OpenStreetMap : rien n’a été envoyé pour elle. Refaites la suppression sur la carte à jour.",
+			"signLinked": "La pancarte a été reliée à un autre objet entre-temps sur OpenStreetMap : rien n’a été envoyé pour elle. Refaites la suppression sur la carte à jour.",
+			"nodeChanged": "Un point du quai a été modifié ou relié à un autre objet entre-temps sur OpenStreetMap : rien n’a été envoyé pour lui. Refaites la modification sur la carte à jour.",
+			"gone": "Objet supprimé entre-temps sur OpenStreetMap.",
+			"clash": "Modifié par quelqu’un d’autre entre-temps ({key}).",
+			"trackGone": "La voie a été supprimée entre-temps.",
+			"trackRedrawn": "La voie a été redessinée entre-temps.",
+			"platformGone": "Quai supprimé entre-temps sur OpenStreetMap.",
+			"ringInvalid": "Contour du quai invalide.",
+			"ringLocks": "Contour du quai invalide (point du bord du quai retiré ou point fixe déplacé).",
+			"platformDeleted": "Quai déjà supprimé sur OpenStreetMap.",
+			"relationEmpty": "La relation {name} ne contiendrait plus rien : suppression à faire avec un éditeur comme iD ou JOSM.",
+			"signDeleted": "Pancarte déjà supprimée sur OpenStreetMap.",
+			"signTrack": "La voie de la pancarte a été supprimée ou redessinée entre-temps.",
+			"ringIncomplete": "Contour du quai incomplet."
+		},
+		"comment": {
+			"numbers": "numéros de quais et de voies, pancartes d’arrêt",
+			"drawn": "quai dessiné",
+			"shape": "forme de quai corrigée",
+			"deleted": "{name} supprimé ({why})",
+			"signDeleted": "pancarte d’arrêt « {label} » supprimée ({why}{mode, select, untag {, point gardé dans la voie} other {}})",
+			"station": "Gare de {name} : {parts}"
+		}
+	},
+	"bearing": {
+		"n": "nord",
+		"ne": "nord-est",
+		"e": "est",
+		"se": "sud-est",
+		"s": "sud",
+		"sw": "sud-ouest",
+		"w": "ouest",
+		"nw": "nord-ouest"
+	},
+	"edit": {
+		"label": {
+			"newSign": "Nouvelle pancarte",
+			"newPlatform": "Nouveau quai",
+			"area": "Quai redessiné en surface",
+			"shape": "Forme du quai",
+			"delete": "Suppression · motif : {why}",
+			"signDelete": "Suppression de pancarte · motif : {why}",
+			"tags": "Modification"
+		},
+		"drawnSummary": "{summary} (dessiné)",
+		"error": {
+			"signDeleted": "Cette pancarte est marquée à supprimer : retirez d’abord cette saisie.",
+			"platformDeleted": "Ce quai est marqué à supprimer : retirez d’abord cette saisie."
+		}
+	},
+	"remote": {
+		"suspended": "Les envois sont suspendus pour le moment. Vos saisies restent sur ce téléphone.",
+		"update": "Une nouvelle version de l’appli est nécessaire : fermez-la puis rouvrez-la pour la mettre à jour. Vos saisies sont conservées.",
+		"pilot": "stationcomplete est en phase pilote : l’envoi vers la vraie carte est réservé à quelques testeurs. Vos saisies restent sur ce téléphone."
+	},
+	"error": {
+		"loginRefused": "La connexion a été refusée ou a expiré.",
+		"profile": "Profil indisponible ({status}).",
+		"stationNotFound": "Gare introuvable dans l’index.",
+		"osmUnreachable": "Impossible de joindre OpenStreetMap. Vérifiez votre connexion.",
+		"tilesFailed": "Trop de photos n’ont pas pu être téléchargées.",
+		"downloadInterrupted": "Téléchargement interrompu.",
+		"osmBusy": "Le serveur OpenStreetMap est très sollicité. Réessayez dans une minute.",
+		"osmServer": "Erreur du serveur OpenStreetMap ({status}).",
+		"index": "Index des gares indisponible ({status})"
+	},
+	"server": {
+		"dev": "Serveur de test OSM"
+	},
+	"seed": {
+		"limit": "Le serveur de test limite le nombre de modifications par heure pour les comptes récents. Réessayez dans une heure : la limite augmente avec l’ancienneté du compte.",
+		"devOnly": "Réservé au serveur de test.",
+		"readFailed": "Lecture de la vraie gare impossible ({status}).",
+		"empty": "Aucun quai ni voie à recopier pour cette gare.",
+		"tooBig": "Gare trop grande pour une copie de test.",
+		"comment": "Copie de test de la gare de {name} (quais, voies, pancartes) pour essayer stationcomplete",
+		"openRefused": "Ouverture refusée par le serveur de test ({status}).",
+		"copyRefused": "Copie refusée par le serveur de test ({status})."
+	},
+	"send": {
+		"demoRefused": "Des saisies ont été faites en mode démonstration, hors de la gare : elles ne peuvent pas partir sur la vraie carte. Retirez-les ci-dessous.",
+		"interrupted": "Un envoi précédent a été interrompu. Par prudence, réessayez dans {min} min.",
+		"unavailable": "Envoi non disponible sur ce serveur.",
+		"offline": "Pas de réseau : réessayez quand vous serez connecté.",
+		"busy": "Un envoi est déjà en cours.",
+		"conflict412": "Refusé par OpenStreetMap pendant l’envoi : un objet est encore utilisé ou a disparu. Rien n’a été envoyé.",
+		"conflict409": "Modifié sur OpenStreetMap pendant l’envoi.",
+		"rateLimit": "OpenStreetMap limite le nombre de modifications par heure (surtout pour les comptes récents). Vos saisies sont conservées : réessayez dans une heure.",
+		"expired": "Votre connexion a expiré : reconnectez-vous.",
+		"refused": "Le serveur a refusé l’envoi ({status}).",
+		"lost": "La connexion a été perdue. Vos saisies sont conservées ; réessayez plus tard."
+	},
+	"nav": {
+		"label": "Navigation principale",
+		"station": "Gare",
+		"contributions": "Contributions",
+		"pending": ", {count} en attente",
+		"settings": "Réglages"
+	},
+	"net": {
+		"offline": "Hors-ligne — vos saisies restent sur ce téléphone{count, plural, =0 {} one { ; # envoi partira au retour du réseau} other { ; # envois partiront au retour du réseau}}.",
+		"station": "{name} :",
+		"sentAuto": "{count, plural, one {# modification envoyée automatiquement.} other {# modifications envoyées automatiquement.}}",
+		"nothing": "rien à envoyer{conflicts, plural, =0 {} other {, {conflicts} à revoir}}.",
+		"review": "Voir les saisies à revoir"
+	},
+	"meta": {
+		"description": "stationcomplete : complétez les données ferroviaires des gares dans OpenStreetMap."
+	},
+	"home": {
+		"title": "stationcomplete — complétez les gares dans OpenStreetMap",
+		"skip": "Passer",
+		"step": "Étape {step} sur {total}",
+		"intro": {
+			"title": "Complétez les données de votre gare",
+			"text": "Numéros de quais, numéros de voies, pancartes d'arrêt : en quelques minutes sur le quai, vous rendez ces informations utiles à tous, des applis de voyage aux outils ferroviaires comme OSRD."
+		},
+		"safety": {
+			"kicker": "Sécurité",
+			"title": "Restez derrière la ligne de sécurité.",
+			"text": "Tout se fait depuis le quai, ou depuis chez vous grâce à la photo aérienne. Ne descendez jamais sur les voies et ne dépassez pas le bout du quai."
+		},
+		"osm": {
+			"title": "Vos contributions vont dans OpenStreetMap",
+			"text": "La carte libre et collective. Elles sont publiées sous votre pseudo OSM, sous licence ODbL, et rien n'est envoyé sans que vous l'ayez relu."
+		},
+		"understood": "J'ai compris",
+		"start": "Commencer",
+		"next": "Suivant",
+		"explore": {
+			"title": "Explorez les gares de France",
+			"text": "Consultez dès maintenant ce qui manque dans chaque gare : numéros de quais, numéros de voies, pancartes d'arrêt. La saisie et l'envoi vers OpenStreetMap arrivent bientôt."
+		},
+		"chooseStation": "Choisir une gare",
+		"more": "En savoir plus sur le projet",
+		"replay": "Revoir la présentation"
+	},
+	"about": {
+		"title": "À propos — stationcomplete",
+		"heading": "À propos de stationcomplete",
+		"project": {
+			"title": "Le projet",
+			"text": "stationcomplete aide chacun à compléter les données des gares françaises dans <osm>OpenStreetMap</osm> : numéros des quais, numéros des voies et pancartes d'arrêt des trains. Ces données libres servent à tous, notamment aux outils de conception ferroviaire comme <osrd>OSRD</osrd>."
+		},
+		"safety": {
+			"title": "Sécurité",
+			"text": "Restez toujours derrière la ligne de sécurité. Tout se fait depuis le quai ou à distance, sur la photo aérienne. Ne descendez jamais sur les voies."
+		},
+		"data": {
+			"title": "Données et licences",
+			"osm": "Les contributions sont publiées dans OpenStreetMap sous votre pseudo, sous licence <odbl>ODbL</odbl>. © les contributeurs OpenStreetMap.",
+			"photos": "Photographies aériennes : {product}, sous {licence}.",
+			"code": "Le code de stationcomplete est libre, sous licence GPL-3.0 ou ultérieure : <code>voir le code source</code>."
+		},
+		"privacy": {
+			"title": "Vie privée",
+			"text": "Ce site ne dépose aucun cookie et n'utilise aucun outil de mesure d'audience. Vos saisies restent sur votre téléphone jusqu'à leur envoi dans OpenStreetMap."
+		},
+		"contact": {
+			"title": "Contact",
+			"text": "Une erreur, une idée, une gare qui pose problème ? Écrivez à <mail>{email}</mail> ou ouvrez un ticket sur <issues>GitHub</issues>."
+		},
+		"back": "← Retour à l'accueil"
+	},
+	"legal": {
+		"title": "Mentions légales — stationcomplete",
+		"noticeLink": "Mentions légales",
+		"dataLink": "Données personnelles",
+		"aboutLink": "À propos",
+		"publisher": {
+			"title": "Éditeur",
+			"text": "stationcomplete.org est un projet bénévole et non commercial, édité par Loïc Hamelin, particulier, également directeur de la publication.",
+			"contact": "Contact :"
+		},
+		"host": {
+			"title": "Hébergement",
+			"text": "GitHub Pages — GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, États-Unis."
+		},
+		"content": {
+			"title": "Contenus et licences",
+			"osm": "Données cartographiques : © les contributeurs OpenStreetMap, sous licence <odbl>ODbL</odbl>.",
+			"photos": "Photographies aériennes : {product}, sous <licence>{licence}</licence>.",
+			"code": "Code de l’appli : licence GPL-3.0 ou ultérieure, <code>code source sur GitHub</code>.",
+			"independent": "stationcomplete est un projet personnel : ce n’est pas un service de la SNCF ni de la Fondation OpenStreetMap."
+		}
+	},
+	"country": {
+		"fr": {
+			"name": "France",
+			"of": "de France"
+		},
+		"ch": {
+			"name": "Suisse",
+			"of": "de Suisse"
+		}
+	},
+	"data": {
+		"title": "Données personnelles — stationcomplete",
+		"lead": "stationcomplete n’a pas de serveur à lui : il ne reçoit, ne stocke et ne vend aucune donnée vous concernant. Cette page explique ce qui se passe sur votre téléphone et auprès des services que l’appli contacte.",
+		"phone": {
+			"title": "Sur votre téléphone",
+			"storage": "Les gares consultées, vos saisies pas encore envoyées, vos réglages et les photos aériennes téléchargées restent dans la mémoire du navigateur de votre téléphone.",
+			"position": "Votre position sert seulement à vérifier, sur le téléphone, que vous êtes bien en gare. Elle n’est envoyée à personne.",
+			"login": "Si vous vous connectez, la clé de connexion à OpenStreetMap et votre pseudo sont gardés sur le téléphone. Votre mot de passe n’est jamais vu par stationcomplete : vous le saisissez sur le site d’OpenStreetMap.",
+			"nothing": "Aucun cookie, aucune publicité, aucune mesure d’audience."
+		},
+		"publish": {
+			"title": "Ce que vous publiez sur OpenStreetMap",
+			"text": "Quand vous envoyez vos saisies, elles sont publiées sur OpenStreetMap sous votre pseudo, avec la date et la description de l’envoi. Comme toute contribution à OpenStreetMap, elles sont publiques et restent dans l’historique de la carte. Ces données sont gérées par la Fondation OpenStreetMap, selon sa <policy>politique de confidentialité</policy>."
+		},
+		"services": {
+			"title": "Services contactés par votre téléphone",
+			"lead": "Comme pour tout site web, ces services voient l’adresse IP de votre connexion :",
+			"github": "<b>GitHub Pages</b> (GitHub, Inc., États-Unis) : hébergement de l’appli. <gh>Déclaration de confidentialité de GitHub</gh>.",
+			"osm": "<b>OpenStreetMap</b> (Fondation OpenStreetMap, Royaume-Uni) : lecture des données des gares, connexion et envoi des contributions.",
+			"photos": "<b>{operator}</b> ({seat}) : photos aériennes."
+		},
+		"rights": {
+			"title": "Vos droits",
+			"text": "Vous pouvez effacer à tout moment tout ce que stationcomplete garde sur ce téléphone. Pour vos contributions publiées et votre compte OpenStreetMap, adressez-vous à la Fondation OpenStreetMap. Pour toute question : <mail>{email}</mail>. Vous pouvez aussi saisir la <cnil>CNIL</cnil>."
+		},
+		"wipe": {
+			"done": "<b>C’est fait :</b> plus rien de stationcomplete sur ce téléphone.",
+			"lost": "{count, plural, one {# saisie pas encore envoyée sera perdue.} other {# saisies pas encore envoyées seront perdues.}}",
+			"confirm": "Tout effacer de ce téléphone ? Vos contributions déjà publiées ne sont pas touchées.",
+			"all": "Tout effacer",
+			"button": "Effacer mes données de ce téléphone"
+		}
+	},
+	"login": {
+		"title": "Connexion — stationcomplete",
+		"denied": "Vous avez refusé l’accès.",
+		"failed": "La connexion a échoué.",
+		"finishing": "Connexion en cours…",
+		"pseudo": "Publiées sous votre pseudo, sous licence libre ODbL.",
+		"review": "Rien n’est envoyé sans que vous l’ayez relu.",
+		"password": "Aucun mot de passe n’est demandé ni gardé par stationcomplete.",
+		"server": "Serveur :",
+		"signedIn": "Connecté en tant que <b>{name}</b>.",
+		"myContributions": "Mes contributions",
+		"notConfigured": "La connexion à ce serveur n’est pas encore configurée. Choisissez le serveur de test dans les réglages.",
+		"button": "Se connecter avec OpenStreetMap",
+		"create": "Créer un compte OpenStreetMap"
+	},
+	"stations": {
+		"title": "Choisir une gare — stationcomplete",
+		"geoUnavailable": "La localisation n’est pas disponible sur cet appareil.",
+		"geoError": "Position indisponible. Autorisez la localisation ou cherchez par nom.",
+		"halt": "halte",
+		"searchLabel": "Rechercher une gare",
+		"placeholder": "Nom de gare ou commune",
+		"locating": "Localisation…",
+		"nearby": "Gares autour de moi",
+		"loading": "Chargement de la liste des gares…",
+		"results": "Résultats",
+		"noMatch": "Aucune gare ne correspond à « {query} ».",
+		"around": "Autour de moi",
+		"recent": "Récentes",
+		"count": "{count} gares et haltes {of}. Tapez au moins deux lettres."
+	},
+	"settings": {
+		"title": "Réglages — stationcomplete",
+		"account": "Compte OpenStreetMap",
+		"logout": "Se déconnecter",
+		"signedOut": "Non connecté",
+		"login": "Se connecter",
+		"loginUnavailable": "Connexion indisponible",
+		"notConfigured": "Pas encore configurée pour {server}.",
+		"appearance": "Apparence",
+		"language": "Langue",
+		"languageHint": "Langue de l’appli et du commentaire de vos envois.",
+		"theme": {
+			"label": "Thème",
+			"hint": "« Système » suit le réglage de votre téléphone.",
+			"system": "Système",
+			"light": "Clair",
+			"dark": "Sombre"
+		},
+		"server": "Serveur",
+		"serverLegend": "Serveur OpenStreetMap",
+		"prodHint": "La vraie carte : vos envois sont publiés, visibles par tous.",
+		"devHint": "Pour essayer l’envoi : rien n’apparaît sur la vraie carte.",
+		"input": "Saisie",
+		"demo": "Mode démonstration",
+		"demoHint": "Permet d’essayer la saisie sans être dans la gare. Ces saisies ne partiront jamais sur la vraie carte (seulement sur le serveur de test).",
+		"downloads": "Gares téléchargées",
+		"removeDownload": "Supprimer {name} du téléphone",
+		"noDownloads": "Aucune",
+		"noDownloadsHint": "Téléchargez une gare depuis son tableau de bord pour l’utiliser sans réseau.",
+		"aboutLink": "Sécurité, licences, contact"
+	},
+	"contributions": {
+		"title": "Mes contributions — stationcomplete",
+		"intro": "Vos saisies restent sur ce téléphone, même sans réseau, jusqu’à leur envoi gare par gare. Serveur : <b>{server}</b>.",
+		"empty": "Aucune saisie en attente.",
+		"count": "{count, plural, one {# saisie} other {# saisies}}",
+		"review": "À revoir",
+		"waiting": "En attente",
+		"removeLabel": "Retirer : {summary}",
+		"remove": "Retirer",
+		"send": "Relire et envoyer",
+		"toReview": "{count} à revoir"
+	},
+	"sendPage": {
+		"title": "Relire et envoyer — stationcomplete",
+		"back": "Retour aux contributions",
+		"step": {
+			"checking": "Vérification d’un envoi précédent…",
+			"reading": "Relecture des données à jour…",
+			"opening": "Ouverture du groupe de modifications…",
+			"uploading": "Envoi des modifications…",
+			"closing": "Fermeture…",
+			"sending": "Envoi…"
+		},
+		"offline": "Hors-ligne. Vos saisies sont conservées. Après relecture, vous pouvez programmer l’envoi : il partira tout seul au retour du réseau, appli ouverte.",
+		"cannotUpload": "L’envoi n’est pas encore possible vers {server}. Pour essayer, choisissez un autre serveur dans les <settings>réglages</settings>.",
+		"prod": "Vos modifications seront publiées sur la carte <b>OpenStreetMap</b>, visibles par tous.",
+		"dev": "Serveur : <b>{server}</b> — aucun effet sur la vraie carte.",
+		"sent": "{count, plural, one {# modification envoyée.} other {# modifications envoyées.}}",
+		"thanks": "Merci !",
+		"changeset": "Voir le groupe de modifications n° {id}",
+		"conflicts": "{count, plural, one {# saisie est à revoir : l’objet a changé sur OpenStreetMap entre-temps.} other {# saisies sont à revoir : l’objet a changé sur OpenStreetMap entre-temps.}}",
+		"empty": "Aucune saisie en attente pour cette gare.",
+		"ready": "Prêtes à partir ({count})",
+		"demo": "mode démonstration",
+		"review": "À revoir ({count})",
+		"redo": "Refaire",
+		"open": "Ouvrir",
+		"keep": "Garder",
+		"keepHint": "« Garder » renvoie votre saisie telle quelle : vérifiez d’abord sur place qu’elle est juste. Une forme de quai ou une suppression se refait sur la carte à jour.",
+		"comment": "Description publique de l’envoi",
+		"commentHint": "Visible par tous sur OpenStreetMap, avec votre pseudo et la mention #stationcomplete.",
+		"notConfigured": "La connexion à ce serveur n’est pas encore configurée.",
+		"login": "Se connecter pour envoyer",
+		"by": "Envoyé par <b>{name}</b>",
+		"you": "vous",
+		"blocked": "Envoi impossible pour le moment (voir le message en haut).",
+		"queued": "En attente du réseau : l’envoi partira tout seul.",
+		"cancelQueue": "Annuler l’envoi automatique",
+		"send": "{count, plural, one {Envoyer # modification} other {Envoyer # modifications}}",
+		"sendLater": "Envoyer dès le retour du réseau"
+	},
+	"station": {
+		"title": "{name} — stationcomplete",
+		"change": "Changer de gare",
+		"cached": "Données enregistrées sur ce téléphone du {date}",
+		"fresh": "Données OpenStreetMap à jour",
+		"reload": "Recharger les données depuis OpenStreetMap",
+		"demo": "Mode démonstration : saisie possible hors de la gare, mais ces saisies ne partiront pas sur la vraie carte.",
+		"pending": "{count, plural, one {# saisie en attente d’envoi dans cette gare} other {# saisies en attente d’envoi dans cette gare}}",
+		"none": "Aucune gare choisie.",
+		"loading": "Chargement des données de la gare depuis OpenStreetMap…",
+		"seed": {
+			"done": "{count} objets recopiés sur le serveur de test.",
+			"missing": "<b>Cette gare n’existe pas encore sur le serveur de test.</b> Recopiez-y ses quais, voies et pancartes depuis la vraie carte pour essayer la saisie et l’envoi.",
+			"notConfigured": "La connexion au serveur de test n’est pas encore configurée.",
+			"login": "Se connecter au serveur de test",
+			"busy": "Copie en cours…",
+			"button": "Recopier la vraie gare ici"
+		},
+		"gauges": "Complétude de la gare",
+		"gauge": {
+			"platforms": "Quais",
+			"platformsUnit": "numérotés",
+			"tracks": "Voies",
+			"tracksUnit": "numérotées",
+			"signs": "Pancartes",
+			"signsUnit": "côtés relevés",
+			"none": "aucun à relever"
+		},
+		"offline": {
+			"label": "Hors-ligne",
+			"progress": "Téléchargement des photos aériennes… {done} / {total}",
+			"available": "<b>Disponible hors-ligne</b> · {size} · le {date}",
+			"update": "Mettre à jour",
+			"take": "Emporter la gare hors-ligne"
+		},
+		"todo": "À faire ici",
+		"view": {
+			"label": "Affichage",
+			"list": "Liste",
+			"map": "Carte"
+		},
+		"allDone": "Tout est renseigné dans cette gare. Bravo !",
+		"onSite": "À faire en gare",
+		"drawMissing": "Un quai manque sur la carte ? Le dessiner"
+	},
+	"map": {
+		"title": "Carte — {name} — stationcomplete",
+		"back": "Retour au tableau de bord",
+		"onSite": "Sur place",
+		"remote": "À distance",
+		"checkPosition": ", vérifier ma position",
+		"filters": "Objets affichés",
+		"legend": {
+			"open": "Légende de la carte",
+			"title": "Légende",
+			"close": "Fermer la légende",
+			"quai": "Quai",
+			"voie": "Voie",
+			"pancarte": "Pancarte d’arrêt",
+			"sel": "Objet sélectionné",
+			"edited": "Modifié par vous, en attente d’envoi",
+			"under": "Souterrain (tunnel, niveau inférieur)",
+			"todo": "À compléter",
+			"alert": "À vérifier en priorité"
+		},
+		"loading": "Chargement de la gare…",
+		"locate": "Me localiser",
+		"addSign": "Ajouter une pancarte",
+		"quest": {
+			"Q1": "Numéro du quai à relever",
+			"Q2": "Numéro de la voie à relever",
+			"Q3": "Numéros du quai et des voies à vérifier",
+			"Q4": "Pancartes d’arrêt à relever le long de ce quai",
+			"Q5": "Pancarte à compléter",
+			"Q6": "À vérifier (aucune date de vérification récente)",
+			"Q7": "Numéro de voie en double ou incohérent"
+		},
+		"editedHere": "Modifié sur ce téléphone, en attente d’envoi.",
+		"del": {
+			"chooseReason": "Choisissez le motif de la suppression.",
+			"goneOnSite": "« N’existe plus » se constate sur place seulement.",
+			"pending": "{name} : suppression en attente d’envoi. Pour l’annuler, retirez-la dans vos contributions.",
+			"signTitle": "Supprimer cette pancarte ?",
+			"reason": "Motif (visible dans la description publique de l’envoi)",
+			"seenOnSite": "Constaté sur place.",
+			"onSiteOnly": "Sur place seulement : la photo aérienne peut être ancienne.",
+			"signReplaced": "Vos saisies sur cette pancarte seront retirées : {list}.",
+			"signButton": "Supprimer la pancarte",
+			"platformTitle": "Supprimer ce quai ?",
+			"relations": "Il sera aussi {phrase}.",
+			"points": "{lost, plural, one {# point supprimé} other {# points supprimés}}{kept, plural, =0 {} one { ; # relié à d’autres objets, conservé} other { ; # reliés à d’autres objets, conservés}}.",
+			"platformReplaced": "Vos saisies sur ce quai seront retirées : {list}.",
+			"platformButton": "Supprimer le quai"
+		},
+		"seeContributions": "Voir mes contributions",
+		"fill": "Renseigner",
+		"signHere": "Pancarte ici",
+		"reshape": "Modifier la forme",
+		"toArea": "Redessiner en surface",
+		"more": "Plus d’actions",
+		"deleteSign": "Supprimer cette pancarte…",
+		"drawnHere": "Quai dessiné sur ce téléphone : pour changer sa forme, retirez-le dans vos contributions et redessinez-le.",
+		"deletePlatform": "Supprimer ce quai…",
+		"osmAttribution": "© contributeurs OpenStreetMap",
+		"toggleAttribution": "Afficher ou masquer les crédits"
+	},
+	"input": {
+		"title": "Fiche — stationcomplete",
+		"sheet": "Fiche",
+		"close": "Fermer sans enregistrer",
+		"gone": "Cet objet n’existe plus dans les données de la gare.",
+		"optional": "(facultatif)",
+		"dir": {
+			"backward": "Sens inverse de la voie",
+			"forward": "Sens de la voie",
+			"towards": "{dir, select, e {Vers l’{name}} w {Vers l’{name}} other {Vers le {name}}}"
+		},
+		"verified": "{kind, select, pancarte {Pancarte vérifiée} other {{what} vérifié}}",
+		"onSite": {
+			"text": "Les numéros et les pancartes se relèvent <b>sur place</b>, en restant derrière la ligne de sécurité.",
+			"button": "Je suis dans la gare",
+			"try": "Pour essayer depuis chez vous : <settings>mode démonstration ou serveur de test</settings>.",
+			"away": "Votre position est hors de la gare. Vous pouvez seulement vérifier.",
+			"denied": "Position indisponible : autorisez la localisation."
+		},
+		"platform": {
+			"needRef": "Indiquez au moins un numéro de voie le long du quai.",
+			"summaryNamed": "Quai {name} : voies {refs}",
+			"summary": "Quai : voies {refs}",
+			"refs": "Numéros des voies le long de ce quai",
+			"removeRef": "Retirer la voie {ref}",
+			"addRefLabel": "Ajouter un numéro de voie",
+			"add": "Ajouter",
+			"refsHint": "Les numéros affichés au-dessus des voies, pas la lettre du quai.",
+			"letter": "Ce quai a-t-il une lettre ou un nom ?",
+			"letterLabel": "Lettre ou nom du quai",
+			"letterPlaceholder": "Ex. A"
+		},
+		"track": {
+			"split": "Ce tronçon devra être découpé par un cartographe. Le signalement (Note OSM) arrive avec l’envoi, au lot 3.",
+			"needRef": "Indiquez le numéro ou la lettre affichés en gare.",
+			"ref": "Numéro ou lettre affichés en gare",
+			"refLabel": "Numéro de la voie",
+			"refPlaceholder": "Ex. 3",
+			"refHint": "« Voie » ou « V » sont retirés automatiquement.",
+			"changes": "Le numéro change-t-il le long de ce tronçon ?"
+		},
+		"sign": {
+			"existing": "Pancarte existante",
+			"check": "Vérifiez sur place qu’elle existe et qu’elle correspond, ou corrigez-la.",
+			"which": "Quel panneau voyez-vous ?",
+			"vehicles": "Nombre de véhicules écrit sur le panneau",
+			"otherNumber": "Autre nombre",
+			"length": "Longueur écrite sur le panneau (m)",
+			"under": "Texte sous « {type} »",
+			"caption": "Texte de la pancarte",
+			"captionLabel": "Texte lu sur la pancarte",
+			"captionPlaceholder": "Recopiez le texte",
+			"direction": "Les trains qui lisent ce panneau vont…",
+			"position": "Vu du conducteur, le panneau est…",
+			"left": "À gauche",
+			"right": "À droite",
+			"inTrack": "Entre les rails",
+			"ground": "Au sol",
+			"letterHint": "Une plaque avec une seule lettre (A, B…) n’est pas une pancarte d’arrêt : c’est un repère de quai."
+		},
+		"correct": "C’est correct",
+		"fix": "Corriger"
+	},
+	"place": {
+		"title": "Placer une pancarte — stationcomplete",
+		"heading": "Placer la pancarte",
+		"help": "Placez la croix <b>sur la voie</b>, au niveau du panneau. Faites glisser la carte.",
+		"panel": "Position de la pancarte",
+		"snapped": "<b>Accrochée à la voie</b> · écart {gap} m",
+		"closer": "Rapprochez la croix d’une voie (moins de 3 m).",
+		"near": "Une pancarte existe déjà à moins de 10 m sur cette voie.",
+		"editThis": "Modifier celle-ci",
+		"another": "C’est une autre",
+		"validate": "Valider la position"
+	},
+	"drawPage": {
+		"title": "Dessiner un quai — stationcomplete",
+		"heading": "Dessiner un quai",
+		"cancel": "Annuler le dessin",
+		"points": "{count, plural, one {# point} other {# points}}",
+		"said": {
+			"moved": "Point {n} déplacé.",
+			"movedSnapped": "Point {n} déplacé, accroché au bord de la voie.",
+			"added": "Point {n} ajouté.",
+			"moveUndone": "Déplacement annulé.",
+			"removed": "Dernier point retiré."
+		},
+		"summary": "Quai dessiné ({length})",
+		"help": {
+			"move": "Placez la croix au nouvel emplacement du <b>point {n}</b>.",
+			"start": "Faites le tour du quai, coin après coin, en restant sur son bord. Un point posé se glisse au doigt.",
+			"close": "Continuez, ou touchez le <b>point 1</b> (le plus gros) pour fermer le quai."
+		},
+		"panel": "Tracé du quai",
+		"snapped": "<b>Accroché au bord de la voie</b> (à {offset} m de son axe)",
+		"underCross": "Point sous la croix",
+		"length": "longueur {length}",
+		"snapOption": "Accrocher à la voie",
+		"saveAnyway": "Enregistrer quand même",
+		"undoMove": "Annuler le déplacement",
+		"undoPoint": "Annuler le point",
+		"moveHere": "Déplacer le point {n} ici",
+		"addPoint": "Ajouter un point",
+		"close": "Fermer le quai"
+	},
+	"shapePage": {
+		"title": "{name} — stationcomplete",
+		"vertex": {
+			"locked": "Point {n} : relié à d’autres objets ({links}), non modifiable",
+			"shared": "Point {n} : {what}, le sélectionner",
+			"plain": "Point {n} : le sélectionner"
+		},
+		"anchor": "Point relié {n} de l’ancienne ligne : l’ajouter au contour",
+		"said": {
+			"moved": "Point {n} déplacé{snapped, select, yes {, accroché au bord de la voie} other {}}{hasAlso, select, yes { : {also}} other {}}.",
+			"deselected": "Point {n} désélectionné.",
+			"locked": "Point {n} : relié à {links}, il reste en place.",
+			"selectedShared": "Point {n} sélectionné. {info}",
+			"selected": "Point {n} sélectionné : il est sous la croix.",
+			"inserted": "Point {n} ajouté entre {a} et {b}{snapped, select, yes {, accroché au bord de la voie} other {}}.",
+			"removed": "Point {n} retiré du quai.",
+			"anchored": "Point relié repris : point {n} du contour.",
+			"undone": "Dernière action annulée."
+		},
+		"error": {
+			"noPoint": "Aucun point sous la croix : amenez la croix sur un point du quai (rond blanc), ou touchez directement le point.",
+			"noSide": "Placez la croix sur un côté du quai, puis « Ajouter un point ici ».",
+			"unchanged": "Aucun changement : déplacez, ajoutez ou retirez un point."
+		},
+		"notFound": "Ce quai n’a pas été trouvé dans les données de la gare.",
+		"backToMap": "Retour à la carte",
+		"quit": "Quitter sans enregistrer",
+		"help": {
+			"locked": "Le point {n} est relié à : <b>{links}</b>. Il reste en place ; corrigez-le avec JOSM ou iD, ou ajoutez des points autour.",
+			"move": "Faites glisser la carte jusqu’au nouvel emplacement du <b>point {n}</b>.",
+			"area": "Faites le tour du quai, coin après coin ; l’ancienne ligne est en trait pâle.",
+			"anchors": "Touchez ses points carrés pour les reprendre.",
+			"reshape": "Placez la croix sur un point (ou touchez-le, ou faites-le glisser), ou sur un côté pour en ajouter un.",
+			"shared": "Les points à cœur sombre sont partagés avec d’autres objets."
+		},
+		"understood": "Compris",
+		"snapped": "<b>Accroché au bord de la voie</b> ({offset} m de l’axe)",
+		"pick": "Prendre ce point",
+		"addHere": "Ajouter un point ici",
+		"remove": "Retirer ce point",
+		"moveHere": "Déplacer le point ici",
+		"undoLabel": "Annuler la dernière action",
+		"finish": "Terminer"
+	},
+	"mapA11y": {
+		"closeRing": "Point 1 : fermer le quai",
+		"movePoint": "Point {n} : le déplacer",
+		"midpoint": "Ajouter un point entre {a} et {b}",
+		"noWebgl": "La carte ne peut pas s’afficher sur cet appareil (WebGL indisponible).",
+		"noWebglList": "La carte ne peut pas s’afficher sur cet appareil (WebGL indisponible). Utilisez la liste.",
+		"drawMap": "Photo aérienne, la croix marque le prochain point du quai",
+		"placeMap": "Photo aérienne, la croix marque l’emplacement visé",
+		"myPosition": "Ma position",
+		"stationMap": "Carte de la gare sur la photo aérienne",
+		"nudge": "Ajuster au centimètre",
+		"nudgePad": "Déplacer la croix de 20 cm",
+		"up": "Déplacer la croix vers le haut",
+		"left": "Déplacer la croix vers la gauche",
+		"right": "Déplacer la croix vers la droite",
+		"down": "Déplacer la croix vers le bas"
+	}
+}

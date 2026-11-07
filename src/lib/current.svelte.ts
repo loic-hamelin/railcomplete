@@ -8,6 +8,7 @@ import { fetchStationData, OsmApiError } from './osmapi.js';
 import { server } from './osmserver.svelte.js';
 import { country } from './country.svelte.js';
 import { findStation, type Station } from './stations.js';
+import { t } from './i18n/t.js';
 
 // Clé du cache local : une gare chargée depuis le serveur de test ne se mélange pas à la vraie
 // (sans le pays : clé inchangée par le lot P1, voir core/storage.ts).
@@ -44,7 +45,7 @@ export async function openStation(id: string, { force = false } = {}) {
 		return;
 	}
 	if (!station) {
-		current.value = { status: 'error', message: 'Gare introuvable dans l’index.' };
+		current.value = { status: 'error', message: t('error.stationNotFound') };
 		return;
 	}
 	current.value = { status: 'loading', station };
@@ -67,10 +68,7 @@ export async function openStation(id: string, { force = false } = {}) {
 			current.value = {
 				status: 'error',
 				station,
-				message:
-					e instanceof OsmApiError
-						? e.message
-						: 'Impossible de joindre OpenStreetMap. Vérifiez votre connexion.'
+				message: e instanceof OsmApiError ? e.message : t('error.osmUnreachable')
 			};
 	}
 }

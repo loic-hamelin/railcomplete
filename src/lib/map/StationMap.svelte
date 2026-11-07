@@ -10,7 +10,8 @@
 	import {
 		IS_SEL,
 		MAP,
-		OSM_ATTRIBUTION,
+		mapLocale,
+		osmAttribution,
 		QUAI_W,
 		UNDER_CASING,
 		UNDER_DASH,
@@ -24,6 +25,7 @@
 		plus,
 		visiblePart
 	} from './style.js';
+	import { t } from '#lib/i18n/t.js';
 	import { onMount, tick, untrack } from 'svelte';
 
 	type Kind = FeatureProps['kind'];
@@ -219,7 +221,7 @@
 					const el = document.createElement('div');
 					el.className = 'rc-me';
 					el.setAttribute('role', 'img');
-					el.setAttribute('aria-label', 'Ma position');
+					el.setAttribute('aria-label', t('mapA11y.myPosition'));
 					me = new lib.Marker({ element: el });
 				}
 				me.setLngLat(ll).addTo(map);
@@ -247,6 +249,7 @@
 					minZoom: 12,
 					pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
 					attributionControl: { compact: true },
+					locale: mapLocale(),
 					dragRotate: false,
 					pitchWithRotate: false,
 					fadeDuration: 0,
@@ -257,7 +260,7 @@
 							gare: {
 								type: 'geojson',
 								data: data as unknown as import('maplibre-gl').GeoJSONSourceSpecification['data'],
-								attribution: OSM_ATTRIBUTION
+								attribution: osmAttribution()
 							}
 						},
 						layers: [
@@ -442,8 +445,7 @@
 					onselect(hit?.properties);
 				});
 			} catch (e) {
-				failed =
-					'La carte ne peut pas s’afficher sur cet appareil (WebGL indisponible). Utilisez la liste.';
+				failed = t('mapA11y.noWebglList');
 				console.warn('[stationcomplete] carte :', e);
 			}
 		})();
@@ -508,12 +510,7 @@
 	});
 </script>
 
-<div
-	class="map"
-	bind:this={container}
-	role="region"
-	aria-label="Carte de la gare sur la photo aérienne"
->
+<div class="map" bind:this={container} role="region" aria-label={t('mapA11y.stationMap')}>
 	{#if failed}<p class="failed" role="alert">{failed}</p>{/if}
 </div>
 

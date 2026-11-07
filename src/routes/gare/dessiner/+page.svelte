@@ -25,6 +25,8 @@
 	import { loadSnapPref, setSnapPref, snapPref } from '#lib/snap.svelte.js';
 	import { stationView } from '#lib/view.js';
 	import { onMount, untrack } from 'svelte';
+	import Rich from '#lib/i18n/Rich.svelte';
+	import { fmtDecimal, fmtDistance, t } from '#lib/i18n/t.js';
 
 	let mounted = $state(false);
 	onMount(() => {
@@ -85,7 +87,7 @@
 	const snap = $derived(centerNow ? snapAt(centerNow) : undefined);
 	const preview = $derived(centerNow ? (snap?.point ?? centerNow) : undefined);
 	const check = $derived(checkShape(points, trackLines, platformRings));
-	const m = (v: number) => `${Math.round(v)} m`;
+	const m = fmtDistance;
 
 	/** Avertissement non bloquant (lot 7d) : le quai ne longe plus une voie où il était accroché. */
 	let lostWarn = $state('');
@@ -100,12 +102,12 @@
 		if (selected !== undefined) {
 			keep('move');
 			points[selected] = preview;
-			said = `Point ${selected + 1} déplacé.`;
+			said = t('drawPage.said.moved', { n: selected + 1 });
 			selected = undefined;
 		} else {
 			keep('add');
 			points = [...points, preview];
-			said = `Point ${points.length} ajouté.`;
+			said = t('drawPage.said.added', { n: points.length });
 		}
 	}
 	function undo() {
@@ -116,7 +118,7 @@
 		if (!prev) return;
 		history = history.slice(0, -1);
 		points = prev.points;
-		said = prev.what === 'move' ? 'Déplacement annulé.' : 'Dernier point retiré.';
+		said = prev.what === 'move' ? t('drawPage.said.moveUndone') : t('drawPage.said.removed');
 	}
 	/** Point déjà posé, glissé au doigt puis relâché : même accrochage (lot 7d). */
 	function dragPoint(i: number, at: LonLat) {
@@ -126,7 +128,9 @@
 		const s = snapAt(at);
 		points[i] = s?.point ?? at;
 		selected = undefined;
-		said = `Point ${i + 1} déplacé${s ? ', accroché au bord de la voie' : ''}.`;
+		said = s
+			? t('drawPage.said.movedSnapped', { n: i + 1 })
+			: t('drawPage.said.moved', { n: i + 1 });
 	}
 	function vertex(i: number) {
 		if (i === 0 && points.length >= 3 && selected === undefined) return close();
@@ -175,19 +179,19 @@
 				tempId,
 				nodes: points.map(([lon, lat]) => ({ id: nextTempId(), lon, lat })),
 				tags: { railway: 'platform', public_transport: 'platform', train: 'yes', area: 'yes' },
-				summary: `Quai dessiné (${m(check.lengthM)})`
+				summary: t('drawPage.summary', { length: m(check.lengthM) })
 			});
 			// Ensuite : ses numéros, si l'on est sur place (sinon il reste « sans numéro »).
 			await goto(resolve(`/gare/saisie?id=${encodeURIComponent(id)}&osm=way/${tempId}`));
 		} catch {
-			errors = ["L'enregistrement sur ce téléphone a échoué. Réessayez."];
+			errors = [t('common.saveFailed')];
 		} finally {
 			saving = false;
 		}
 	}
 </script>
 
-<svelte:head><title>Dessiner un quai — stationcomplete</title></svelte:head>
+<svelte:head><title>{t('drawPage.title')}</title></svelte:head>
 
 <!-- Carte plein écran ; en-tête, contrôles et actions flottent au-dessus (décision 6). -->
 <div class="screen">
@@ -214,7 +218,7 @@
 				ondragpoint={dragPoint}
 			/>
 		{:else}
-			<p class="status float" role="status">Chargement…</p>
+			<p class="status float" role="status">{t('common.loading')}</p>
 		{/if}
 	</div>
 
@@ -224,29 +228,28 @@
 				<a
 					class="icon-btn"
 					href={resolve(`/gare?id=${encodeURIComponent(id)}`)}
-					aria-label="Annuler le dessin"><Icon name="close" size={22} /></a
+					aria-label={t('drawPage.cancel')}><Icon name="close" size={22} /></a
 				>
-				<h1>Dessiner un quai</h1>
-				<span class="count">{points.length} point{points.length > 1 ? 's' : ''}</span>
+				<h1>{t('drawPage.heading')}</h1>
+				<span class="count">{t('drawPage.points', { count: points.length })}</span>
 			</div>
 			<p>
 				{#if selected !== undefined}
-					Placez la croix au nouvel emplacement du <strong>point {selected + 1}</strong>.
+					<Rich text={t('drawPage.help.move', { n: selected + 1 })} />
 				{:else if points.length < 3}
-					Faites le tour du quai, coin après coin, en restant sur son bord. Un point posé se glisse
-					au doigt.
+					{t('drawPage.help.start')}
 				{:else}
-					Continuez, ou touchez le <strong>point 1</strong> (le plus gros) pour fermer le quai.
+					<Rich text={t('drawPage.help.close')} />
 				{/if}
 			</p>
 		</header>
 		{#if view && ready}
 			<div class="tools">
 				<div class="zoom float">
-					<button type="button" aria-label="Zoomer" onclick={() => mapRef?.zoom(1)}
+					<button type="button" aria-label={t('common.zoomIn')} onclick={() => mapRef?.zoom(1)}
 						><Icon name="plus" size={20} /></button
 					>
-					<button type="button" aria-label="Dézoomer" onclick={() => mapRef?.zoom(-1)}
+					<button type="button" aria-label={t('common.zoomOut')} onclick={() => mapRef?.zoom(-1)}
 						><Icon name="minus" size={20} /></button
 					>
 				</div>
@@ -255,15 +258,16 @@
 		{/if}
 	</div>
 
-	<section class="panel float" aria-label="Tracé du quai">
+	<section class="panel float" aria-label={t('drawPage.panel')}>
 		<div class="inforow">
 			<div class="info" class:ok={!!snap} role="status" aria-live="polite">
 				<Icon name={snap ? 'check' : 'locate'} size={20} />
 				<span>
-					{#if snap}<strong>Accroché au bord de la voie</strong> (à 1,5 m de son axe){:else}Point
-						sous la croix{/if}
+					{#if snap}<Rich
+							text={t('drawPage.snapped', { offset: fmtDecimal(EDGE_OFFSET_M) })}
+						/>{:else}{t('drawPage.underCross')}{/if}
 					{#if points.length >= 2}
-						· longueur {m(check.lengthM)}{/if}
+						· {t('drawPage.length', { length: m(check.lengthM) })}{/if}
 				</span>
 			</div>
 			<label class="snapopt">
@@ -272,7 +276,7 @@
 					role="switch"
 					checked={snapPref.on}
 					onchange={(e) => setSnapPref(e.currentTarget.checked)}
-				/>Accrocher à la voie
+				/>{t('drawPage.snapOption')}
 			</label>
 		</div>
 		<p class="visually-hidden" aria-live="polite">{said}</p>
@@ -285,7 +289,9 @@
 			<div class="lost banner warn" role="alert">
 				<p><Icon name="alert" size={18} /><span>{lostWarn}</span></p>
 				<div class="two">
-					<button class="btn-sm" type="button" onclick={() => (lostWarn = '')}>Corriger</button>
+					<button class="btn-sm" type="button" onclick={() => (lostWarn = '')}
+						>{t('input.fix')}</button
+					>
 					<button
 						class="btn-sm"
 						type="button"
@@ -294,7 +300,7 @@
 							saveAnyway = true;
 							lostWarn = '';
 							close();
-						}}>Enregistrer quand même</button
+						}}>{t('drawPage.saveAnyway')}</button
 					>
 				</div>
 			</div>
@@ -303,11 +309,13 @@
 		<div class="two">
 			<button class="btn btn-secondary" type="button" disabled={!history.length} onclick={undo}>
 				<Icon name="undo" size={20} />{history.at(-1)?.what === 'move'
-					? 'Annuler le déplacement'
-					: 'Annuler le point'}
+					? t('drawPage.undoMove')
+					: t('drawPage.undoPoint')}
 			</button>
 			<button class="btn" type="button" disabled={!preview} onclick={add}>
-				{selected !== undefined ? `Déplacer le point ${selected + 1} ici` : 'Ajouter un point'}
+				{selected !== undefined
+					? t('drawPage.moveHere', { n: selected + 1 })
+					: t('drawPage.addPoint')}
 			</button>
 		</div>
 		<button
@@ -316,7 +324,7 @@
 			disabled={points.length < 3 || saving}
 			onclick={close}
 		>
-			Fermer le quai
+			{t('drawPage.close')}
 		</button>
 	</section>
 </div>
@@ -378,7 +386,7 @@
 		line-height: 1.43;
 		color: var(--text-2);
 	}
-	.top p strong {
+	.top p :global(strong) {
 		color: var(--text);
 	}
 	.tools {

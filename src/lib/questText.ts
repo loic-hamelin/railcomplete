@@ -2,6 +2,7 @@
 
 import { platformTitle } from './core/features.js';
 import type { Quest, QuestId, StationAnalysis } from './core/quests.js';
+import { t } from './i18n/t.js';
 
 export type Kind = 'quai' | 'voie' | 'pancarte' | 'alerte' | 'verif';
 
@@ -15,11 +16,9 @@ export interface QuestGroup {
 	quests: Quest[];
 }
 
-const plural = (n: number, one: string, many: string) => `${n} ${n > 1 ? many : one}`;
-
 export function platformLabel(a: StationAnalysis, ref?: { id: number }) {
 	const p = a.platforms.find((x) => x.ref.id === ref?.id);
-	return p ? platformTitle(p.tags) : 'Quai';
+	return p ? platformTitle(p.tags) : t('platform.plain');
 }
 
 export function groupQuests(a: StationAnalysis): QuestGroup[] {
@@ -34,45 +33,37 @@ export function groupQuests(a: StationAnalysis): QuestGroup[] {
 				groups.push({
 					...base,
 					kind: 'alerte',
-					title: 'Aucun quai cartographié',
-					subtitle: 'Vous pourrez le dessiner sur la photo aérienne'
+					title: t('quest.q0.title'),
+					subtitle: t('quest.q0.subtitle')
 				});
 				break;
 			case 'Q1':
 				groups.push({
 					...base,
 					kind: 'quai',
-					title: plural(n, 'quai sans numéro', 'quais sans numéro')
+					title: t('quest.q1.title', { count: n })
 				});
 				break;
 			case 'Q2':
 				groups.push({
 					...base,
 					kind: 'voie',
-					title: plural(n, 'voie à quai sans numéro', 'voies à quai sans numéro')
+					title: t('quest.q2.title', { count: n })
 				});
 				break;
 			case 'Q3':
 				groups.push({
 					...base,
 					kind: 'quai',
-					title: plural(
-						n,
-						'quai dont les numéros sont à vérifier',
-						'quais dont les numéros sont à vérifier'
-					),
-					subtitle: 'Les numéros du quai et ceux des voies ne correspondent pas'
+					title: t('quest.q3.title', { count: n }),
+					subtitle: t('quest.q3.subtitle')
 				});
 				break;
 			case 'Q4':
 				groups.push({
 					...base,
 					kind: 'pancarte',
-					title: plural(
-						n,
-						'côté de quai sans pancarte d’arrêt',
-						'côtés de quai sans pancarte d’arrêt'
-					),
+					title: t('quest.q4.title', { count: n }),
 					subtitle: [...new Set(qs.map((q) => platformLabel(a, q.platform)))].slice(0, 3).join(', ')
 				});
 				break;
@@ -80,15 +71,15 @@ export function groupQuests(a: StationAnalysis): QuestGroup[] {
 				groups.push({
 					...base,
 					kind: 'pancarte',
-					title: plural(n, 'pancarte à compléter', 'pancartes à compléter')
+					title: t('quest.q5.title', { count: n })
 				});
 				break;
 			case 'Q6':
 				groups.push({
 					...base,
 					kind: 'verif',
-					title: plural(n, 'objet à vérifier', 'objets à vérifier'),
-					subtitle: 'Faisable aussi à distance'
+					title: t('quest.q6.title', { count: n }),
+					subtitle: t('quest.q6.subtitle')
 				});
 				break;
 			case 'Q7':
@@ -97,9 +88,9 @@ export function groupQuests(a: StationAnalysis): QuestGroup[] {
 					kind: 'alerte',
 					title:
 						qs[0].details?.motif === 'numéro en double'
-							? `Deux voies portent le numéro ${qs[0].details?.ref}`
-							: plural(n, 'numéro de voie mal placé', 'numéros de voie mal placés'),
-					subtitle: 'À vérifier en priorité'
+							? t('quest.q7.duplicate', { ref: String(qs[0].details?.ref) })
+							: t('quest.q7.title', { count: n }),
+					subtitle: t('quest.q7.subtitle')
 				});
 				break;
 		}

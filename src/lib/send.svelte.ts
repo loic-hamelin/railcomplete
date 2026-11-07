@@ -27,10 +27,10 @@ import { account, osmFetch } from './auth.svelte.js';
 import { refreshConfig } from './remote.svelte.js';
 import { editsOf, removeEdits, updateEdits } from './edits.svelte.js';
 import { server, srv } from './osmserver.svelte.js';
+import { t } from './i18n/t.js';
 
 export const APP_VERSION = '0.4';
-export const DEMO_REFUSED =
-	'Des saisies ont été faites en mode démonstration, hors de la gare : elles ne peuvent pas partir sur la vraie carte. Retirez-les ci-dessous.';
+export const demoRefused = () => t('send.demoRefused');
 const RETRY_AFTER_CUT_MS = 5 * 60 * 1000;
 
 interface Job {
@@ -194,7 +194,7 @@ async function resume(station: string): Promise<SendResult | undefined> {
 		return {
 			sent: 0,
 			conflicts: 0,
-			error: `Un envoi précédent a été interrompu. Par prudence, réessayez dans ${min} min.`
+			error: t('send.interrupted', { min })
 		};
 	}
 	await closeChangeset(job.changeset);
@@ -207,12 +207,9 @@ export async function sendStation(
 	stationName: string,
 	comment: string
 ): Promise<SendResult> {
-	if (!srv().canUpload)
-		return { sent: 0, conflicts: 0, error: 'Envoi non disponible sur ce serveur.' };
-	if (!navigator.onLine)
-		return { sent: 0, conflicts: 0, error: 'Pas de réseau : réessayez quand vous serez connecté.' };
-	if (sending.step !== 'idle')
-		return { sent: 0, conflicts: 0, error: 'Un envoi est déjà en cours.' };
+	if (!srv().canUpload) return { sent: 0, conflicts: 0, error: t('send.unavailable') };
+	if (!navigator.onLine) return { sent: 0, conflicts: 0, error: t('send.offline') };
+	if (sending.step !== 'idle') return { sent: 0, conflicts: 0, error: t('send.busy') };
 	// Arrêt d'urgence : /config.json est relu juste avant chaque envoi.
 	const blocked = uploadBlock(
 		await refreshConfig(),
@@ -222,7 +219,7 @@ export async function sendStation(
 	);
 	if (blocked) return { sent: 0, conflicts: 0, error: blocked };
 	if (server.id === 'prod' && editsOf(station).some((e) => e.demo && !e.conflict))
-		return { sent: 0, conflicts: 0, error: DEMO_REFUSED };
+		return { sent: 0, conflicts: 0, error: demoRefused() };
 	sending.station = station;
 	try {
 		const resumed = await resume(station);
@@ -292,10 +289,7 @@ export async function sendStation(
 				await updateEdits(
 					hit.map((ed) => ({
 						...ed,
-						conflict:
-							e.status === 412
-								? 'Refusé par OpenStreetMap pendant l’envoi : un objet est encore utilisé ou a disparu. Rien n’a été envoyé.'
-								: 'Modifié sur OpenStreetMap pendant l’envoi.'
+						conflict: e.status === 412 ? t('send.conflict412') : t('send.conflict409')
 					}))
 				);
 				await closeChangeset(changeset);
@@ -315,17 +309,16 @@ export async function sendStation(
 				return {
 					sent: 0,
 					conflicts: 0,
-					error:
-						'OpenStreetMap limite le nombre de modifications par heure (surtout pour les comptes récents). Vos saisies sont conservées : réessayez dans une heure.'
+					error: t('send.rateLimit')
 				};
 			if (e.status === 401 || e.status === 403)
-				return { sent: 0, conflicts: 0, error: 'Votre connexion a expiré : reconnectez-vous.' };
-			return { sent: 0, conflicts: 0, error: `Le serveur a refusé l’envoi (${e.status}).` };
+				return { sent: 0, conflicts: 0, error: t('send.expired') };
+			return { sent: 0, conflicts: 0, error: t('send.refused', { status: e.status }) };
 		}
 		return {
 			sent: 0,
 			conflicts: 0,
-			error: 'La connexion a été perdue. Vos saisies sont conservées ; réessayez plus tard.'
+			error: t('send.lost')
 		};
 	} finally {
 		sending.step = 'idle';

@@ -12,6 +12,7 @@ import {
 	type OsmWay
 } from './osm';
 import { countryConfig } from './countries';
+import { fmtDistance, t as msg } from '../i18n/t.ts';
 import type { QuestId, StationAnalysis } from './quests';
 
 /** État d'un objet sur la carte : renseigné, manquant (quête « à faire ») ou en alerte. */
@@ -55,12 +56,21 @@ export interface Feature {
 
 const LETTERS = /^[A-Za-z]{1,3}(;[A-Za-z]{1,3})*$/;
 
+/** Quai numéroté seulement par ses voies (« ref=1;2 », sans lettre ni nom) : titre « Quai ». */
+export const isPlainPlatform = (t: Record<string, string>) =>
+	!t.local_ref && !!t.ref && !LETTERS.test(t.ref);
+
 /** « Quai A » si le quai porte une lettre ou un nom, « Quai » + voies sinon. */
 export function platformTitle(t: Record<string, string>) {
-	if (t.local_ref) return `Quai ${t.local_ref}`;
-	if (!t.ref) return 'Quai sans numéro';
-	return LETTERS.test(t.ref) ? `Quai ${t.ref.replaceAll(';', '-')}` : 'Quai';
+	if (t.local_ref) return msg('platform.named', { ref: t.local_ref });
+	if (!t.ref) return msg('platform.noRef');
+	return LETTERS.test(t.ref)
+		? msg('platform.named', { ref: t.ref.replaceAll(';', '-') })
+		: msg('platform.plain');
 }
+
+/** « 1 et 2 » : numéros des voies d'un quai (« ref=1;2 »). */
+const andRefs = (ref: string) => ref.split(';').join(` ${msg('common.and')} `);
 
 export interface FeatureCollection {
 	type: 'FeatureCollection';
@@ -160,10 +170,13 @@ export function buildFeatures(
 				label,
 				title: platformTitle(t),
 				detail: lettered
-					? `${Math.round(p.lengthM)} m · lettre dans « ref » : les numéros de voies sont attendus`
+					? msg('feature.platformLettered', { length: fmtDistance(p.lengthM) })
 					: t.ref
-						? `Voies ${t.ref.replaceAll(';', ' et ')} · ${Math.round(p.lengthM)} m`
-						: `${Math.round(p.lengthM)} m · numéros des voies à relever sur place`,
+						? msg('feature.platformTracks', {
+								refs: andRefs(t.ref),
+								length: fmtDistance(p.lengthM)
+							})
+						: msg('feature.platformNoRef', { length: fmtDistance(p.lengthM) }),
 				quests: (questsOf.get(k) ?? []).join(','),
 				...(under ? { under } : {})
 			}
@@ -186,8 +199,8 @@ export function buildFeatures(
 				osm: k,
 				status: statusOf(k, !!ref),
 				label: ref ?? '?',
-				title: ref ? `Voie ${ref}` : 'Voie sans numéro',
-				detail: ref ? 'Numéro de voie renseigné' : 'Numéro affiché en gare à relever sur place',
+				title: ref ? msg('track.named', { ref }) : msg('track.noRef'),
+				detail: ref ? msg('feature.trackRef') : msg('feature.trackNoRef'),
 				quests: (questsOf.get(k) ?? []).join(','),
 				...(isUnderground(w.tags) ? { under: true } : {})
 			}
@@ -209,8 +222,8 @@ export function buildFeatures(
 				osm: `way/${w.id}`,
 				status: 'ok',
 				label: ref ?? '',
-				title: ref ? `Voie ${ref}` : 'Voie sans numéro',
-				detail: 'Ne longe aucun quai cartographié',
+				title: ref ? msg('track.named', { ref }) : msg('track.noRef'),
+				detail: msg('feature.trackAway'),
 				quests: '',
 				away: true,
 				...(isUnderground(w.tags) ? { under: true } : {})
@@ -233,12 +246,12 @@ export function buildFeatures(
 				osm: k,
 				status: statusOf(k, !legacy && !!n.tags?.['railway:signal:direction']),
 				label,
-				title: `Pancarte « ${label} »`,
+				title: msg('sign.named', { label }),
 				detail: legacy
-					? 'Ancien format de tags, à confirmer sur place'
+					? msg('feature.signLegacy')
 					: n.tags?.['railway:signal:direction']
-						? 'Sens renseigné'
-						: 'Sens des trains à relever sur place',
+						? msg('feature.signDirection')
+						: msg('feature.signNoDirection'),
 				quests: (questsOf.get(k) ?? []).join(',')
 			}
 		});

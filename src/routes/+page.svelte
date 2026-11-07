@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import Logo from '#lib/Logo.svelte';
 	import { readPref, writePref } from '#lib/cache.js';
+	import { t } from '#lib/i18n/t.js';
 	import { onMount } from 'svelte';
 
 	// E1 — Bienvenue et sécurité (ux-spec.md § 3). La carte « Sécurité » ne peut pas être passée.
@@ -28,16 +29,16 @@
 </script>
 
 <svelte:head>
-	<title>stationcomplete — complétez les gares dans OpenStreetMap</title>
+	<title>{t('home.title')}</title>
 </svelte:head>
 
 <main class="screen">
 	<header class="top">
 		<Logo />
 		{#if !done && step < STEPS - 1 && step !== SAFETY}
-			<button class="link" type="button" onclick={skip}>Passer</button>
+			<button class="link" type="button" onclick={skip}>{t('home.skip')}</button>
 		{:else if !done}
-			<span class="counter">Étape {step + 1} sur {STEPS}</span>
+			<span class="counter">{t('home.step', { step: step + 1, total: STEPS })}</span>
 		{/if}
 	</header>
 
@@ -102,12 +103,8 @@
 						</g>
 					</svg>
 				</div>
-				<h1>Complétez les données de votre gare</h1>
-				<p>
-					Numéros de quais, numéros de voies, pancartes d'arrêt : en quelques minutes sur le quai,
-					vous rendez ces informations utiles à tous, des applis de voyage aux outils ferroviaires
-					comme OSRD.
-				</p>
+				<h1>{t('home.intro.title')}</h1>
+				<p>{t('home.intro.text')}</p>
 			{:else if step === 1}
 				<div class="illu" aria-hidden="true">
 					<svg width="260" height="170" viewBox="0 0 260 170">
@@ -124,12 +121,9 @@
 						/>
 					</svg>
 				</div>
-				<p class="kicker">Sécurité</p>
-				<h1>Restez derrière la ligne de sécurité.</h1>
-				<p>
-					Tout se fait depuis le quai, ou depuis chez vous grâce à la photo aérienne. Ne descendez
-					jamais sur les voies et ne dépassez pas le bout du quai.
-				</p>
+				<p class="kicker">{t('home.safety.kicker')}</p>
+				<h1>{t('home.safety.title')}</h1>
+				<p>{t('home.safety.text')}</p>
 			{:else}
 				<div class="illu" aria-hidden="true">
 					<svg width="260" height="170" viewBox="0 0 260 170">
@@ -142,37 +136,35 @@
 						/>
 					</svg>
 				</div>
-				<h1>Vos contributions vont dans OpenStreetMap</h1>
-				<p>
-					La carte libre et collective. Elles sont publiées sous votre pseudo OSM, sous licence
-					ODbL, et rien n'est envoyé sans que vous l'ayez relu.
-				</p>
+				<h1>{t('home.osm.title')}</h1>
+				<p>{t('home.osm.text')}</p>
 			{/if}
 		</section>
 
 		<footer class="actions">
-			<div class="dots" role="img" aria-label="Étape {step + 1} sur {STEPS}">
+			<div class="dots" role="img" aria-label={t('home.step', { step: step + 1, total: STEPS })}>
 				{#each { length: STEPS }, i (i)}
 					<span class:active={i === step}></span>
 				{/each}
 			</div>
 			<button class="btn" type="button" onclick={next}>
-				{step === SAFETY ? "J'ai compris" : step === STEPS - 1 ? 'Commencer' : 'Suivant'}
+				{step === SAFETY
+					? t('home.understood')
+					: step === STEPS - 1
+						? t('home.start')
+						: t('home.next')}
 			</button>
 		</footer>
 	{:else}
 		<section class="card">
-			<h1>Explorez les gares de France</h1>
-			<p>
-				Consultez dès maintenant ce qui manque dans chaque gare : numéros de quais, numéros de
-				voies, pancartes d'arrêt. La saisie et l'envoi vers OpenStreetMap arrivent bientôt.
-			</p>
+			<h1>{t('home.explore.title')}</h1>
+			<p>{t('home.explore.text')}</p>
 		</section>
 		<footer class="actions">
-			<a class="btn" href={resolve('/gares')}>Choisir une gare</a>
-			<a class="btn btn-secondary" href={resolve('/a-propos')}>En savoir plus sur le projet</a>
+			<a class="btn" href={resolve('/gares')}>{t('home.chooseStation')}</a>
+			<a class="btn btn-secondary" href={resolve('/a-propos')}>{t('home.more')}</a>
 			<button class="link" type="button" onclick={() => ((done = false), (step = 0))}>
-				Revoir la présentation
+				{t('home.replay')}
 			</button>
 		</footer>
 	{/if}

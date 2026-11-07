@@ -3,61 +3,65 @@
 	import Logo from '#lib/Logo.svelte';
 	import { CONTACT_EMAIL, REPO_URL } from '#lib/config.js';
 	import { photoCredits } from '#lib/core/countries.js';
+	import Rich from '#lib/i18n/Rich.svelte';
+	import { t } from '#lib/i18n/t.js';
 </script>
 
 <svelte:head>
-	<title>Mentions légales — stationcomplete</title>
+	<title>{t('legal.title')}</title>
 </svelte:head>
 
 <main class="page">
 	<header><Logo /></header>
 
-	<h1>Mentions légales</h1>
+	<h1>{t('legal.noticeLink')}</h1>
 
 	<section>
-		<h2>Éditeur</h2>
+		<h2>{t('legal.publisher.title')}</h2>
 		<p>
-			stationcomplete.org est un projet bénévole et non commercial, édité par Loïc Hamelin,
-			particulier, également directeur de la publication.<br />
-			Contact : <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
+			{t('legal.publisher.text')}<br />
+			{t('legal.publisher.contact')}
+			<a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
 		</p>
 	</section>
 
 	<section>
-		<h2>Hébergement</h2>
-		<p>
-			GitHub Pages — GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107,
-			États-Unis.
-		</p>
+		<h2>{t('legal.host.title')}</h2>
+		<p>{t('legal.host.text')}</p>
 	</section>
 
 	<section>
-		<h2>Contenus et licences</h2>
+		<h2>{t('legal.content.title')}</h2>
 		<ul>
 			<li>
-				Données cartographiques : © les contributeurs OpenStreetMap, sous licence
-				<a href="https://opendatacommons.org/licenses/odbl/" rel="external">ODbL</a>.
+				<Rich
+					text={t('legal.content.osm')}
+					links={{
+						odbl: { href: 'https://opendatacommons.org/licenses/odbl/', rel: 'external' }
+					}}
+				/>
 			</li>
 			{#each photoCredits() as c (c.product)}
 				<li>
-					Photographies aériennes : {c.product}, sous
-					<a href={c.licenceUrl} rel="external">{c.licence}</a>.
+					<Rich
+						text={t('legal.content.photos', { product: c.product, licence: c.licence })}
+						links={{ licence: { href: c.licenceUrl, rel: 'external' } }}
+					/>
 				</li>
 			{/each}
 			<li>
-				Code de l’appli : licence GPL-3.0 ou ultérieure,
-				<a href={REPO_URL} rel="external">code source sur GitHub</a>.
+				<Rich
+					text={t('legal.content.code')}
+					links={{ code: { href: REPO_URL, rel: 'external' } }}
+				/>
 			</li>
 		</ul>
-		<p>
-			stationcomplete est un projet personnel : ce n’est pas un service de la SNCF ni de la
-			Fondation OpenStreetMap.
-		</p>
+		<p>{t('legal.content.independent')}</p>
 	</section>
 
 	<p>
-		<a href={resolve('/donnees-personnelles')}>Données personnelles</a> ·
-		<a href={resolve('/a-propos')}>À propos</a>
+		<a href={resolve('/donnees-personnelles')}>{t('legal.dataLink')}</a> ·
+		<a href={resolve('/a-propos')}>{t('legal.aboutLink')}</a>
 	</p>
 </main>
 

@@ -1,0 +1,965 @@
+{
+	"common": {
+		"and": "und",
+		"closeMessage": "Meldung schließen",
+		"logoLabel": "stationcomplete, Startseite",
+		"cancel": "Abbrechen",
+		"remove": "Entfernen",
+		"loading": "Wird geladen …",
+		"confirm": "Bestätigen",
+		"retry": "Erneut versuchen",
+		"osmAttribution": "© OpenStreetMap-Mitwirkende, ODbL",
+		"close": "Schließen",
+		"saveFailed": "Das Speichern auf diesem Telefon ist fehlgeschlagen. Versuche es erneut.",
+		"seeOnOsm": "Auf OpenStreetMap ansehen",
+		"quoted": "„{text}“",
+		"no": "Nein",
+		"yes": "Ja",
+		"save": "Speichern",
+		"zoomIn": "Vergrößern",
+		"zoomOut": "Verkleinern"
+	},
+	"format": {
+		"mb": "{n} MB"
+	},
+	"platform": {
+		"named": "Bahnsteig {ref}",
+		"noRef": "Bahnsteig ohne Nummer",
+		"plain": "Bahnsteig",
+		"tracks": "Bahnsteig Gleise {refs}"
+	},
+	"track": {
+		"named": "Gleis {ref}",
+		"noRef": "Gleis ohne Nummer"
+	},
+	"sign": {
+		"named": "Haltetafel „{label}“",
+		"label": {
+			"stop": "Halt",
+			"all": "Alle"
+		},
+		"check": {
+			"type": "Wähle die Tafel, die du siehst.",
+			"vehicles": "Gib die Anzahl der Fahrzeuge an, die auf der Tafel steht.",
+			"length": "Gib die Länge an, die auf der Tafel steht (in Metern).",
+			"caption": "Übernimm den Text der Tafel.",
+			"direction": "Gib die Fahrtrichtung der Züge an, für die diese Tafel gilt.",
+			"position": "Gib an, auf welcher Seite die Tafel steht."
+		},
+		"type": {
+			"long": "Langer Zug",
+			"short": "Kurzer Zug",
+			"all": "Alle Züge",
+			"other": "Andere / unleserlich",
+			"otherShort": "Andere",
+			"usum": "US / UM (bald)",
+			"usumPending": "Wartet auf die Freigabe des OSM-Taggingschemas"
+		},
+		"reason": {
+			"gone": "Existiert nicht mehr",
+			"duplicate": "Doppelt",
+			"misplaced": "Falsch platziert"
+		},
+		"reasonInline": {
+			"gone": "existiert nicht mehr",
+			"duplicate": "doppelt",
+			"misplaced": "falsch platziert"
+		}
+	},
+	"feature": {
+		"platformLettered": "{length} · Buchstabe in „ref“: Gleisnummern werden erwartet",
+		"platformTracks": "Gleise {refs} · {length}",
+		"platformNoRef": "{length} · Gleisnummern vor Ort erfassen",
+		"trackRef": "Gleisnummer erfasst",
+		"trackNoRef": "Im Bahnhof angezeigte Nummer vor Ort erfassen",
+		"trackAway": "Verläuft an keinem kartierten Bahnsteig",
+		"signLegacy": "Altes Tagging-Format, vor Ort zu bestätigen",
+		"signDirection": "Richtung erfasst",
+		"signNoDirection": "Fahrtrichtung der Züge vor Ort erfassen"
+	},
+	"quest": {
+		"q0": {
+			"title": "Kein Bahnsteig kartiert",
+			"subtitle": "Du kannst ihn auf dem Luftbild zeichnen"
+		},
+		"q1": {
+			"title": "{count, plural, one {# Bahnsteig ohne Nummer} other {# Bahnsteige ohne Nummer}}"
+		},
+		"q2": {
+			"title": "{count, plural, one {# Bahnsteiggleis ohne Nummer} other {# Bahnsteiggleise ohne Nummer}}"
+		},
+		"q3": {
+			"title": "{count, plural, one {# Bahnsteig mit zu prüfenden Nummern} other {# Bahnsteige mit zu prüfenden Nummern}}",
+			"subtitle": "Die Nummern des Bahnsteigs und die der Gleise stimmen nicht überein"
+		},
+		"q4": {
+			"title": "{count, plural, one {# Bahnsteigseite ohne Haltetafel} other {# Bahnsteigseiten ohne Haltetafel}}"
+		},
+		"q5": {
+			"title": "{count, plural, one {# Haltetafel zu ergänzen} other {# Haltetafeln zu ergänzen}}"
+		},
+		"q6": {
+			"title": "{count, plural, one {# Objekt zu prüfen} other {# Objekte zu prüfen}}",
+			"subtitle": "Auch aus der Ferne möglich"
+		},
+		"q7": {
+			"title": "{count, plural, one {# falsch platzierte Gleisnummer} other {# falsch platzierte Gleisnummern}}",
+			"duplicate": "Zwei Gleise tragen die Nummer {ref}",
+			"subtitle": "Vorrangig zu prüfen"
+		}
+	},
+	"signRemoval": {
+		"why": {
+			"shared": "Punkt wird mit einem anderen Objekt geteilt (anderes Gleis, Weiche …)",
+			"repeated": "Punkt kommt im Gleis mehrfach vor",
+			"extra": "trägt weitere Informationen ({keys})",
+			"relation": "Mitglied einer Relation",
+			"shift": "sein Entfernen würde das Gleis um {shift} m verschieben",
+			"end": "Ende des Gleises"
+		},
+		"summary": "Haltetafel „{label}“ gelöscht ({reason}) — {mode, select, remove {Punkt aus dem Gleis entfernt} other {Punkt bleibt im Gleis, Tags entfernt}}",
+		"phraseNoWay": "Der Punkt der Haltetafel wird gelöscht.",
+		"phraseRemove": "Der Punkt wird aus dem Gleis entfernt und dann gelöscht: Die Form des Gleises ändert sich nicht.",
+		"phraseUntag": "Der Punkt bleibt im Gleis ({why}): Nur die Tags der Haltetafel werden entfernt. Die Form des Gleises ändert sich nie."
+	},
+	"shape": {
+		"complex": "Komplexer Bahnsteig: mit einem Editor wie iD oder JOSM bearbeiten.",
+		"reason": {
+			"duplicate": "Doppelt zu einem anderen Bahnsteig",
+			"gone": "Existiert nicht mehr"
+		},
+		"reasonInline": {
+			"duplicate": "doppelt",
+			"gone": "existiert nicht mehr"
+		},
+		"reasonComment": {
+			"duplicate": "doppelt zu einem anderen Bahnsteig",
+			"gone": "existiert nicht mehr"
+		},
+		"relationNo": "Nr. {id}",
+		"rel": {
+			"stopArea": "dem Haltestellenbereich {name}",
+			"route": "der Linie {name}",
+			"routes": "{count} Linien",
+			"other": "der Relation {name}",
+			"others": "{count} weiteren Relationen",
+			"removed": "aus {list} entfernt"
+		},
+		"summary": {
+			"area": "{name} als Fläche neu gezeichnet",
+			"reshape": "{name}: Form geändert ({before} → {after} Punkte)",
+			"delete": "{name} gelöscht ({why})"
+		},
+		"link": {
+			"relation": "Mitglied einer Relation",
+			"repeated": "Punkt kommt im Umriss mehrfach vor",
+			"infoWhat": "Punkt mit Informationen ({what})"
+		},
+		"tags": "Tags",
+		"notice": {
+			"shared": "{count, plural, one {# von {total} Punkten wird mit anderen Objekten geteilt ({objects}): Er folgt deinen Änderungen.} other {# von {total} Punkten werden mit anderen Objekten geteilt ({objects}): Sie folgen deinen Änderungen.}}",
+			"taggedInfo": "Punkt {point} ist ein Punkt mit Informationen: Wird er verschoben, bewegt sich das beschriebene Objekt mit.",
+			"tagged": "Punkt {point} ist {a}: Wird er verschoben, bewegt sich {the} mit.",
+			"taggedMany": "Die Punkte {points} tragen Informationen ({what}): Werden sie verschoben, bewegen sich diese Objekte mit."
+		},
+		"point": {
+			"alsoOf": "Dieser Punkt gehört auch zu: {list} — {count, plural, one {{g, select, f {sie folgt} m {er folgt} other {es folgt}}} other {sie folgen}} der Verschiebung.",
+			"info": "Dieser Punkt trägt Informationen: Sie werden mit ihm verschoben.",
+			"is": "Dieser Punkt ist {a}: {g, select, f {sie wird} m {er wird} other {es wird}} mitverschoben.",
+			"removeEdge": "Er kann nicht aus dem Umriss entfernt werden: Die Bahnsteigkante braucht ihn.",
+			"removeWays": "Wird er entfernt, bleibt er Teil von: {list}; nur der Bahnsteig ändert sich.",
+			"removeMap": "Wird er entfernt, bleibt er auf der Karte; nur der Bahnsteig ändert sich."
+		},
+		"shared": {
+			"info": "trägt Informationen",
+			"alsoOf": "auch ein Punkt {list}",
+			"linked": "verbunden mit: {list}",
+			"plain": "geteilt"
+		},
+		"followers": {
+			"ways": "{list} ebenfalls angepasst",
+			"tags": "{list} verschoben"
+		},
+		"deleteRefused": "Dieser Bahnsteig ist das einzige Mitglied der Relation {name}: mit einem Editor wie iD oder JOSM löschen.",
+		"lock": {
+			"foreign": "Ein Punkt stammt von einem anderen Objekt: Form abgelehnt.",
+			"twice": "Ein Punkt kommt im Umriss zweimal vor.",
+			"movedLinked": "Ein mit einem anderen Objekt verbundener Punkt wurde verschoben: Form abgelehnt.",
+			"movedRepeated": "Ein im Umriss mehrfach vorkommender Punkt wurde verschoben: Form abgelehnt.",
+			"areaLinked": "{count, plural, one {Punkt {points} der alten Linie ist mit anderen Objekten verbunden: Er muss Teil des Umrisses sein. Tippe auf diesen Punkt (Quadrat), um ihn hinzuzufügen, oder verwende einen Editor wie iD oder JOSM.} other {Die Punkte {points} der alten Linie sind mit anderen Objekten verbunden: Sie müssen Teil des Umrisses sein. Tippe auf diese Punkte (Quadrate), um sie hinzuzufügen, oder verwende einen Editor wie iD oder JOSM.}}",
+			"edge": "{count, plural, one {Punkt {points} ist auch ein Punkt der Bahnsteigkante: Würde er aus dem Umriss entfernt, bliebe er in der Kante. Verschiebe ihn lieber, oder verwende JOSM oder iD.} other {Die Punkte {points} sind auch Punkte der Bahnsteigkante: Würden sie aus dem Umriss entfernt, blieben sie in der Kante. Verschiebe sie lieber, oder verwende JOSM oder iD.}}",
+			"repeated": "{count, plural, one {Punkt {points} kommt im Umriss mehrfach vor: Er kann nicht entfernt werden.} other {Die Punkte {points} kommen im Umriss mehrfach vor: Sie können nicht entfernt werden.}}"
+		}
+	},
+	"obj": {
+		"platformEdge": {
+			"name": "Bahnsteigkante",
+			"a": "die Bahnsteigkante",
+			"of": "der Bahnsteigkante",
+			"the": "die Bahnsteigkante",
+			"g": "f"
+		},
+		"roof": {
+			"name": "Dach",
+			"a": "das Dach",
+			"of": "des Dachs",
+			"the": "das Dach",
+			"g": "n"
+		},
+		"indoor": {
+			"name": "Innenraum",
+			"a": "ein Innenraum",
+			"of": "eines Innenraums",
+			"the": "der Innenraum",
+			"g": "m"
+		},
+		"steps": {
+			"name": "Treppe",
+			"a": "eine Treppe",
+			"of": "einer Treppe",
+			"the": "die Treppe",
+			"g": "f"
+		},
+		"footway": {
+			"name": "Fußweg",
+			"a": "ein Fußweg",
+			"of": "eines Fußwegs",
+			"the": "der Fußweg",
+			"g": "m"
+		},
+		"elevator": {
+			"name": "Aufzug",
+			"a": "ein Aufzug",
+			"of": "eines Aufzugs",
+			"the": "der Aufzug",
+			"g": "m"
+		},
+		"road": {
+			"name": "Straße",
+			"a": "eine Straße",
+			"of": "einer Straße",
+			"the": "die Straße",
+			"g": "f"
+		},
+		"station": {
+			"name": "Bahnhof",
+			"a": "der Bahnhof",
+			"of": "des Bahnhofs",
+			"the": "der Bahnhof",
+			"g": "m"
+		},
+		"building": {
+			"name": "Gebäude",
+			"a": "ein Gebäude",
+			"of": "eines Gebäudes",
+			"the": "das Gebäude",
+			"g": "n"
+		},
+		"otherPlatform": {
+			"name": "anderer Bahnsteig",
+			"a": "ein anderer Bahnsteig",
+			"of": "eines anderen Bahnsteigs",
+			"the": "der andere Bahnsteig",
+			"g": "m"
+		},
+		"railway": {
+			"name": "Gleis oder Bahnanlage",
+			"a": "ein Gleis oder eine Bahnanlage",
+			"of": "eines Gleises oder einer Bahnanlage",
+			"the": "das Gleis oder die Bahnanlage",
+			"g": "n"
+		},
+		"barrierLine": {
+			"name": "Zaun oder Mauer",
+			"a": "ein Zaun oder eine Mauer",
+			"of": "eines Zauns oder einer Mauer",
+			"the": "der Zaun oder die Mauer",
+			"g": "m"
+		},
+		"area": {
+			"name": "Fläche",
+			"a": "eine Fläche",
+			"of": "einer Fläche",
+			"the": "die Fläche",
+			"g": "f"
+		},
+		"other": {
+			"name": "anderes Objekt",
+			"a": "ein anderes Objekt",
+			"of": "eines anderen Objekts",
+			"the": "das andere Objekt",
+			"g": "n"
+		},
+		"entrance": {
+			"name": "Eingang",
+			"a": "ein Eingang",
+			"of": "eines Eingangs",
+			"the": "der Eingang",
+			"g": "m"
+		},
+		"busStop": {
+			"name": "Bushaltestelle",
+			"a": "eine Bushaltestelle",
+			"of": "einer Bushaltestelle",
+			"the": "die Bushaltestelle",
+			"g": "f"
+		},
+		"barrier": {
+			"name": "Absperrung",
+			"a": "eine Absperrung",
+			"of": "einer Absperrung",
+			"the": "die Absperrung",
+			"g": "f"
+		},
+		"railwayNode": {
+			"name": "Bahnelement",
+			"a": "ein Bahnelement",
+			"of": "eines Bahnelements",
+			"the": "das Bahnelement",
+			"g": "n"
+		},
+		"info": {
+			"name": "Punkt mit Informationen",
+			"a": "ein Punkt mit Informationen",
+			"of": "eines Punkts mit Informationen",
+			"the": "der Punkt mit Informationen",
+			"g": "m"
+		}
+	},
+	"draw": {
+		"check": {
+			"points": "Setze mindestens 3 Punkte.",
+			"crossing": "Seiten des Bahnsteigs überkreuzen sich: Verschiebe oder entferne einen Punkt.",
+			"short": "Bahnsteig zu kurz ({length}, mindestens {min}).",
+			"long": "Bahnsteig zu lang ({length}, höchstens {max}).",
+			"track": "Der Bahnsteig kreuzt ein Gleis: Die Kante muss entlang des Gleises bleiben.",
+			"overlap": "Der Bahnsteig überlappt einen bereits kartierten Bahnsteig."
+		},
+		"lost": {
+			"track": "{track} ({gap})",
+			"theTrack": "Gleis {ref}",
+			"aTrack": "einem Gleis ohne Nummer",
+			"gap": "Kante in {gap} Abstand",
+			"notParallel": "Kante nicht mehr parallel zum Gleis",
+			"message": "Der Bahnsteig verläuft nicht mehr entlang von {list}. Prüfe die Form: Die Bahnsteigkante muss dem Gleis folgen."
+		}
+	},
+	"upload": {
+		"conflict": {
+			"changed": "Der Bahnsteig wurde inzwischen auf OpenStreetMap geändert: Für ihn wurde nichts hochgeladen. Wiederhole die Änderung auf der aktuellen Karte.",
+			"signChanged": "Die Haltetafel oder ihr Gleis wurde inzwischen auf OpenStreetMap geändert: Für sie wurde nichts hochgeladen. Wiederhole das Löschen auf der aktuellen Karte.",
+			"signLinked": "Die Haltetafel wurde inzwischen auf OpenStreetMap mit einem anderen Objekt verbunden: Für sie wurde nichts hochgeladen. Wiederhole das Löschen auf der aktuellen Karte.",
+			"nodeChanged": "Ein Punkt des Bahnsteigs wurde inzwischen auf OpenStreetMap geändert oder mit einem anderen Objekt verbunden: Für ihn wurde nichts hochgeladen. Wiederhole die Änderung auf der aktuellen Karte.",
+			"gone": "Objekt wurde inzwischen auf OpenStreetMap gelöscht.",
+			"clash": "Inzwischen von jemand anderem geändert ({key}).",
+			"trackGone": "Das Gleis wurde inzwischen gelöscht.",
+			"trackRedrawn": "Das Gleis wurde inzwischen neu gezeichnet.",
+			"platformGone": "Bahnsteig wurde inzwischen auf OpenStreetMap gelöscht.",
+			"ringInvalid": "Ungültiger Umriss des Bahnsteigs.",
+			"ringLocks": "Ungültiger Umriss des Bahnsteigs (Punkt der Bahnsteigkante entfernt oder fester Punkt verschoben).",
+			"platformDeleted": "Bahnsteig wurde auf OpenStreetMap bereits gelöscht.",
+			"relationEmpty": "Die Relation {name} wäre danach leer: Lösche sie mit einem Editor wie iD oder JOSM.",
+			"signDeleted": "Haltetafel wurde auf OpenStreetMap bereits gelöscht.",
+			"signTrack": "Das Gleis der Haltetafel wurde inzwischen gelöscht oder neu gezeichnet.",
+			"ringIncomplete": "Unvollständiger Umriss des Bahnsteigs."
+		},
+		"comment": {
+			"numbers": "Bahnsteig- und Gleisnummern, Haltetafeln",
+			"drawn": "Bahnsteig gezeichnet",
+			"shape": "Bahnsteigform korrigiert",
+			"deleted": "{name} gelöscht ({why})",
+			"signDeleted": "Haltetafel „{label}“ gelöscht ({why}{mode, select, untag {, Punkt bleibt im Gleis} other {}})",
+			"station": "Bahnhof {name}: {parts}"
+		}
+	},
+	"bearing": {
+		"n": "Norden",
+		"ne": "Nordosten",
+		"e": "Osten",
+		"se": "Südosten",
+		"s": "Süden",
+		"sw": "Südwesten",
+		"w": "Westen",
+		"nw": "Nordwesten"
+	},
+	"edit": {
+		"label": {
+			"newSign": "Neue Haltetafel",
+			"newPlatform": "Neuer Bahnsteig",
+			"area": "Bahnsteig als Fläche neu gezeichnet",
+			"shape": "Form des Bahnsteigs",
+			"delete": "Löschung · Grund: {why}",
+			"signDelete": "Löschung einer Haltetafel · Grund: {why}",
+			"tags": "Änderung"
+		},
+		"drawnSummary": "{summary} (gezeichnet)",
+		"error": {
+			"signDeleted": "Diese Haltetafel ist zum Löschen vorgemerkt: Entferne zuerst diese Änderung.",
+			"platformDeleted": "Dieser Bahnsteig ist zum Löschen vorgemerkt: Entferne zuerst diese Änderung."
+		}
+	},
+	"remote": {
+		"suspended": "Das Hochladen ist vorübergehend ausgesetzt. Deine Änderungen bleiben auf diesem Telefon.",
+		"update": "Eine neue Version der App ist nötig: Schließe sie und öffne sie erneut, um sie zu aktualisieren. Deine Änderungen bleiben erhalten.",
+		"pilot": "stationcomplete ist in der Pilotphase: Das Hochladen auf die echte Karte ist einigen Testerinnen und Testern vorbehalten. Deine Änderungen bleiben auf diesem Telefon."
+	},
+	"error": {
+		"loginRefused": "Die Anmeldung wurde abgelehnt oder ist abgelaufen.",
+		"profile": "Profil nicht verfügbar ({status}).",
+		"stationNotFound": "Bahnhof nicht im Verzeichnis gefunden.",
+		"osmUnreachable": "OpenStreetMap ist nicht erreichbar. Prüfe deine Verbindung.",
+		"tilesFailed": "Zu viele Fotos konnten nicht heruntergeladen werden.",
+		"downloadInterrupted": "Download unterbrochen.",
+		"osmBusy": "Der OpenStreetMap-Server ist stark ausgelastet. Versuche es in einer Minute erneut.",
+		"osmServer": "Fehler des OpenStreetMap-Servers ({status}).",
+		"index": "Bahnhofsverzeichnis nicht verfügbar ({status})"
+	},
+	"server": {
+		"dev": "OSM-Testserver"
+	},
+	"seed": {
+		"limit": "Der Testserver begrenzt die Anzahl der Änderungen pro Stunde für neue Konten. Versuche es in einer Stunde erneut: Die Grenze steigt mit dem Alter des Kontos.",
+		"devOnly": "Nur auf dem Testserver.",
+		"readFailed": "Der echte Bahnhof konnte nicht gelesen werden ({status}).",
+		"empty": "Für diesen Bahnhof gibt es keine Bahnsteige oder Gleise zu kopieren.",
+		"tooBig": "Bahnhof zu groß für eine Testkopie.",
+		"comment": "Testkopie des Bahnhofs {name} (Bahnsteige, Gleise, Haltetafeln) zum Ausprobieren von stationcomplete",
+		"openRefused": "Öffnen vom Testserver abgelehnt ({status}).",
+		"copyRefused": "Kopie vom Testserver abgelehnt ({status})."
+	},
+	"send": {
+		"demoRefused": "Einige Änderungen wurden im Demomodus außerhalb des Bahnhofs erfasst: Sie dürfen nicht auf die echte Karte. Entferne sie unten.",
+		"interrupted": "Ein früheres Hochladen wurde unterbrochen. Versuche es sicherheitshalber in {min} Min. erneut.",
+		"unavailable": "Hochladen auf diesem Server nicht verfügbar.",
+		"offline": "Kein Netz: Versuche es erneut, wenn du verbunden bist.",
+		"busy": "Es läuft bereits ein Hochladen.",
+		"conflict412": "Beim Hochladen von OpenStreetMap abgelehnt: Ein Objekt wird noch verwendet oder ist verschwunden. Es wurde nichts hochgeladen.",
+		"conflict409": "Während des Hochladens auf OpenStreetMap geändert.",
+		"rateLimit": "OpenStreetMap begrenzt die Anzahl der Änderungen pro Stunde (vor allem für neue Konten). Deine Änderungen bleiben erhalten: Versuche es in einer Stunde erneut.",
+		"expired": "Deine Anmeldung ist abgelaufen: Melde dich erneut an.",
+		"refused": "Der Server hat das Hochladen abgelehnt ({status}).",
+		"lost": "Die Verbindung wurde unterbrochen. Deine Änderungen bleiben erhalten; versuche es später erneut."
+	},
+	"nav": {
+		"label": "Hauptnavigation",
+		"station": "Bahnhof",
+		"contributions": "Beiträge",
+		"pending": ", {count} ausstehend",
+		"settings": "Einstellungen"
+	},
+	"net": {
+		"offline": "Offline — deine Änderungen bleiben auf diesem Telefon{count, plural, =0 {} one {; # Upload startet, sobald das Netz zurück ist} other {; # Uploads starten, sobald das Netz zurück ist}}.",
+		"station": "{name}:",
+		"sentAuto": "{count, plural, one {# Änderung automatisch hochgeladen.} other {# Änderungen automatisch hochgeladen.}}",
+		"nothing": "nichts hochzuladen{conflicts, plural, =0 {} other {, {conflicts} zu überprüfen}}.",
+		"review": "Zu überprüfende Änderungen ansehen"
+	},
+	"meta": {
+		"description": "stationcomplete: Bahnhofsdaten in OpenStreetMap vervollständigen."
+	},
+	"home": {
+		"title": "stationcomplete — Bahnhöfe in OpenStreetMap vervollständigen",
+		"skip": "Überspringen",
+		"step": "Schritt {step} von {total}",
+		"intro": {
+			"title": "Vervollständige die Daten deines Bahnhofs",
+			"text": "Bahnsteignummern, Gleisnummern, Haltetafeln: In wenigen Minuten auf dem Bahnsteig machst du diese Informationen für alle nutzbar, von Reise-Apps bis zu Eisenbahn-Werkzeugen wie OSRD."
+		},
+		"safety": {
+			"kicker": "Sicherheit",
+			"title": "Bleib hinter der Sicherheitslinie.",
+			"text": "Alles geschieht vom Bahnsteig aus oder von zu Hause dank des Luftbilds. Betritt niemals die Gleise und geh nie über das Ende des Bahnsteigs hinaus."
+		},
+		"osm": {
+			"title": "Deine Beiträge fließen in OpenStreetMap",
+			"text": "Die freie, gemeinschaftliche Karte. Sie werden unter deinem OSM-Benutzernamen und unter der ODbL-Lizenz veröffentlicht, und nichts wird hochgeladen, bevor du es überprüft hast."
+		},
+		"understood": "Verstanden",
+		"start": "Los geht’s",
+		"next": "Weiter",
+		"explore": {
+			"title": "Entdecke die Bahnhöfe in Frankreich",
+			"text": "Sieh dir schon jetzt an, was in jedem Bahnhof fehlt: Bahnsteignummern, Gleisnummern, Haltetafeln. Erfassen und Hochladen zu OpenStreetMap folgen bald."
+		},
+		"chooseStation": "Bahnhof wählen",
+		"more": "Mehr über das Projekt erfahren",
+		"replay": "Einführung erneut ansehen"
+	},
+	"about": {
+		"title": "Über — stationcomplete",
+		"heading": "Über stationcomplete",
+		"project": {
+			"title": "Das Projekt",
+			"text": "stationcomplete hilft allen, die Daten französischer Bahnhöfe in <osm>OpenStreetMap</osm> zu vervollständigen: Bahnsteignummern, Gleisnummern und Haltetafeln der Züge. Diese freien Daten nützen allen, insbesondere Werkzeugen der Eisenbahnplanung wie <osrd>OSRD</osrd>."
+		},
+		"safety": {
+			"title": "Sicherheit",
+			"text": "Bleib immer hinter der Sicherheitslinie. Alles geschieht vom Bahnsteig aus oder aus der Ferne auf dem Luftbild. Betritt niemals die Gleise."
+		},
+		"data": {
+			"title": "Daten und Lizenzen",
+			"osm": "Die Beiträge werden unter deinem Benutzernamen in OpenStreetMap veröffentlicht, unter der Lizenz <odbl>ODbL</odbl>. © OpenStreetMap-Mitwirkende.",
+			"photos": "Luftbilder: {product}, unter {licence}.",
+			"code": "Der Code von stationcomplete ist frei, unter der Lizenz GPL-3.0 oder neuer: <code>Quellcode ansehen</code>."
+		},
+		"privacy": {
+			"title": "Datenschutz",
+			"text": "Diese Website setzt keine Cookies und verwendet keine Reichweitenmessung. Deine Änderungen bleiben auf deinem Telefon, bis sie zu OpenStreetMap hochgeladen werden."
+		},
+		"contact": {
+			"title": "Kontakt",
+			"text": "Ein Fehler, eine Idee, ein problematischer Bahnhof? Schreib an <mail>{email}</mail> oder eröffne ein Ticket auf <issues>GitHub</issues>."
+		},
+		"back": "← Zurück zur Startseite"
+	},
+	"legal": {
+		"title": "Impressum — stationcomplete",
+		"noticeLink": "Impressum",
+		"dataLink": "Personenbezogene Daten",
+		"aboutLink": "Über",
+		"publisher": {
+			"title": "Herausgeber",
+			"text": "stationcomplete.org ist ein ehrenamtliches, nicht kommerzielles Projekt, herausgegeben von Loïc Hamelin, Privatperson, zugleich verantwortlich für den Inhalt.",
+			"contact": "Kontakt:"
+		},
+		"host": {
+			"title": "Hosting",
+			"text": "GitHub Pages — GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, USA."
+		},
+		"content": {
+			"title": "Inhalte und Lizenzen",
+			"osm": "Kartendaten: © OpenStreetMap-Mitwirkende, unter der Lizenz <odbl>ODbL</odbl>.",
+			"photos": "Luftbilder: {product}, unter <licence>{licence}</licence>.",
+			"code": "Code der App: Lizenz GPL-3.0 oder neuer, <code>Quellcode auf GitHub</code>.",
+			"independent": "stationcomplete ist ein persönliches Projekt: Es ist weder ein Dienst der SNCF noch der OpenStreetMap Foundation."
+		}
+	},
+	"country": {
+		"fr": {
+			"name": "Frankreich",
+			"of": "in Frankreich"
+		},
+		"ch": {
+			"name": "Schweiz",
+			"of": "in der Schweiz"
+		}
+	},
+	"data": {
+		"title": "Personenbezogene Daten — stationcomplete",
+		"lead": "stationcomplete hat keinen eigenen Server: Es empfängt, speichert und verkauft keine Daten über dich. Diese Seite erklärt, was auf deinem Telefon und bei den Diensten geschieht, die die App kontaktiert.",
+		"phone": {
+			"title": "Auf deinem Telefon",
+			"storage": "Die angesehenen Bahnhöfe, deine noch nicht hochgeladenen Änderungen, deine Einstellungen und die heruntergeladenen Luftbilder bleiben im Speicher des Browsers deines Telefons.",
+			"position": "Dein Standort dient nur dazu, auf dem Telefon zu prüfen, dass du wirklich im Bahnhof bist. Er wird an niemanden gesendet.",
+			"login": "Wenn du dich anmeldest, werden der Anmeldeschlüssel für OpenStreetMap und dein Benutzername auf dem Telefon gespeichert. Dein Passwort sieht stationcomplete nie: Du gibst es auf der Website von OpenStreetMap ein.",
+			"nothing": "Keine Cookies, keine Werbung, keine Reichweitenmessung."
+		},
+		"publish": {
+			"title": "Was du auf OpenStreetMap veröffentlichst",
+			"text": "Wenn du deine Änderungen hochlädst, werden sie unter deinem Benutzernamen auf OpenStreetMap veröffentlicht, mit Datum und Beschreibung des Uploads. Wie jeder Beitrag zu OpenStreetMap sind sie öffentlich und bleiben in der Versionsgeschichte der Karte. Diese Daten verwaltet die OpenStreetMap Foundation gemäß ihrer <policy>Datenschutzerklärung</policy>."
+		},
+		"services": {
+			"title": "Von deinem Telefon kontaktierte Dienste",
+			"lead": "Wie bei jeder Website sehen diese Dienste die IP-Adresse deiner Verbindung:",
+			"github": "<b>GitHub Pages</b> (GitHub, Inc., USA): Hosting der App. <gh>Datenschutzerklärung von GitHub</gh>.",
+			"osm": "<b>OpenStreetMap</b> (OpenStreetMap Foundation, Vereinigtes Königreich): Lesen der Bahnhofsdaten, Anmeldung und Hochladen der Beiträge.",
+			"photos": "<b>{operator}</b> ({seat}): Luftbilder."
+		},
+		"rights": {
+			"title": "Deine Rechte",
+			"text": "Du kannst jederzeit alles löschen, was stationcomplete auf diesem Telefon speichert. Für deine veröffentlichten Beiträge und dein OpenStreetMap-Konto wende dich an die OpenStreetMap Foundation. Bei Fragen: <mail>{email}</mail>. Du kannst dich auch an die <cnil>CNIL</cnil> (französische Datenschutzbehörde) wenden."
+		},
+		"wipe": {
+			"done": "<b>Erledigt:</b> Von stationcomplete ist nichts mehr auf diesem Telefon.",
+			"lost": "{count, plural, one {# noch nicht hochgeladene Änderung geht verloren.} other {# noch nicht hochgeladene Änderungen gehen verloren.}}",
+			"confirm": "Alles von diesem Telefon löschen? Deine bereits veröffentlichten Beiträge sind nicht betroffen.",
+			"all": "Alles löschen",
+			"button": "Meine Daten von diesem Telefon löschen"
+		}
+	},
+	"login": {
+		"title": "Anmeldung — stationcomplete",
+		"denied": "Du hast den Zugriff verweigert.",
+		"failed": "Die Anmeldung ist fehlgeschlagen.",
+		"finishing": "Anmeldung läuft …",
+		"pseudo": "Veröffentlicht unter deinem Benutzernamen, unter der freien Lizenz ODbL.",
+		"review": "Nichts wird hochgeladen, bevor du es überprüft hast.",
+		"password": "stationcomplete fragt kein Passwort ab und speichert keines.",
+		"server": "Server:",
+		"signedIn": "Angemeldet als <b>{name}</b>.",
+		"myContributions": "Meine Beiträge",
+		"notConfigured": "Die Anmeldung an diesem Server ist noch nicht eingerichtet. Wähle in den Einstellungen den Testserver.",
+		"button": "Mit OpenStreetMap anmelden",
+		"create": "OpenStreetMap-Konto erstellen"
+	},
+	"stations": {
+		"title": "Bahnhof wählen — stationcomplete",
+		"geoUnavailable": "Die Standortbestimmung ist auf diesem Gerät nicht verfügbar.",
+		"geoError": "Standort nicht verfügbar. Erlaube die Standortbestimmung oder suche nach dem Namen.",
+		"halt": "Haltepunkt",
+		"searchLabel": "Bahnhof suchen",
+		"placeholder": "Bahnhofs- oder Ortsname",
+		"locating": "Standort wird bestimmt …",
+		"nearby": "Bahnhöfe in meiner Nähe",
+		"loading": "Liste der Bahnhöfe wird geladen …",
+		"results": "Ergebnisse",
+		"noMatch": "Kein Bahnhof passt zu „{query}“.",
+		"around": "In meiner Nähe",
+		"recent": "Zuletzt angesehen",
+		"count": "{count} Bahnhöfe und Haltepunkte {of}. Gib mindestens zwei Buchstaben ein."
+	},
+	"settings": {
+		"title": "Einstellungen — stationcomplete",
+		"account": "OpenStreetMap-Konto",
+		"logout": "Abmelden",
+		"signedOut": "Nicht angemeldet",
+		"login": "Anmelden",
+		"loginUnavailable": "Anmeldung nicht verfügbar",
+		"notConfigured": "Für {server} noch nicht eingerichtet.",
+		"appearance": "Darstellung",
+		"language": "Sprache",
+		"languageHint": "Sprache der App und des Kommentars deiner Uploads.",
+		"theme": {
+			"label": "Design",
+			"hint": "„System“ folgt der Einstellung deines Telefons.",
+			"system": "System",
+			"light": "Hell",
+			"dark": "Dunkel"
+		},
+		"server": "Server",
+		"serverLegend": "OpenStreetMap-Server",
+		"prodHint": "Die echte Karte: Deine Uploads werden veröffentlicht und sind für alle sichtbar.",
+		"devHint": "Zum Ausprobieren des Hochladens: Auf der echten Karte erscheint nichts.",
+		"input": "Erfassung",
+		"demo": "Demomodus",
+		"demoHint": "Damit kannst du das Erfassen ausprobieren, ohne im Bahnhof zu sein. Diese Änderungen gelangen nie auf die echte Karte (nur auf den Testserver).",
+		"downloads": "Heruntergeladene Bahnhöfe",
+		"removeDownload": "{name} vom Telefon entfernen",
+		"noDownloads": "Keine",
+		"noDownloadsHint": "Lade einen Bahnhof über seine Übersicht herunter, um ihn ohne Netz zu nutzen.",
+		"aboutLink": "Sicherheit, Lizenzen, Kontakt"
+	},
+	"contributions": {
+		"title": "Meine Beiträge — stationcomplete",
+		"intro": "Deine Änderungen bleiben auf diesem Telefon, auch ohne Netz, bis du sie Bahnhof für Bahnhof hochlädst. Server: <b>{server}</b>.",
+		"empty": "Keine ausstehenden Änderungen.",
+		"count": "{count, plural, one {# Änderung} other {# Änderungen}}",
+		"review": "Zu überprüfen",
+		"waiting": "Ausstehend",
+		"removeLabel": "Entfernen: {summary}",
+		"remove": "Entfernen",
+		"send": "Überprüfen und hochladen",
+		"toReview": "{count} zu überprüfen"
+	},
+	"sendPage": {
+		"title": "Überprüfen und hochladen — stationcomplete",
+		"back": "Zurück zu den Beiträgen",
+		"step": {
+			"checking": "Früheren Upload prüfen …",
+			"reading": "Aktuelle Daten lesen …",
+			"opening": "Änderungssatz öffnen …",
+			"uploading": "Änderungen hochladen …",
+			"closing": "Abschließen …",
+			"sending": "Hochladen …"
+		},
+		"offline": "Offline. Deine Änderungen bleiben erhalten. Nach dem Überprüfen kannst du den Upload planen: Er startet von selbst, sobald das Netz zurück ist und die App geöffnet ist.",
+		"cannotUpload": "Hochladen zu {server} ist noch nicht möglich. Zum Ausprobieren wähle in den <settings>Einstellungen</settings> einen anderen Server.",
+		"prod": "Deine Änderungen werden auf der Karte <b>OpenStreetMap</b> veröffentlicht und sind für alle sichtbar.",
+		"dev": "Server: <b>{server}</b> — keine Auswirkung auf die echte Karte.",
+		"sent": "{count, plural, one {# Änderung hochgeladen.} other {# Änderungen hochgeladen.}}",
+		"thanks": "Danke!",
+		"changeset": "Änderungssatz Nr. {id} ansehen",
+		"conflicts": "{count, plural, one {# Änderung ist zu überprüfen: Das Objekt wurde inzwischen auf OpenStreetMap geändert.} other {# Änderungen sind zu überprüfen: Das Objekt wurde inzwischen auf OpenStreetMap geändert.}}",
+		"empty": "Keine ausstehenden Änderungen für diesen Bahnhof.",
+		"ready": "Bereit zum Hochladen ({count})",
+		"demo": "Demomodus",
+		"review": "Zu überprüfen ({count})",
+		"redo": "Neu erfassen",
+		"open": "Öffnen",
+		"keep": "Behalten",
+		"keepHint": "„Behalten“ lädt deine Änderung unverändert hoch: Prüfe zuerst vor Ort, dass sie stimmt. Eine Bahnsteigform oder eine Löschung wird auf der aktuellen Karte neu erfasst.",
+		"comment": "Öffentliche Beschreibung des Uploads",
+		"commentHint": "Für alle auf OpenStreetMap sichtbar, mit deinem Benutzernamen und dem Hashtag #stationcomplete.",
+		"notConfigured": "Die Anmeldung an diesem Server ist noch nicht eingerichtet.",
+		"login": "Zum Hochladen anmelden",
+		"by": "Hochgeladen von <b>{name}</b>",
+		"you": "dir",
+		"blocked": "Hochladen derzeit nicht möglich (siehe Meldung oben).",
+		"queued": "Warten auf das Netz: Der Upload startet von selbst.",
+		"cancelQueue": "Automatischen Upload abbrechen",
+		"send": "{count, plural, one {# Änderung hochladen} other {# Änderungen hochladen}}",
+		"sendLater": "Hochladen, sobald das Netz zurück ist"
+	},
+	"station": {
+		"title": "{name} — stationcomplete",
+		"change": "Bahnhof wechseln",
+		"cached": "Auf diesem Telefon gespeicherte Daten vom {date}",
+		"fresh": "Aktuelle OpenStreetMap-Daten",
+		"reload": "Daten von OpenStreetMap neu laden",
+		"demo": "Demomodus: Erfassen auch außerhalb des Bahnhofs möglich, aber diese Änderungen gelangen nicht auf die echte Karte.",
+		"pending": "{count, plural, one {# Änderung in diesem Bahnhof wartet auf das Hochladen} other {# Änderungen in diesem Bahnhof warten auf das Hochladen}}",
+		"none": "Kein Bahnhof gewählt.",
+		"loading": "Daten des Bahnhofs werden von OpenStreetMap geladen …",
+		"seed": {
+			"done": "{count} Objekte auf den Testserver kopiert.",
+			"missing": "<b>Diesen Bahnhof gibt es auf dem Testserver noch nicht.</b> Kopiere seine Bahnsteige, Gleise und Haltetafeln von der echten Karte dorthin, um Erfassen und Hochladen auszuprobieren.",
+			"notConfigured": "Die Anmeldung am Testserver ist noch nicht eingerichtet.",
+			"login": "Am Testserver anmelden",
+			"busy": "Wird kopiert …",
+			"button": "Echten Bahnhof hierher kopieren"
+		},
+		"gauges": "Vollständigkeit des Bahnhofs",
+		"gauge": {
+			"platforms": "Bahnsteige",
+			"platformsUnit": "nummeriert",
+			"tracks": "Gleise",
+			"tracksUnit": "nummeriert",
+			"signs": "Haltetafeln",
+			"signsUnit": "Seiten erfasst",
+			"none": "nichts zu erfassen"
+		},
+		"offline": {
+			"label": "Offline",
+			"progress": "Luftbilder werden heruntergeladen … {done} / {total}",
+			"available": "<b>Offline verfügbar</b> · {size} · am {date}",
+			"update": "Aktualisieren",
+			"take": "Bahnhof offline mitnehmen"
+		},
+		"todo": "Hier zu tun",
+		"view": {
+			"label": "Ansicht",
+			"list": "Liste",
+			"map": "Karte"
+		},
+		"allDone": "In diesem Bahnhof ist alles erfasst. Bravo!",
+		"onSite": "Vor Ort im Bahnhof zu tun",
+		"drawMissing": "Fehlt ein Bahnsteig auf der Karte? Zeichne ihn"
+	},
+	"map": {
+		"title": "Karte — {name} — stationcomplete",
+		"back": "Zurück zur Übersicht",
+		"onSite": "Vor Ort",
+		"remote": "Aus der Ferne",
+		"checkPosition": ", meinen Standort prüfen",
+		"filters": "Angezeigte Objekte",
+		"legend": {
+			"open": "Kartenlegende",
+			"title": "Legende",
+			"close": "Legende schließen",
+			"quai": "Bahnsteig",
+			"voie": "Gleis",
+			"pancarte": "Haltetafel",
+			"sel": "Ausgewähltes Objekt",
+			"edited": "Von dir geändert, wartet auf das Hochladen",
+			"under": "Unterirdisch (Tunnel, untere Ebene)",
+			"todo": "Zu ergänzen",
+			"alert": "Vorrangig zu prüfen"
+		},
+		"loading": "Bahnhof wird geladen …",
+		"locate": "Meinen Standort anzeigen",
+		"addSign": "Haltetafel hinzufügen",
+		"quest": {
+			"Q1": "Bahnsteignummer erfassen",
+			"Q2": "Gleisnummer erfassen",
+			"Q3": "Nummern von Bahnsteig und Gleisen prüfen",
+			"Q4": "Haltetafeln entlang dieses Bahnsteigs erfassen",
+			"Q5": "Haltetafel ergänzen",
+			"Q6": "Zu prüfen (kein aktuelles Prüfdatum)",
+			"Q7": "Doppelte oder widersprüchliche Gleisnummer"
+		},
+		"editedHere": "Auf diesem Telefon geändert, wartet auf das Hochladen.",
+		"del": {
+			"chooseReason": "Wähle den Grund für die Löschung.",
+			"goneOnSite": "„Existiert nicht mehr“ lässt sich nur vor Ort feststellen.",
+			"pending": "{name}: Löschung wartet auf das Hochladen. Zum Rückgängigmachen entferne sie in deinen Beiträgen.",
+			"signTitle": "Diese Haltetafel löschen?",
+			"reason": "Grund (sichtbar in der öffentlichen Beschreibung des Uploads)",
+			"seenOnSite": "Vor Ort festgestellt.",
+			"onSiteOnly": "Nur vor Ort: Das Luftbild kann veraltet sein.",
+			"signReplaced": "Deine Änderungen an dieser Haltetafel werden entfernt: {list}.",
+			"signButton": "Haltetafel löschen",
+			"platformTitle": "Diesen Bahnsteig löschen?",
+			"relations": "Er wird außerdem {phrase}.",
+			"points": "{lost, plural, one {# Punkt gelöscht} other {# Punkte gelöscht}}{kept, plural, =0 {} one {; # mit anderen Objekten verbunden, bleibt erhalten} other {; # mit anderen Objekten verbunden, bleiben erhalten}}.",
+			"platformReplaced": "Deine Änderungen an diesem Bahnsteig werden entfernt: {list}.",
+			"platformButton": "Bahnsteig löschen"
+		},
+		"seeContributions": "Meine Beiträge ansehen",
+		"fill": "Erfassen",
+		"signHere": "Haltetafel hier",
+		"reshape": "Form bearbeiten",
+		"toArea": "Als Fläche neu zeichnen",
+		"more": "Weitere Aktionen",
+		"deleteSign": "Diese Haltetafel löschen …",
+		"drawnHere": "Auf diesem Telefon gezeichneter Bahnsteig: Um seine Form zu ändern, entferne ihn in deinen Beiträgen und zeichne ihn neu.",
+		"deletePlatform": "Diesen Bahnsteig löschen …",
+		"osmAttribution": "© OpenStreetMap-Mitwirkende",
+		"toggleAttribution": "Quellenangaben ein- oder ausblenden"
+	},
+	"input": {
+		"title": "Details — stationcomplete",
+		"sheet": "Details",
+		"close": "Schließen ohne zu speichern",
+		"gone": "Dieses Objekt ist in den Daten des Bahnhofs nicht mehr vorhanden.",
+		"optional": "(optional)",
+		"dir": {
+			"backward": "Gegen die Richtung des Gleises",
+			"forward": "In Richtung des Gleises",
+			"towards": "Richtung {name}"
+		},
+		"verified": "{kind, select, pancarte {Haltetafel geprüft} other {{what} geprüft}}",
+		"onSite": {
+			"text": "Nummern und Haltetafeln werden <b>vor Ort</b> erfasst – immer hinter der Sicherheitslinie.",
+			"button": "Ich bin im Bahnhof",
+			"try": "Zum Ausprobieren von zu Hause: <settings>Demomodus oder Testserver</settings>.",
+			"away": "Dein Standort liegt außerhalb des Bahnhofs. Du kannst nur prüfen.",
+			"denied": "Standort nicht verfügbar: Erlaube die Standortbestimmung."
+		},
+		"platform": {
+			"needRef": "Gib mindestens eine Gleisnummer entlang des Bahnsteigs an.",
+			"summaryNamed": "Bahnsteig {name}: Gleise {refs}",
+			"summary": "Bahnsteig: Gleise {refs}",
+			"refs": "Nummern der Gleise an diesem Bahnsteig",
+			"removeRef": "Gleis {ref} entfernen",
+			"addRefLabel": "Gleisnummer hinzufügen",
+			"add": "Hinzufügen",
+			"refsHint": "Die über den Gleisen angezeigten Nummern, nicht der Buchstabe des Bahnsteigs.",
+			"letter": "Hat dieser Bahnsteig einen Buchstaben oder einen Namen?",
+			"letterLabel": "Buchstabe oder Name des Bahnsteigs",
+			"letterPlaceholder": "z. B. A"
+		},
+		"track": {
+			"split": "Dieser Abschnitt muss von einer Kartiererin oder einem Kartierer geteilt werden. Die Meldung (OSM-Hinweis) kommt mit dem Hochladen, in Paket 3.",
+			"needRef": "Gib die im Bahnhof angezeigte Nummer oder den Buchstaben an.",
+			"ref": "Im Bahnhof angezeigte Nummer oder Buchstabe",
+			"refLabel": "Gleisnummer",
+			"refPlaceholder": "z. B. 3",
+			"refHint": "„Gleis“ oder „Gl.“ werden automatisch entfernt.",
+			"changes": "Ändert sich die Nummer entlang dieses Abschnitts?"
+		},
+		"sign": {
+			"existing": "Vorhandene Haltetafel",
+			"check": "Prüfe vor Ort, ob sie existiert und übereinstimmt, oder korrigiere sie.",
+			"which": "Welche Tafel siehst du?",
+			"vehicles": "Auf der Tafel angegebene Anzahl der Fahrzeuge",
+			"otherNumber": "Andere Anzahl",
+			"length": "Auf der Tafel angegebene Länge (m)",
+			"under": "Text unter „{type}“",
+			"caption": "Text der Tafel",
+			"captionLabel": "Auf der Tafel gelesener Text",
+			"captionPlaceholder": "Text übernehmen",
+			"direction": "Die Züge, für die diese Tafel gilt, fahren …",
+			"position": "Vom Triebfahrzeugführer aus gesehen steht die Tafel …",
+			"left": "Links",
+			"right": "Rechts",
+			"inTrack": "Zwischen den Schienen",
+			"ground": "Am Boden",
+			"letterHint": "Ein Schild mit einem einzelnen Buchstaben (A, B …) ist keine Haltetafel, sondern eine Sektorenkennzeichnung des Bahnsteigs."
+		},
+		"correct": "Stimmt so",
+		"fix": "Korrigieren"
+	},
+	"place": {
+		"title": "Haltetafel platzieren — stationcomplete",
+		"heading": "Haltetafel platzieren",
+		"help": "Setze das Fadenkreuz <b>auf das Gleis</b>, auf Höhe der Tafel. Verschiebe die Karte.",
+		"panel": "Position der Haltetafel",
+		"snapped": "<b>Am Gleis eingerastet</b> · Abstand {gap} m",
+		"closer": "Bring das Fadenkreuz näher an ein Gleis (weniger als 3 m).",
+		"near": "Auf diesem Gleis gibt es bereits eine Haltetafel in weniger als 10 m Entfernung.",
+		"editThis": "Diese bearbeiten",
+		"another": "Es ist eine andere",
+		"validate": "Position bestätigen"
+	},
+	"drawPage": {
+		"title": "Bahnsteig zeichnen — stationcomplete",
+		"heading": "Bahnsteig zeichnen",
+		"cancel": "Zeichnen abbrechen",
+		"points": "{count, plural, one {# Punkt} other {# Punkte}}",
+		"said": {
+			"moved": "Punkt {n} verschoben.",
+			"movedSnapped": "Punkt {n} verschoben, an der Gleiskante eingerastet.",
+			"added": "Punkt {n} hinzugefügt.",
+			"moveUndone": "Verschieben rückgängig gemacht.",
+			"removed": "Letzter Punkt entfernt."
+		},
+		"summary": "Bahnsteig gezeichnet ({length})",
+		"help": {
+			"move": "Setze das Fadenkreuz an die neue Stelle von <b>Punkt {n}</b>.",
+			"start": "Umrunde den Bahnsteig Ecke für Ecke und bleib dabei auf seiner Kante. Ein gesetzter Punkt lässt sich mit dem Finger verschieben.",
+			"close": "Mach weiter, oder tippe auf <b>Punkt 1</b> (den größten), um den Bahnsteig zu schließen."
+		},
+		"panel": "Umriss des Bahnsteigs",
+		"snapped": "<b>An der Gleiskante eingerastet</b> ({offset} m von der Gleisachse)",
+		"underCross": "Punkt unter dem Fadenkreuz",
+		"length": "Länge {length}",
+		"snapOption": "Am Gleis einrasten",
+		"saveAnyway": "Trotzdem speichern",
+		"undoMove": "Verschieben rückgängig",
+		"undoPoint": "Punkt rückgängig",
+		"moveHere": "Punkt {n} hierher verschieben",
+		"addPoint": "Punkt hinzufügen",
+		"close": "Bahnsteig schließen"
+	},
+	"shapePage": {
+		"title": "{name} — stationcomplete",
+		"vertex": {
+			"locked": "Punkt {n}: mit anderen Objekten verbunden ({links}), nicht änderbar",
+			"shared": "Punkt {n}: {what}, auswählen",
+			"plain": "Punkt {n}: auswählen"
+		},
+		"anchor": "Verbundener Punkt {n} der alten Linie: zum Umriss hinzufügen",
+		"said": {
+			"moved": "Punkt {n} verschoben{snapped, select, yes {, an der Gleiskante eingerastet} other {}}{hasAlso, select, yes {: {also}} other {}}.",
+			"deselected": "Auswahl von Punkt {n} aufgehoben.",
+			"locked": "Punkt {n}: verbunden mit {links}, er bleibt an seiner Stelle.",
+			"selectedShared": "Punkt {n} ausgewählt. {info}",
+			"selected": "Punkt {n} ausgewählt: Er liegt unter dem Fadenkreuz.",
+			"inserted": "Punkt {n} zwischen {a} und {b} hinzugefügt{snapped, select, yes {, an der Gleiskante eingerastet} other {}}.",
+			"removed": "Punkt {n} aus dem Bahnsteig entfernt.",
+			"anchored": "Verbundener Punkt übernommen: Punkt {n} des Umrisses.",
+			"undone": "Letzte Aktion rückgängig gemacht."
+		},
+		"error": {
+			"noPoint": "Kein Punkt unter dem Fadenkreuz: Bring das Fadenkreuz auf einen Punkt des Bahnsteigs (weißer Kreis) oder tippe direkt auf den Punkt.",
+			"noSide": "Setze das Fadenkreuz auf eine Seite des Bahnsteigs, dann „Punkt hier hinzufügen“.",
+			"unchanged": "Keine Änderung: Verschiebe, füge hinzu oder entferne einen Punkt."
+		},
+		"notFound": "Dieser Bahnsteig wurde in den Daten des Bahnhofs nicht gefunden.",
+		"backToMap": "Zurück zur Karte",
+		"quit": "Verlassen ohne zu speichern",
+		"help": {
+			"locked": "Punkt {n} ist verbunden mit: <b>{links}</b>. Er bleibt an seiner Stelle; korrigiere ihn mit JOSM oder iD oder füge Punkte drumherum hinzu.",
+			"move": "Verschiebe die Karte bis zur neuen Stelle von <b>Punkt {n}</b>.",
+			"area": "Umrunde den Bahnsteig Ecke für Ecke; die alte Linie ist blass dargestellt.",
+			"anchors": "Tippe auf ihre quadratischen Punkte, um sie zu übernehmen.",
+			"reshape": "Setze das Fadenkreuz auf einen Punkt (oder tippe ihn an oder ziehe ihn) oder auf eine Seite, um einen hinzuzufügen.",
+			"shared": "Punkte mit dunklem Kern werden mit anderen Objekten geteilt."
+		},
+		"understood": "Verstanden",
+		"snapped": "<b>An der Gleiskante eingerastet</b> ({offset} m von der Achse)",
+		"pick": "Diesen Punkt nehmen",
+		"addHere": "Punkt hier hinzufügen",
+		"remove": "Diesen Punkt entfernen",
+		"moveHere": "Punkt hierher verschieben",
+		"undoLabel": "Letzte Aktion rückgängig machen",
+		"finish": "Fertig"
+	},
+	"mapA11y": {
+		"closeRing": "Punkt 1: Bahnsteig schließen",
+		"movePoint": "Punkt {n}: verschieben",
+		"midpoint": "Punkt zwischen {a} und {b} hinzufügen",
+		"noWebgl": "Die Karte kann auf diesem Gerät nicht angezeigt werden (WebGL nicht verfügbar).",
+		"noWebglList": "Die Karte kann auf diesem Gerät nicht angezeigt werden (WebGL nicht verfügbar). Verwende die Liste.",
+		"drawMap": "Luftbild, das Fadenkreuz markiert den nächsten Punkt des Bahnsteigs",
+		"placeMap": "Luftbild, das Fadenkreuz markiert die gewünschte Stelle",
+		"myPosition": "Mein Standort",
+		"stationMap": "Karte des Bahnhofs auf dem Luftbild",
+		"nudge": "Zentimetergenau ausrichten",
+		"nudgePad": "Fadenkreuz um 20 cm verschieben",
+		"up": "Fadenkreuz nach oben verschieben",
+		"left": "Fadenkreuz nach links verschieben",
+		"right": "Fadenkreuz nach rechts verschieben",
+		"down": "Fadenkreuz nach unten verschieben"
+	}
+}

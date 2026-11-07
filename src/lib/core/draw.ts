@@ -10,6 +10,7 @@ import {
 	sub,
 	type Pt
 } from './geo';
+import { fmtDistance, fmtList, t as tr } from '../i18n/t.ts';
 import type { OsmNode, OsmWay } from './osm';
 import { THRESHOLDS, platformTracks, trackGapM } from './quests';
 
@@ -123,7 +124,7 @@ export interface ShapeCheck {
 export function checkShape(ring: LonLat[], tracks: LonLat[][], platforms: LonLat[][]): ShapeCheck {
 	const errors: string[] = [];
 	if (ring.length < 3)
-		return { ok: false, lengthM: 0, sidesM: [], errors: ['Placez au moins 3 points.'] };
+		return { ok: false, lengthM: 0, sidesM: [], errors: [tr('draw.check.points')] };
 	const proj = new LocalProjection(ring[0][0], ring[0][1]);
 	const R = ring.map(([lon, lat]) => proj.project(lon, lat));
 	const n = R.length;
@@ -142,11 +143,11 @@ export function checkShape(ring: LonLat[], tracks: LonLat[][], platforms: LonLat
 				break;
 			}
 		}
-	if (crossing) errors.push('Des côtés du quai se croisent : déplacez ou retirez un point.');
+	if (crossing) errors.push(tr('draw.check.crossing'));
 	if (lengthM < MIN_LENGTH_M)
-		errors.push(`Quai trop court (${Math.round(lengthM)} m, minimum 20 m).`);
+		errors.push(tr('draw.check.short', { length: fmtDistance(lengthM), min: fmtDistance(20) }));
 	if (lengthM > MAX_LENGTH_M)
-		errors.push(`Quai trop long (${Math.round(lengthM)} m, maximum 800 m).`);
+		errors.push(tr('draw.check.long', { length: fmtDistance(lengthM), max: fmtDistance(800) }));
 
 	const local = (line: LonLat[]) => line.map(([lon, lat]) => proj.project(lon, lat));
 	const edges = R.map((p, i) => [p, R[(i + 1) % n]] as const);
@@ -155,7 +156,7 @@ export function checkShape(ring: LonLat[], tracks: LonLat[][], platforms: LonLat
 			(p, k) => k + 1 < L.length && edges.some(([a, b]) => segmentsIntersect(a, b, p, L[k + 1]))
 		);
 	if (tracks.some((t) => hitsLine(local(t)) || local(t).some((p) => pointInPolygon(p, R))))
-		errors.push('Le quai croise une voie : le bord doit rester le long de la voie.');
+		errors.push(tr('draw.check.track'));
 	if (
 		platforms.some((pl) => {
 			const P = local(pl);
@@ -164,7 +165,7 @@ export function checkShape(ring: LonLat[], tracks: LonLat[][], platforms: LonLat
 			);
 		})
 	)
-		errors.push('Le quai chevauche un quai déjà cartographié.');
+		errors.push(tr('draw.check.overlap'));
 
 	return { ok: errors.length === 0, lengthM, sidesM, errors };
 }
@@ -222,14 +223,12 @@ export function lostTracks(before: Iterable<number>, after: LonLat[], tracks: Tr
 export function lostTracksMessage(lost: { ref?: string; gapM: number }[]) {
 	if (!lost.length) return '';
 	const one = (l: { ref?: string; gapM: number }) =>
-		`${l.ref ? `la voie ${l.ref}` : 'une voie sans numéro'} (${
-			l.gapM > THRESHOLDS.polygonEdgeDistM
-				? `bord à ${Math.round(l.gapM)} m`
-				: 'bord plus parallèle à la voie'
-		})`;
-	const list =
-		lost.length === 1
-			? one(lost[0])
-			: `${lost.slice(0, -1).map(one).join(', ')} et ${one(lost.at(-1)!)}`;
-	return `Le quai ne longe plus ${list}. Vérifiez la forme : le bord du quai doit suivre la voie.`;
+		tr('draw.lost.track', {
+			track: l.ref ? tr('draw.lost.theTrack', { ref: l.ref }) : tr('draw.lost.aTrack'),
+			gap:
+				l.gapM > THRESHOLDS.polygonEdgeDistM
+					? tr('draw.lost.gap', { gap: fmtDistance(l.gapM) })
+					: tr('draw.lost.notParallel')
+		});
+	return tr('draw.lost.message', { list: fmtList(lost.map(one)) });
 }

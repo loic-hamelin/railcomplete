@@ -14,6 +14,8 @@
 	import { server } from '#lib/osmserver.svelte.js';
 	import { downloadStation, downloads, estimate, progress } from '#lib/offline.svelte.js';
 	import { onMount, untrack } from 'svelte';
+	import Rich from '#lib/i18n/Rich.svelte';
+	import { fmtDateTime, fmtMegabytes, t } from '#lib/i18n/t.js';
 
 	// Page statique : l'identifiant de la gare n'est lu que dans le navigateur.
 	let mounted = $state(false);
@@ -43,20 +45,20 @@
 			? [
 					{
 						kind: 'quai' as const,
-						label: 'Quais',
-						unit: 'numérotés',
+						label: t('station.gauge.platforms'),
+						unit: t('station.gauge.platformsUnit'),
 						...analysis!.completeness.platforms
 					},
 					{
 						kind: 'voie' as const,
-						label: 'Voies',
-						unit: 'numérotées',
+						label: t('station.gauge.tracks'),
+						unit: t('station.gauge.tracksUnit'),
 						...analysis!.completeness.tracks
 					},
 					{
 						kind: 'pancarte' as const,
-						label: 'Pancartes',
-						unit: 'côtés relevés',
+						label: t('station.gauge.signs'),
+						unit: t('station.gauge.signsUnit'),
 						...analysis!.completeness.stopSigns
 					}
 				]
@@ -85,7 +87,7 @@
 		seeding = 'busy';
 		try {
 			const n = await seedTestStation(ready.station);
-			seedMsg = `${n} objets recopiés sur le serveur de test.`;
+			seedMsg = t('station.seed.done', { count: n });
 			seeding = 'idle';
 			await openStation(id, { force: true });
 		} catch (e) {
@@ -94,25 +96,26 @@
 		}
 	}
 	const dl = $derived(downloads.list.find((d) => d.id === id));
-	const mo = (b: number) => `${(b / 1e6).toFixed(1).replace('.', ',')} Mo`;
-	const fmtDate = (t: number) =>
-		new Date(t).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+	const mo = fmtMegabytes;
+	const fmtDate = fmtDateTime;
 </script>
 
-<svelte:head><title>{station?.name ?? 'Gare'} — stationcomplete</title></svelte:head>
+<svelte:head
+	><title>{t('station.title', { name: station?.name ?? t('nav.station') })}</title></svelte:head
+>
 
 <div class="screen">
 	<header class="head">
-		<a class="icon-btn" href={resolve('/gares')} aria-label="Changer de gare">
+		<a class="icon-btn" href={resolve('/gares')} aria-label={t('station.change')}>
 			<Icon name="back" />
 		</a>
 		<div class="titles">
-			<h1>{station?.name ?? 'Gare'}</h1>
+			<h1>{station?.name ?? t('nav.station')}</h1>
 			{#if ready}
 				<span class="sub">
-					{#if ready.fromCache}Données enregistrées sur ce téléphone du {fmtDate(
-							ready.fetchedAt
-						)}{:else}Données OpenStreetMap à jour{/if}
+					{#if ready.fromCache}{t('station.cached', {
+							date: fmtDate(ready.fetchedAt)
+						})}{:else}{t('station.fresh')}{/if}
 				</span>
 			{/if}
 		</div>
@@ -120,7 +123,7 @@
 			<button
 				class="icon-btn"
 				type="button"
-				aria-label="Recharger les données depuis OpenStreetMap"
+				aria-label={t('station.reload')}
 				onclick={() => openStation(id, { force: true })}
 			>
 				<Icon name="refresh" />
@@ -132,35 +135,32 @@
 		{#if settings.demo}
 			<p class="banner" role="note">
 				<Icon name="info" size={18} />
-				<span
-					>Mode démonstration : saisie possible hors de la gare, mais ces saisies ne partiront pas
-					sur la vraie carte.</span
-				>
+				<span>{t('station.demo')}</span>
 			</p>
 		{/if}
 		{#if myEdits.length}
 			<a class="row-link" href={resolve('/contributions')}>
 				<Icon name="send" size={20} />
-				<span
-					>{myEdits.length} saisie{myEdits.length > 1 ? 's' : ''} en attente d’envoi dans cette gare</span
-				>
+				<span>{t('station.pending', { count: myEdits.length })}</span>
 				<Icon name="chev" size={18} />
 			</a>
 		{/if}
 
 		{#if !mounted}
-			<p class="note" role="status">Chargement…</p>
+			<p class="note" role="status">{t('common.loading')}</p>
 		{:else if !id}
-			<p class="note">Aucune gare choisie. <a href={resolve('/gares')}>Choisir une gare</a></p>
+			<p class="note">
+				{t('station.none')} <a href={resolve('/gares')}>{t('home.chooseStation')}</a>
+			</p>
 		{:else if st.status === 'loading'}
-			<p class="note" role="status">Chargement des données de la gare depuis OpenStreetMap…</p>
+			<p class="note" role="status">{t('station.loading')}</p>
 		{:else if st.status === 'error'}
 			<div class="banner err" role="alert">
 				<Icon name="alert" size={18} />
 				<div class="stack">
 					<p>{st.message}</p>
 					<button class="btn-sm" type="button" onclick={() => openStation(id, { force: true })}>
-						Réessayer
+						{t('common.retry')}
 					</button>
 				</div>
 			</div>
@@ -169,26 +169,23 @@
 				<div class="banner" role="note">
 					<Icon name="info" size={18} />
 					<div class="stack">
-						<p>
-							<strong>Cette gare n’existe pas encore sur le serveur de test.</strong> Recopiez-y ses quais,
-							voies et pancartes depuis la vraie carte pour essayer la saisie et l’envoi.
-						</p>
+						<p><Rich text={t('station.seed.missing')} /></p>
 						{#if !configured()}
-							<p>La connexion au serveur de test n’est pas encore configurée.</p>
+							<p>{t('station.seed.notConfigured')}</p>
 						{:else if !(mounted && signedIn())}
 							<button class="btn-sm" type="button" onclick={() => login()}
-								>Se connecter au serveur de test</button
+								>{t('station.seed.login')}</button
 							>
 						{:else}
 							<button class="btn-sm" type="button" disabled={seeding === 'busy'} onclick={seed}>
-								{seeding === 'busy' ? 'Copie en cours…' : 'Recopier la vraie gare ici'}
+								{seeding === 'busy' ? t('station.seed.busy') : t('station.seed.button')}
 							</button>
 						{/if}
 						{#if seedMsg}<p role="status">{seedMsg}</p>{/if}
 					</div>
 				</div>
 			{/if}
-			<section class="gauges" aria-label="Complétude de la gare">
+			<section class="gauges" aria-label={t('station.gauges')}>
 				{#each gauges as g (g.kind)}
 					<div class="gauge {g.kind}">
 						<span class="g-title"><Icon name={g.kind} size={18} />{g.label}</span>
@@ -200,36 +197,39 @@
 							</span>
 						{:else}
 							<span class="g-num">—</span>
-							<span class="g-unit">aucun à relever</span>
+							<span class="g-unit">{t('station.gauge.none')}</span>
 						{/if}
 					</div>
 				{/each}
 			</section>
 
-			<div class="offline" role="group" aria-label="Hors-ligne">
+			<div class="offline" role="group" aria-label={t('station.offline.label')}>
 				{#if progress.station === id}
 					<p class="row" role="status">
 						<Icon name="download" size={20} />
-						<span>Téléchargement des photos aériennes… {progress.done} / {progress.total}</span>
+						<span
+							>{t('station.offline.progress', { done: progress.done, total: progress.total })}</span
+						>
 					</p>
 					<progress max={progress.total} value={progress.done}></progress>
 				{:else if dl}
 					<div class="row">
 						<Icon name="check" size={20} />
 						<span
-							><strong>Disponible hors-ligne</strong> · {mo(dl.bytes)} · le {fmtDate(dl.at)}</span
+							><Rich
+								text={t('station.offline.available', { size: mo(dl.bytes), date: fmtDate(dl.at) })}
+							/></span
 						>
 						<button class="btn-quiet" type="button" onclick={() => downloadStation(ready.station)}
-							>Mettre à jour</button
+							>{t('station.offline.update')}</button
 						>
 					</div>
 				{:else}
 					<button class="row row-btn" type="button" onclick={() => downloadStation(ready.station)}>
 						<Icon name="download" size={20} />
 						<span
-							>Emporter la gare hors-ligne <span class="dim"
-								>· ≈ {mo(estimate(ready.station).bytes)}</span
-							></span
+							>{t('station.offline.take')}
+							<span class="dim">· ≈ {mo(estimate(ready.station).bytes)}</span></span
 						>
 					</button>
 				{/if}
@@ -239,16 +239,19 @@
 			</div>
 
 			<div class="list-head">
-				<h2>À faire ici</h2>
-				<div class="seg views" role="group" aria-label="Affichage">
-					<span aria-current="true"><Icon name="list" size={18} />Liste</span>
-					<a href={resolve(`/gare/carte?${mapQuery()}`)}><Icon name="map" size={18} />Carte</a>
+				<h2>{t('station.todo')}</h2>
+				<div class="seg views" role="group" aria-label={t('station.view.label')}>
+					<span aria-current="true"><Icon name="list" size={18} />{t('station.view.list')}</span>
+					<a href={resolve(`/gare/carte?${mapQuery()}`)}
+						><Icon name="map" size={18} />{t('station.view.map')}</a
+					>
 				</div>
 			</div>
 
 			{#if !groups.length}
 				<p class="banner ok">
-					<Icon name="check" size={18} /> Tout est renseigné dans cette gare. Bravo !
+					<Icon name="check" size={18} />
+					{t('station.allDone')}
 				</p>
 			{:else}
 				<ul class="group quests">
@@ -269,7 +272,7 @@
 									<span class="q-title">{g.title}</span>
 									{#if g.subtitle}<span class="q-sub">{g.subtitle}</span>{/if}
 									{#if g.onSite}<span class="q-sub onsite"
-											><Icon name="lock" size={14} /> À faire en gare</span
+											><Icon name="lock" size={14} /> {t('station.onSite')}</span
 										>{/if}
 								</span>
 								<Icon name="chev" size={18} />
@@ -280,10 +283,11 @@
 			{/if}
 			{#if analysis?.platforms.length}
 				<a class="draw" href={resolve(`/gare/dessiner?id=${encodeURIComponent(id)}`)}>
-					<Icon name="pen" size={18} /> Un quai manque sur la carte ? Le dessiner</a
+					<Icon name="pen" size={18} />
+					{t('station.drawMissing')}</a
 				>
 			{/if}
-			<p class="attribution">© contributeurs OpenStreetMap, ODbL</p>
+			<p class="attribution">{t('common.osmAttribution')}</p>
 		{/if}
 	</main>
 	<BottomNav current="gare" />

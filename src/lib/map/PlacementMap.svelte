@@ -16,7 +16,8 @@
 	import {
 		IS_SEL,
 		MAP,
-		OSM_ATTRIBUTION,
+		mapLocale,
+		osmAttribution,
 		QUAI_W,
 		UNDER_CASING,
 		UNDER_DASH,
@@ -26,6 +27,7 @@
 		photoSource,
 		plus
 	} from './style.js';
+	import { t } from '#lib/i18n/t.js';
 	import { onMount } from 'svelte';
 
 	let {
@@ -129,6 +131,7 @@
 					minZoom: 15,
 					pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
 					attributionControl: { compact: true },
+					locale: mapLocale(),
 					dragRotate: false,
 					pitchWithRotate: false,
 					touchPitch: false,
@@ -140,7 +143,7 @@
 							objets: {
 								type: 'geojson',
 								data: geojson(),
-								attribution: OSM_ATTRIBUTION
+								attribution: osmAttribution()
 							}
 						},
 						layers: [
@@ -247,7 +250,7 @@
 				map.on('moveend', update);
 				map.on('load', update);
 			} catch (e) {
-				failed = 'La carte ne peut pas s’afficher sur cet appareil (WebGL indisponible).';
+				failed = t('mapA11y.noWebgl');
 				console.warn('[stationcomplete] carte :', e);
 			}
 		})();
@@ -259,12 +262,7 @@
 </script>
 
 <div class="wrap">
-	<div
-		class="map"
-		bind:this={container}
-		role="region"
-		aria-label="Photo aérienne, la croix marque l’emplacement visé"
-	></div>
+	<div class="map" bind:this={container} role="region" aria-label={t('mapA11y.placeMap')}></div>
 	<Reticle {snapped} />
 	{#if failed}<p class="failed" role="alert">{failed}</p>{/if}
 </div>

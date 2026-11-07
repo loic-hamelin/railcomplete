@@ -14,6 +14,8 @@
 	import { distanceM } from '#lib/stations.js';
 	import { stationView } from '#lib/view.js';
 	import { onMount, untrack } from 'svelte';
+	import Rich from '#lib/i18n/Rich.svelte';
+	import { fmtDecimal, t } from '#lib/i18n/t.js';
 
 	let mounted = $state(false);
 	onMount(() => {
@@ -82,7 +84,7 @@
 	}
 </script>
 
-<svelte:head><title>Placer une pancarte — stationcomplete</title></svelte:head>
+<svelte:head><title>{t('place.title')}</title></svelte:head>
 
 <!-- Carte plein écran ; en-tête, contrôles et actions flottent au-dessus (décision 6). -->
 <div class="screen">
@@ -97,7 +99,7 @@
 				onsnap={(s) => ((snap = s), (near = undefined))}
 			/>
 		{:else}
-			<p class="status float" role="status">Chargement…</p>
+			<p class="status float" role="status">{t('common.loading')}</p>
 		{/if}
 	</div>
 
@@ -107,22 +109,20 @@
 				<a
 					class="icon-btn"
 					href={resolve(`/gare/carte?id=${encodeURIComponent(id)}`)}
-					aria-label="Annuler"><Icon name="close" size={22} /></a
+					aria-label={t('common.cancel')}><Icon name="close" size={22} /></a
 				>
-				<h1>Placer la pancarte</h1>
+				<h1>{t('place.heading')}</h1>
 			</div>
-			<p>
-				Placez la croix <strong>sur la voie</strong>, au niveau du panneau. Faites glisser la carte.
-			</p>
+			<p><Rich text={t('place.help')} /></p>
 		</header>
 
 		{#if view && start}
 			<div class="tools">
 				<div class="zoom float">
-					<button type="button" aria-label="Zoomer" onclick={() => mapRef?.zoom(1)}
+					<button type="button" aria-label={t('common.zoomIn')} onclick={() => mapRef?.zoom(1)}
 						><Icon name="plus" size={20} /></button
 					>
-					<button type="button" aria-label="Dézoomer" onclick={() => mapRef?.zoom(-1)}
+					<button type="button" aria-label={t('common.zoomOut')} onclick={() => mapRef?.zoom(-1)}
 						><Icon name="minus" size={20} /></button
 					>
 				</div>
@@ -131,33 +131,31 @@
 		{/if}
 	</div>
 
-	<section class="panel float" aria-label="Position de la pancarte">
+	<section class="panel float" aria-label={t('place.panel')}>
 		<div class="snap" class:ok={!!snap} role="status" aria-live="polite">
 			<Icon name={snap ? 'check' : 'alert'} size={20} />
 			{#if snap}
-				<span
-					><strong>Accrochée à la voie</strong> · écart {snap.distM.toFixed(1).replace('.', ',')} m</span
-				>
+				<span><Rich text={t('place.snapped', { gap: fmtDecimal(snap.distM) })} /></span>
 			{:else}
-				<span>Rapprochez la croix d’une voie (moins de 3 m).</span>
+				<span>{t('place.closer')}</span>
 			{/if}
 		</div>
 
 		{#if near}
 			<div class="near" role="alert">
-				<p>Une pancarte existe déjà à moins de 10 m sur cette voie.</p>
+				<p>{t('place.near')}</p>
 				<div class="two">
 					<a
 						class="btn btn-secondary"
 						href={resolve(`/gare/saisie?id=${encodeURIComponent(id)}&osm=node/${near.id}`)}
-						>Modifier celle-ci</a
+						>{t('place.editThis')}</a
 					>
-					<button class="btn" type="button" onclick={go}>C’est une autre</button>
+					<button class="btn" type="button" onclick={go}>{t('place.another')}</button>
 				</div>
 			</div>
 		{:else}
 			<button class="btn" type="button" disabled={!snap} onclick={validate}
-				>Valider la position</button
+				>{t('place.validate')}</button
 			>
 		{/if}
 	</section>
@@ -213,7 +211,7 @@
 		line-height: 1.43;
 		color: var(--text-2);
 	}
-	.top p strong {
+	.top p :global(strong) {
 		color: var(--text);
 	}
 	.tools {

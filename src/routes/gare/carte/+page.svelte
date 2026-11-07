@@ -34,6 +34,7 @@
 	import { stationView } from '#lib/view.js';
 	import StationMap from '#lib/map/StationMap.svelte';
 	import { onMount, untrack } from 'svelte';
+	import { t, tk } from '#lib/i18n/t.js';
 
 	let mounted = $state(false);
 	onMount(() => {
@@ -156,10 +157,8 @@
 		deleteError = '';
 		if (!shapeOf || !selected || !ready) return;
 		// (« Mal placée » n'existe que pour une pancarte.)
-		if (!reason || reason === 'misplaced')
-			return (deleteError = 'Choisissez le motif de la suppression.');
-		if (reason === 'gone' && !survey)
-			return (deleteError = '« N’existe plus » se constate sur place seulement.');
+		if (!reason || reason === 'misplaced') return (deleteError = t('map.del.chooseReason'));
+		if (reason === 'gone' && !survey) return (deleteError = t('map.del.goneOnSite'));
 		const name = platformName(shapeOf.way.tags);
 		try {
 			await saveEdit({
@@ -177,18 +176,17 @@
 				summary: deleteSummary(name, reason, shapeOf.relations)
 			});
 			select(undefined);
-			notice = `${name} : suppression en attente d’envoi. Pour l’annuler, retirez-la dans vos contributions.`;
+			notice = t('map.del.pending', { name });
 		} catch {
-			deleteError = "L'enregistrement sur ce téléphone a échoué. Réessayez.";
+			deleteError = t('common.saveFailed');
 		}
 	}
 
 	async function confirmSignDelete() {
 		deleteError = '';
 		if (!signOf || !selected || !ready) return;
-		if (!reason) return (deleteError = 'Choisissez le motif de la suppression.');
-		if (reason === 'gone' && !survey)
-			return (deleteError = '« N’existe plus » se constate sur place seulement.');
+		if (!reason) return (deleteError = t('map.del.chooseReason'));
+		if (reason === 'gone' && !survey) return (deleteError = t('map.del.goneOnSite'));
 		const { node, removal } = signOf;
 		const label = selected.label;
 		try {
@@ -208,21 +206,14 @@
 				summary: signDeleteSummary(label, reason, removal.mode)
 			});
 			select(undefined);
-			notice = `Pancarte « ${label} » : suppression en attente d’envoi. Pour l’annuler, retirez-la dans vos contributions.`;
+			notice = t('map.del.pending', { name: t('sign.named', { label }) });
 		} catch {
-			deleteError = "L'enregistrement sur ce téléphone a échoué. Réessayez.";
+			deleteError = t('common.saveFailed');
 		}
 	}
 
-	const QUEST_TEXT: Record<string, string> = {
-		Q1: 'Numéro du quai à relever',
-		Q2: 'Numéro de la voie à relever',
-		Q3: 'Numéros du quai et des voies à vérifier',
-		Q4: 'Pancartes d’arrêt à relever le long de ce quai',
-		Q5: 'Pancarte à compléter',
-		Q6: 'À vérifier (aucune date de vérification récente)',
-		Q7: 'Numéro de voie en double ou incohérent'
-	};
+	/** Constat d'une quête sur la fiche d'un objet (Q1 à Q7), dans la langue de l'interface. */
+	const questText = (q: string) => (/^Q[1-7]$/.test(q) ? tk(`map.quest.${q}`) : q);
 	// Constats de la feuille basse : une icône par nature (alerte, à relever, à vérifier).
 	const QUEST_ICON: Record<string, 'alert' | 'question' | 'clock'> = {
 		Q3: 'alert',
@@ -230,26 +221,21 @@
 		Q6: 'clock'
 	};
 	/** Légende de la carte (lot 7d) : pointillés réservés aux objets souterrains. */
-	const LEGEND = [
-		{ k: 'quai', label: 'Quai' },
-		{ k: 'voie', label: 'Voie' },
-		{ k: 'pancarte', label: 'Pancarte d’arrêt' },
-		{ k: 'sel', label: 'Objet sélectionné' },
-		{ k: 'edited', label: 'Modifié par vous, en attente d’envoi' },
-		{ k: 'under', label: 'Souterrain (tunnel, niveau inférieur)' },
-		{ k: 'todo', label: 'À compléter' },
-		{ k: 'alert', label: 'À vérifier en priorité' }
-	] as const;
-	const filters = [
-		{ k: 'quai', label: 'Quais' },
-		{ k: 'voie', label: 'Voies' },
-		{ k: 'pancarte', label: 'Pancartes' }
-	] as const;
+	const LEGEND = ['quai', 'voie', 'pancarte', 'sel', 'edited', 'under', 'todo', 'alert'] as const;
+	const filters = $derived([
+		{ k: 'quai', label: t('station.gauge.platforms') },
+		{ k: 'voie', label: t('station.gauge.tracks') },
+		{ k: 'pancarte', label: t('station.gauge.signs') }
+	] as const);
+	const quoted = (list: { summary: string }[]) =>
+		list.map((e) => t('common.quoted', { text: e.summary })).join(', ');
 </script>
 
 <svelte:window onkeydown={(e) => legend && e.key === 'Escape' && (legend = false)} />
 
-<svelte:head><title>Carte — {ready?.station.name ?? 'Gare'} — stationcomplete</title></svelte:head>
+<svelte:head
+	><title>{t('map.title', { name: ready?.station.name ?? t('nav.station') })}</title></svelte:head
+>
 
 <!-- Carte plein écran ; barre, filtres, boutons et feuille basse flottent au-dessus. -->
 <div class="screen" data-map-scope>
@@ -273,11 +259,11 @@
 			<a
 				class="icon-btn"
 				href={resolve(`/gare?id=${encodeURIComponent(id)}`)}
-				aria-label="Retour au tableau de bord"
+				aria-label={t('map.back')}
 			>
 				<Icon name="back" size={22} />
 			</a>
-			<h1>{ready?.station.name ?? 'Carte'}</h1>
+			<h1>{ready?.station.name ?? t('station.view.map')}</h1>
 			{#if ready}
 				<button
 					class="where"
@@ -289,13 +275,17 @@
 							name="lock"
 							size={16}
 						/>{/if}
-					{survey ? 'Sur place' : where.status === 'checking' ? 'Localisation…' : 'À distance'}
-					<span class="visually-hidden">, vérifier ma position</span>
+					{survey
+						? t('map.onSite')
+						: where.status === 'checking'
+							? t('stations.locating')
+							: t('map.remote')}
+					<span class="visually-hidden">{t('map.checkPosition')}</span>
 				</button>
 			{/if}
 		</div>
 		<div class="row2">
-			<div class="filters" role="group" aria-label="Objets affichés">
+			<div class="filters" role="group" aria-label={t('map.filters')}>
 				{#each filters as f (f.k)}
 					<button
 						type="button"
@@ -312,7 +302,7 @@
 				type="button"
 				class="legend-btn"
 				data-map-avoid
-				aria-label="Légende de la carte"
+				aria-label={t('map.legend.open')}
 				aria-expanded={legend}
 				aria-controls="legende"
 				onclick={() => (legend = !legend)}><Icon name="info" size={20} /></button
@@ -322,16 +312,16 @@
 			<!-- Légende (lot 7d) : panneau flottant refermable, au-dessus des repères de la carte. -->
 			<section id="legende" class="legend float" aria-labelledby="legende-titre" data-map-avoid>
 				<div class="legend-head">
-					<h2 id="legende-titre">Légende</h2>
+					<h2 id="legende-titre">{t('map.legend.title')}</h2>
 					<button
 						class="icon-btn"
 						type="button"
-						aria-label="Fermer la légende"
+						aria-label={t('map.legend.close')}
 						onclick={() => (legend = false)}><Icon name="close" size={20} /></button
 					>
 				</div>
 				<ul>
-					{#each LEGEND as item (item.k)}
+					{#each LEGEND.map((k) => ({ k })) as item (item.k)}
 						<li>
 							<svg class="sw" width="40" height="24" viewBox="0 0 40 24" aria-hidden="true">
 								<rect width="40" height="24" rx="3" fill="#6b665c" />
@@ -413,7 +403,7 @@
 									{/if}
 								{/if}
 							</svg>
-							<span>{item.label}</span>
+							<span>{tk(`map.legend.${item.k}`)}</span>
 						</li>
 					{/each}
 				</ul>
@@ -422,7 +412,7 @@
 	</div>
 
 	{#if st.status === 'loading' || !mounted}
-		<p class="status float" role="status">Chargement de la gare…</p>
+		<p class="status float" role="status">{t('map.loading')}</p>
 	{:else if st.status === 'error'}
 		<p class="status float error" role="alert">
 			<Icon name="alert" size={20} />{st.message}
@@ -432,7 +422,7 @@
 	{#if notice && !selected}
 		<p class="notice float" role="status">
 			<Icon name="check" size={18} /><span>{notice}</span>
-			<a href={resolve('/contributions')}>Mes contributions</a>
+			<a href={resolve('/contributions')}>{t('login.myContributions')}</a>
 		</p>
 	{/if}
 
@@ -441,18 +431,18 @@
 			class="locate float"
 			type="button"
 			data-map-avoid
-			aria-label="Me localiser"
+			aria-label={t('map.locate')}
 			onclick={() => mapRef?.locate()}
 		>
 			<Icon name="locate" size={20} />
 		</button>
 		<a class="add" href={placeHref} data-map-avoid
-			><Icon name="plus" size={20} />Ajouter une pancarte</a
+			><Icon name="plus" size={20} />{t('map.addSign')}</a
 		>
 	{/if}
 
 	{#if selected}
-		<section class="sheet" aria-live="polite" aria-label="Objet sélectionné" data-map-avoid>
+		<section class="sheet" aria-live="polite" aria-label={t('map.legend.sel')} data-map-avoid>
 			<div class="sheet-head">
 				<span class="fam {selected.kind}"><Icon name={selected.kind} size={20} /></span>
 				<div class="titles">
@@ -462,7 +452,7 @@
 				<button
 					class="icon-btn"
 					type="button"
-					aria-label="Fermer"
+					aria-label={t('common.close')}
 					onclick={() => select(undefined)}
 				>
 					<Icon name="close" size={20} />
@@ -472,20 +462,20 @@
 				<ul class="facts">
 					{#each (selected.quests ? selected.quests.split(',') : []).slice(0, 3) as q (q)}
 						{@const ico = QUEST_ICON[q] ?? 'question'}
-						<li class={ico}><Icon name={ico} size={18} />{QUEST_TEXT[q] ?? q}</li>
+						<li class={ico}><Icon name={ico} size={18} />{questText(q)}</li>
 					{/each}
 					{#if selected.edited}
 						<li class="edited">
-							<Icon name="send" size={18} />Modifié sur ce téléphone, en attente d’envoi.
+							<Icon name="send" size={18} />{t('map.editedHere')}
 						</li>
 					{/if}
 				</ul>
 			{/if}
 			{#if deleting && signOf}
 				<div class="confirm">
-					<h3>Supprimer cette pancarte ?</h3>
+					<h3>{t('map.del.signTitle')}</h3>
 					<fieldset>
-						<legend>Motif (visible dans la description publique de l’envoi)</legend>
+						<legend>{t('map.del.reason')}</legend>
 						<label class="choice">
 							<input type="radio" name="motif" value="duplicate" bind:group={reason} />
 							{SIGN_REASONS.duplicate}
@@ -506,8 +496,8 @@
 							{SIGN_REASONS.gone}
 						</label>
 						<p id="gone-hint" class="hint">
-							{#if survey}Constaté sur place.{:else}<Icon name="lock" size={14} /> Sur place seulement
-								: la photo aérienne peut être ancienne.{/if}
+							{#if survey}{t('map.del.seenOnSite')}{:else}<Icon name="lock" size={14} />
+								{t('map.del.onSiteOnly')}{/if}
 						</p>
 					</fieldset>
 					<ul class="facts">
@@ -516,17 +506,19 @@
 						</li>
 						{#if replaced.length}
 							<li class="alert">
-								<Icon name="alert" size={18} />Vos saisies sur cette pancarte seront retirées : {replaced
-									.map((e) => `« ${e.summary} »`)
-									.join(', ')}.
+								<Icon name="alert" size={18} />{t('map.del.signReplaced', {
+									list: quoted(replaced)
+								})}
 							</li>
 						{/if}
 					</ul>
 					{#if deleteError}<p class="banner err" role="alert">{deleteError}</p>{/if}
 					<div class="actions">
-						<button class="btn-sm" type="button" onclick={() => (deleting = false)}>Annuler</button>
+						<button class="btn-sm" type="button" onclick={() => (deleting = false)}
+							>{t('common.cancel')}</button
+						>
 						<button class="btn-sm danger" type="button" onclick={confirmSignDelete}
-							><Icon name="trash" size={18} />Supprimer la pancarte</button
+							><Icon name="trash" size={18} />{t('map.del.signButton')}</button
 						>
 					</div>
 				</div>
@@ -534,14 +526,14 @@
 				{@const lost = shapeOf.nodes.filter((n) => !isLinked(n)).length}
 				{@const kept = shapeOf.nodes.length - lost}
 				<div class="confirm">
-					<h3>Supprimer ce quai ?</h3>
+					<h3>{t('map.del.platformTitle')}</h3>
 					{#if shapeOf.refused || shapeOf.deleteRefused}
 						<p class="banner err" role="alert">
 							<Icon name="alert" size={18} />{shapeOf.refused ?? shapeOf.deleteRefused}
 						</p>
 					{:else}
 						<fieldset>
-							<legend>Motif (visible dans la description publique de l’envoi)</legend>
+							<legend>{t('map.del.reason')}</legend>
 							<label class="choice">
 								<input type="radio" name="motif" value="duplicate" bind:group={reason} />
 								{REASONS.duplicate}
@@ -558,42 +550,42 @@
 								{REASONS.gone}
 							</label>
 							<p id="gone-hint" class="hint">
-								{#if survey}Constaté sur place.{:else}<Icon name="lock" size={14} /> Sur place seulement
-									: la photo aérienne peut être ancienne.{/if}
+								{#if survey}{t('map.del.seenOnSite')}{:else}<Icon name="lock" size={14} />
+									{t('map.del.onSiteOnly')}{/if}
 							</p>
 						</fieldset>
 						<ul class="facts">
 							{#if shapeOf.relations.length}
 								<li class="info">
-									<Icon name="info" size={18} />Il sera aussi {relationsPhrase(shapeOf.relations)}.
+									<Icon name="info" size={18} />{t('map.del.relations', {
+										phrase: relationsPhrase(shapeOf.relations)
+									})}
 								</li>
 							{/if}
 							<li class="info">
-								<Icon name="info" size={18} />{lost} point{lost > 1 ? 's' : ''} supprimé{lost > 1
-									? 's'
-									: ''}{kept
-									? ` ; ${kept} relié${kept > 1 ? 's' : ''} à d’autres objets, conservé${kept > 1 ? 's' : ''}`
-									: ''}.
+								<Icon name="info" size={18} />{t('map.del.points', { lost, kept })}
 							</li>
 							{#if replaced.length}
 								<li class="alert">
-									<Icon name="alert" size={18} />Vos saisies sur ce quai seront retirées : {replaced
-										.map((e) => `« ${e.summary} »`)
-										.join(', ')}.
+									<Icon name="alert" size={18} />{t('map.del.platformReplaced', {
+										list: quoted(replaced)
+									})}
 								</li>
 							{/if}
 						</ul>
 					{/if}
 					{#if deleteError}<p class="banner err" role="alert">{deleteError}</p>{/if}
 					<div class="actions">
-						<button class="btn-sm" type="button" onclick={() => (deleting = false)}>Annuler</button>
+						<button class="btn-sm" type="button" onclick={() => (deleting = false)}
+							>{t('common.cancel')}</button
+						>
 						{#if !shapeOf.refused && !shapeOf.deleteRefused}
 							<button class="btn-sm danger" type="button" onclick={confirmDelete}
-								><Icon name="trash" size={18} />Supprimer le quai</button
+								><Icon name="trash" size={18} />{t('map.del.platformButton')}</button
 							>
 						{:else}
 							<a class="btn-quiet osm" href={`${srv().web}/${selected.osm}`} rel="external">
-								Voir sur OpenStreetMap<Icon name="ext" size={16} />
+								{t('common.seeOnOsm')}<Icon name="ext" size={16} />
 							</a>
 						{/if}
 					</div>
@@ -601,20 +593,20 @@
 			{:else}
 				<div class="actions">
 					{#if isLocal(selected.osm)}
-						<a class="btn-sm" href={resolve('/contributions')}>Voir mes contributions</a>
+						<a class="btn-sm" href={resolve('/contributions')}>{t('map.seeContributions')}</a>
 					{:else if selected.away}
 						<!-- Voie qui ne longe aucun quai (lot 7d) : fiche simple, jamais supprimable. -->
 						<a class="btn-quiet osm" href={`${srv().web}/${selected.osm}`} rel="external">
-							Voir sur OpenStreetMap<Icon name="ext" size={16} />
+							{t('common.seeOnOsm')}<Icon name="ext" size={16} />
 						</a>
 					{:else}
 						<a
 							class="btn-sm renseigner"
 							href={resolve(`/gare/saisie?id=${encodeURIComponent(id)}&osm=${selected.osm}`)}
-							><Icon name="pen" size={18} />Renseigner</a
+							><Icon name="pen" size={18} />{t('map.fill')}</a
 						>
 						{#if selected.kind === 'voie'}
-							<a class="btn-quiet" href={placeHref}>Pancarte ici</a>
+							<a class="btn-quiet" href={placeHref}>{t('map.signHere')}</a>
 						{/if}
 						{#if selected.kind === 'quai'}
 							{#if shapeOf && !shapeOf.refused}
@@ -624,14 +616,14 @@
 										`/gare/forme?id=${encodeURIComponent(id)}&osm=${selected.osm}${viewQuery}`
 									)}
 									><Icon name="shape" size={18} />{shownClosed
-										? 'Modifier la forme'
-										: 'Redessiner en surface'}</a
+										? t('map.reshape')
+										: t('map.toArea')}</a
 								>
 							{/if}
 							<button
 								class="icon-btn more"
 								type="button"
-								aria-label="Plus d’actions"
+								aria-label={t('map.more')}
 								aria-expanded={more}
 								aria-controls="more-menu"
 								onclick={() => (more = !more)}><Icon name="more" size={20} /></button
@@ -640,14 +632,14 @@
 							<button
 								class="icon-btn more"
 								type="button"
-								aria-label="Plus d’actions"
+								aria-label={t('map.more')}
 								aria-expanded={more}
 								aria-controls="more-menu"
 								onclick={() => (more = !more)}><Icon name="more" size={20} /></button
 							>
 						{:else}
 							<a class="btn-quiet osm" href={`${srv().web}/${selected.osm}`} rel="external">
-								Voir sur OpenStreetMap<Icon name="ext" size={16} />
+								{t('common.seeOnOsm')}<Icon name="ext" size={16} />
 							</a>
 						{/if}
 					{/if}
@@ -657,13 +649,13 @@
 						{#if signOf}
 							<li>
 								<button class="btn-quiet danger" type="button" onclick={() => (deleting = true)}
-									><Icon name="trash" size={18} />Supprimer cette pancarte…</button
+									><Icon name="trash" size={18} />{t('map.deleteSign')}</button
 								>
 							</li>
 						{/if}
 						<li>
 							<a class="btn-quiet osm" href={`${srv().web}/${selected.osm}`} rel="external">
-								Voir sur OpenStreetMap<Icon name="ext" size={16} />
+								{t('common.seeOnOsm')}<Icon name="ext" size={16} />
 							</a>
 						</li>
 					</ul>
@@ -673,20 +665,18 @@
 						{#if shapeOf?.refused || !shapeOf}
 							<li class="note">
 								<Icon name="info" size={18} />{shapeOf?.refused ??
-									(selected.osm.startsWith('way/-')
-										? 'Quai dessiné sur ce téléphone : pour changer sa forme, retirez-le dans vos contributions et redessinez-le.'
-										: 'Quai complexe : à modifier avec un éditeur comme iD ou JOSM.')}
+									(selected.osm.startsWith('way/-') ? t('map.drawnHere') : t('shape.complex'))}
 							</li>
 						{:else}
 							<li>
 								<button class="btn-quiet danger" type="button" onclick={() => (deleting = true)}
-									><Icon name="trash" size={18} />Supprimer ce quai…</button
+									><Icon name="trash" size={18} />{t('map.deletePlatform')}</button
 								>
 							</li>
 						{/if}
 						<li>
 							<a class="btn-quiet osm" href={`${srv().web}/${selected.osm}`} rel="external">
-								Voir sur OpenStreetMap<Icon name="ext" size={16} />
+								{t('common.seeOnOsm')}<Icon name="ext" size={16} />
 							</a>
 						</li>
 					</ul>

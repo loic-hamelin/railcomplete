@@ -4,6 +4,7 @@
 import { asset } from '$app/paths';
 import { countryConfig, enabledCountries, type CountryCode } from './core/countries.js';
 import type { BBox } from './core/osm.js';
+import { fmtDistance, fmtNumber, t } from './i18n/t.js';
 
 export interface Station {
 	/** Identifiant OSM (« n123 ») : unique dans le monde, il ne porte pas le pays. */
@@ -39,7 +40,7 @@ export function loadStations(code: CountryCode): Promise<StationIndex> {
 		// Fichier publié par la CI pour chaque pays activé (vérifié par countries.test.ts).
 		p = fetch(asset(country.index.file as Parameters<typeof asset>[0]))
 			.then((r) => {
-				if (!r.ok) throw new Error(`Index des gares indisponible (${r.status})`);
+				if (!r.ok) throw new Error(t('error.index', { status: r.status }));
 				return r.json() as Promise<{ v: string; s: Row[] }>;
 			})
 			.then(({ v, s }) => ({
@@ -142,8 +143,11 @@ export function nearby(stations: Station[], lat: number, lon: number, limit = 10
 		.slice(0, limit);
 }
 
+/** Distance d'une gare : « 120 m », « 1,2 km » (« 1.2 km » en anglais), selon la langue. */
 export function formatDistance(m: number) {
-	return m < 1000 ? `${Math.round(m / 10) * 10} m` : `${(m / 1000).toFixed(m < 10_000 ? 1 : 0)} km`;
+	if (m < 1000) return fmtDistance(Math.round(m / 10) * 10);
+	const digits = m < 10_000 ? 1 : 0;
+	return `${fmtNumber(m / 1000, { minimumFractionDigits: digits, maximumFractionDigits: digits })} km`;
 }
 
 /** L'utilisateur est « sur place » si sa position (précision ≤ 100 m) tombe dans l'emprise. */

@@ -7,6 +7,7 @@
 	import Icon from '#lib/Icon.svelte';
 	import { countryConfig } from '#lib/core/countries.js';
 	import {
+		bearingCode,
 		bearingName,
 		cleanTrackRef,
 		joinRefs,
@@ -23,6 +24,8 @@
 	import { canSurvey, checkOnSite, where } from '#lib/onsite.svelte.js';
 	import { stationView } from '#lib/view.js';
 	import { onMount, untrack } from 'svelte';
+	import Rich from '#lib/i18n/Rich.svelte';
+	import { t } from '#lib/i18n/t.js';
 
 	let mounted = $state(false);
 	onMount(() => {
@@ -77,10 +80,10 @@
 		kind === 'quai'
 			? platformTitle(el?.tags ?? {})
 			: kind === 'voie'
-				? `Voie ${el?.tags?.['railway:track_ref'] ?? ''}`.trim()
+				? t('track.named', { ref: el?.tags?.['railway:track_ref'] ?? '' }).trim()
 				: kind === 'pancarte'
-					? 'Pancarte d’arrêt'
-					: 'Fiche'
+					? t('map.legend.pancarte')
+					: t('input.sheet')
 	);
 	const back = $derived(
 		resolve(`/gare/carte?id=${encodeURIComponent(id)}${osm ? `&focus=${osm}` : ''}`)
@@ -95,14 +98,14 @@
 		// Préremplissage, une seule fois par objet.
 		if (!el || !view || initFor === osm) return;
 		initFor = osm;
-		const t = el.tags ?? {};
+		const tg = el.tags ?? {};
 		if (kind === 'quai') {
 			const info = view.analysis.platforms.find((p) => `${p.ref.type}/${p.ref.id}` === osm);
 			const fromTracks = (info?.tracks ?? []).flatMap((x) => [...splitValues(x.trackRef)]);
-			const letters = /^[A-Za-z]{1,3}(;[A-Za-z]{1,3})*$/.test(t.ref ?? '');
-			refs = letters || !t.ref ? [...new Set(fromTracks)] : [...splitValues(t.ref)];
-			localRef = t.local_ref ?? (letters ? (t.ref ?? '').replaceAll(';', '-') : '');
-		} else if (kind === 'voie') trackRef = t['railway:track_ref'] ?? '';
+			const letters = /^[A-Za-z]{1,3}(;[A-Za-z]{1,3})*$/.test(tg.ref ?? '');
+			refs = letters || !tg.ref ? [...new Set(fromTracks)] : [...splitValues(tg.ref)];
+			localRef = tg.local_ref ?? (letters ? (tg.ref ?? '').replaceAll(';', '-') : '');
+		} else if (kind === 'voie') trackRef = tg['railway:track_ref'] ?? '';
 	});
 	function addRef() {
 		const v = cleanTrackRef(newRef);
@@ -140,10 +143,12 @@
 	const dirName = (backward: boolean) =>
 		bearing === undefined
 			? backward
-				? 'Sens inverse de la voie'
-				: 'Sens de la voie'
-			: towards(bearingName(bearing + (backward ? 180 : 0)));
-	const towards = (d: string) => (d === 'est' || d === 'ouest' ? `Vers l’${d}` : `Vers le ${d}`);
+				? t('input.dir.backward')
+				: t('input.dir.forward')
+			: t('input.dir.towards', {
+					dir: bearingCode(bearing + (backward ? 180 : 0)),
+					name: bearingName(bearing + (backward ? 180 : 0))
+				});
 
 	// ---------------- Enregistrement ----------------
 	let error = $state('');
@@ -166,11 +171,13 @@
 				version: orig?.version,
 				base: Object.fromEntries(Object.keys(tags).map((k) => [k, orig?.tags?.[k] ?? null])),
 				tags,
-				summary
+				summary,
+				// Famille de l'objet (le résumé est rédigé dans la langue de l'interface).
+				...(kind === 'quai' || kind === 'voie' ? { family: kind } : {})
 			});
 			await goto(back);
 		} catch {
-			error = "L'enregistrement sur ce téléphone a échoué. Réessayez.";
+			error = t('common.saveFailed');
 		} finally {
 			saving = false;
 		}
@@ -179,44 +186,42 @@
 	function saveQuai() {
 		error = '';
 		const ref = joinRefs(refs);
-		if (!ref) return (error = 'Indiquez au moins un numéro de voie le long du quai.');
+		if (!ref) return (error = t('input.platform.needRef'));
 		const lr = localRef.trim().toUpperCase().slice(0, 8);
-		const t = el?.tags ?? {};
+		const cur = el?.tags ?? {};
 		const tags: Record<string, string | null> = {
 			ref,
 			local_ref: lr || null,
 			check_date: today()
 		};
-		if (!t.public_transport) tags.public_transport = 'platform';
-		if (!t.railway) tags.railway = 'platform';
-		if (!t.train) tags.train = 'yes';
+		if (!cur.public_transport) tags.public_transport = 'platform';
+		if (!cur.railway) tags.railway = 'platform';
+		if (!cur.train) tags.train = 'yes';
 		save(
 			tags,
 			lr
-				? `Quai ${lr} : voies ${ref.replaceAll(';', ', ')}`
-				: `Quai : voies ${ref.replaceAll(';', ', ')}`
+				? t('input.platform.summaryNamed', { name: lr, refs: ref.replaceAll(';', ', ') })
+				: t('input.platform.summary', { refs: ref.replaceAll(';', ', ') })
 		);
 	}
 
 	function saveVoie() {
 		error = '';
-		if (changes)
-			return (error =
-				'Ce tronçon devra être découpé par un cartographe. Le signalement (Note OSM) arrive avec l’envoi, au lot 3.');
+		if (changes) return (error = t('input.track.split'));
 		const v = cleanTrackRef(trackRef);
-		if (!v) return (error = 'Indiquez le numéro ou la lettre affichés en gare.');
-		save({ 'railway:track_ref': v, check_date: today() }, `Voie ${v}`);
+		if (!v) return (error = t('input.track.needRef'));
+		save({ 'railway:track_ref': v, check_date: today() }, t('track.named', { ref: v }));
 	}
 
 	function verify() {
-		const t = el?.tags ?? {};
+		const tags = el?.tags ?? {};
 		const what =
 			kind === 'quai'
-				? platformTitle(t)
+				? platformTitle(tags)
 				: kind === 'voie'
-					? `Voie ${t['railway:track_ref'] ?? ''}`.trim()
-					: 'Pancarte';
-		save({ check_date: today() }, `${what} vérifié${kind === 'pancarte' ? 'e' : ''}`);
+					? t('track.named', { ref: tags['railway:track_ref'] ?? '' }).trim()
+					: '';
+		save({ check_date: today() }, t('input.verified', { kind: kind ?? '', what }));
 	}
 
 	async function saveSign() {
@@ -226,7 +231,7 @@
 		if (msg) return (error = msg);
 		const input = $state.snapshot(sign) as SignInputBase;
 		const tags = { ...signs.toTags(input), check_date: today() };
-		const summary = `Pancarte « ${signs.summary(input)} »`;
+		const summary = t('sign.named', { label: signs.summary(input) });
 		if (placed) {
 			saving = true;
 			try {
@@ -252,7 +257,7 @@
 				});
 				await goto(resolve(`/gare/carte?id=${encodeURIComponent(id)}&focus=node/${tempId}`));
 			} catch {
-				error = "L'enregistrement sur ce téléphone a échoué. Réessayez.";
+				error = t('common.saveFailed');
 			} finally {
 				saving = false;
 			}
@@ -266,19 +271,24 @@
 		save({ ...replace, ...tags }, summary);
 	}
 
-	const choose = (t: string) => {
+	const choose = (type: string) => {
 		const s = sign as Record<string, unknown>;
 		for (const k of Object.keys(s)) if (k !== 'direction' && k !== 'position') delete s[k];
-		sign.type = t;
+		sign.type = type;
 	};
+	const POSITIONS = $derived([
+		['left', t('input.sign.left')],
+		['right', t('input.sign.right')],
+		['in_track', t('input.sign.inTrack')],
+		['ground', t('input.sign.ground')]
+	]);
 </script>
 
-<svelte:head><title>Fiche — stationcomplete</title></svelte:head>
+<svelte:head><title>{t('input.title')}</title></svelte:head>
 
 <div class="screen">
 	<header class="head">
-		<a class="icon-btn" href={back} aria-label="Fermer sans enregistrer"
-			><Icon name="close" size={22} /></a
+		<a class="icon-btn" href={back} aria-label={t('input.close')}><Icon name="close" size={22} /></a
 		>
 		<div class="h">
 			<h1>
@@ -290,37 +300,35 @@
 
 	<main>
 		{#if !mounted || st.status === 'loading' || !pending.loaded}
-			<p class="note" role="status">Chargement…</p>
+			<p class="note" role="status">{t('common.loading')}</p>
 		{:else if st.status === 'error'}
 			<p class="note err" role="alert">{st.message}</p>
 		{:else if !kind}
-			<p class="note">Cet objet n’existe plus dans les données de la gare.</p>
+			<p class="note">{t('input.gone')}</p>
 		{:else}
 			{#if !survey && !(kind === 'pancarte' && !placed && !correcting)}
 				<div class="banner warn lock" role="note">
 					<Icon name="lock" size={18} />
 					<div>
-						<p>
-							Les numéros et les pancartes se relèvent <strong>sur place</strong>, en restant
-							derrière la ligne de sécurité.
-						</p>
+						<p><Rich text={t('input.onSite.text')} /></p>
 						<button
 							class="btn-sm"
 							type="button"
 							disabled={where.status === 'checking'}
 							onclick={() => ready && checkOnSite(ready.station)}
 						>
-							{where.status === 'checking' ? 'Localisation…' : 'Je suis dans la gare'}
+							{where.status === 'checking' ? t('stations.locating') : t('input.onSite.button')}
 						</button>
 						<p class="small">
-							Pour essayer depuis chez vous : <a href={resolve('/reglages')}
-								>mode démonstration ou serveur de test</a
-							>.
+							<Rich
+								text={t('input.onSite.try')}
+								links={{ settings: { href: resolve('/reglages') } }}
+							/>
 						</p>
 						{#if where.status === 'away'}<p class="small">
-								Votre position est hors de la gare. Vous pouvez seulement vérifier.
+								{t('input.onSite.away')}
 							</p>{:else if where.status === 'denied'}<p class="small">
-								Position indisponible : autorisez la localisation.
+								{t('input.onSite.denied')}
 							</p>{/if}
 					</div>
 				</div>
@@ -328,25 +336,25 @@
 
 			{#if kind === 'quai'}
 				<fieldset disabled={!survey}>
-					<legend>Numéros des voies le long de ce quai</legend>
+					<legend>{t('input.platform.refs')}</legend>
 					<div class="tokens">
 						{#each refs as r (r)}
 							<span class="token">
 								{r}
 								<button
 									type="button"
-									aria-label={`Retirer la voie ${r}`}
+									aria-label={t('input.platform.removeRef', { ref: r })}
 									onclick={() => (refs = refs.filter((x) => x !== r))}
 									><Icon name="close" size={16} /></button
 								>
 							</span>
 						{/each}
 						<label class="add">
-							<span class="visually-hidden">Ajouter un numéro de voie</span>
+							<span class="visually-hidden">{t('input.platform.addRefLabel')}</span>
 							<input
 								class="input"
 								bind:value={newRef}
-								placeholder="Ajouter"
+								placeholder={t('input.platform.add')}
 								inputmode="text"
 								autocapitalize="characters"
 								onkeydown={(e) => e.key === 'Enter' && (e.preventDefault(), addRef())}
@@ -354,18 +362,18 @@
 							/>
 						</label>
 					</div>
-					<p class="hint">Les numéros affichés au-dessus des voies, pas la lettre du quai.</p>
+					<p class="hint">{t('input.platform.refsHint')}</p>
 				</fieldset>
 				<fieldset disabled={!survey}>
 					<legend
-						>Ce quai a-t-il une lettre ou un nom ? <span class="opt">(facultatif)</span></legend
+						>{t('input.platform.letter')} <span class="opt">{t('input.optional')}</span></legend
 					>
 					<label class="field">
-						<span class="visually-hidden">Lettre ou nom du quai</span>
+						<span class="visually-hidden">{t('input.platform.letterLabel')}</span>
 						<input
 							class="input"
 							bind:value={localRef}
-							placeholder="Ex. A"
+							placeholder={t('input.platform.letterPlaceholder')}
 							autocapitalize="characters"
 							maxlength="8"
 						/>
@@ -373,27 +381,27 @@
 				</fieldset>
 			{:else if kind === 'voie'}
 				<fieldset disabled={!survey}>
-					<legend>Numéro ou lettre affichés en gare</legend>
+					<legend>{t('input.track.ref')}</legend>
 					<label class="field big">
-						<span class="visually-hidden">Numéro de la voie</span>
+						<span class="visually-hidden">{t('input.track.refLabel')}</span>
 						<input
 							class="input"
 							bind:value={trackRef}
-							placeholder="Ex. 3"
+							placeholder={t('input.track.refPlaceholder')}
 							autocapitalize="characters"
 							maxlength="12"
 						/>
 					</label>
-					<p class="hint">« Voie » ou « V » sont retirés automatiquement.</p>
+					<p class="hint">{t('input.track.refHint')}</p>
 				</fieldset>
 				<fieldset disabled={!survey}>
-					<legend>Le numéro change-t-il le long de ce tronçon ?</legend>
+					<legend>{t('input.track.changes')}</legend>
 					<div class="seg">
 						<button type="button" aria-pressed={!changes} onclick={() => (changes = false)}
-							>Non</button
+							>{t('common.no')}</button
 						>
 						<button type="button" aria-pressed={changes} onclick={() => (changes = true)}
-							>Oui</button
+							>{t('common.yes')}</button
 						>
 					</div>
 				</fieldset>
@@ -401,15 +409,15 @@
 				{#if !placed && !correcting}
 					<div class="banner">
 						<p>
-							<strong>{el?.tags?.['railway:signal:stop:caption'] ?? 'Pancarte existante'}</strong>
+							<strong
+								>{el?.tags?.['railway:signal:stop:caption'] ?? t('input.sign.existing')}</strong
+							>
 						</p>
-						<p class="small">
-							Vérifiez sur place qu’elle existe et qu’elle correspond, ou corrigez-la.
-						</p>
+						<p class="small">{t('input.sign.check')}</p>
 					</div>
 				{:else}
 					<fieldset>
-						<legend>Quel panneau voyez-vous ?</legend>
+						<legend>{t('input.sign.which')}</legend>
 						<div class="grid">
 							{#each signs?.types ?? [] as ty (ty.t)}
 								{#if ty.disabled}
@@ -434,7 +442,7 @@
 					{#if signs?.id === 'fr'}
 						{#if fr.type === 'nV'}
 							<fieldset>
-								<legend>Nombre de véhicules écrit sur le panneau</legend>
+								<legend>{t('input.sign.vehicles')}</legend>
 								<div class="chips">
 									{#each ['3', '4', '5', '6', '8', '10'] as v (v)}
 										<button
@@ -444,11 +452,11 @@
 										>
 									{/each}
 									<label class="mini">
-										<span class="visually-hidden">Autre nombre</span>
+										<span class="visually-hidden">{t('input.sign.otherNumber')}</span>
 										<input
 											class="input"
 											inputmode="numeric"
-											placeholder="Autre"
+											placeholder={t('sign.type.otherShort')}
 											maxlength="2"
 											bind:value={fr.number}
 										/>
@@ -457,7 +465,7 @@
 							</fieldset>
 						{:else if fr.type === 'L'}
 							<fieldset>
-								<legend>Longueur écrite sur le panneau (m)</legend>
+								<legend>{t('input.sign.length')}</legend>
 								<div class="chips">
 									{#each ['110', '160', '220', '300', '400'] as v (v)}
 										<button
@@ -470,7 +478,7 @@
 							</fieldset>
 						{:else if fr.type === 'Z57' || fr.type === 'Z50' || fr.type === 'TGV'}
 							<fieldset>
-								<legend>Texte sous « {fr.type} »</legend>
+								<legend>{t('input.sign.under', { type: fr.type })}</legend>
 								<div class="chips">
 									{#if fr.type === 'Z57'}
 										{#each [['1', 'single_unit', '1'], ['1-2', undefined, '1;2'], ['2', 'multiple_unit', '2'], ['2-3', 'multiple_unit', '2;3'], ['3', 'multiple_unit', '3']] as [lab, unit, num] (lab)}
@@ -509,14 +517,14 @@
 							</fieldset>
 						{:else if fr.type === 'other'}
 							<fieldset>
-								<legend>Texte de la pancarte</legend>
+								<legend>{t('input.sign.caption')}</legend>
 								<label class="field">
-									<span class="visually-hidden">Texte lu sur la pancarte</span>
+									<span class="visually-hidden">{t('input.sign.captionLabel')}</span>
 									<input
 										class="input"
 										bind:value={fr.caption}
 										maxlength="40"
-										placeholder="Recopiez le texte"
+										placeholder={t('input.sign.captionPlaceholder')}
 									/>
 								</label>
 							</fieldset>
@@ -524,7 +532,7 @@
 					{/if}
 
 					<fieldset>
-						<legend>Les trains qui lisent ce panneau vont…</legend>
+						<legend>{t('input.sign.direction')}</legend>
 						<div class="seg">
 							<button
 								type="button"
@@ -539,9 +547,9 @@
 						</div>
 					</fieldset>
 					<fieldset>
-						<legend>Vu du conducteur, le panneau est…</legend>
+						<legend>{t('input.sign.position')}</legend>
 						<div class="seg four">
-							{#each [['left', 'À gauche'], ['right', 'À droite'], ['in_track', 'Entre les rails'], ['ground', 'Au sol']] as [v, lab] (v)}
+							{#each POSITIONS as [v, lab] (v)}
 								<button
 									type="button"
 									aria-pressed={sign.position === v}
@@ -550,10 +558,7 @@
 							{/each}
 						</div>
 					</fieldset>
-					<p class="hint">
-						Une plaque avec une seule lettre (A, B…) n’est pas une pancarte d’arrêt : c’est un
-						repère de quai.
-					</p>
+					<p class="hint">{t('input.sign.letterHint')}</p>
 				{/if}
 			{/if}
 
@@ -565,15 +570,15 @@
 		<footer>
 			{#if kind === 'pancarte' && !placed && !correcting}
 				<button class="btn btn-secondary" type="button" disabled={saving} onclick={verify}
-					>C’est correct</button
+					>{t('input.correct')}</button
 				>
 				<button class="btn" type="button" disabled={!survey} onclick={() => (correcting = true)}
-					>Corriger</button
+					>{t('input.fix')}</button
 				>
 			{:else}
 				{#if !placed && (el?.tags?.ref || el?.tags?.['railway:track_ref'])}
 					<button class="btn btn-secondary" type="button" disabled={saving} onclick={verify}
-						>C’est correct</button
+						>{t('input.correct')}</button
 					>
 				{/if}
 				<button
@@ -582,7 +587,7 @@
 					disabled={saving || !survey}
 					onclick={kind === 'quai' ? saveQuai : kind === 'voie' ? saveVoie : saveSign}
 				>
-					Enregistrer
+					{t('common.save')}
 				</button>
 			{/if}
 		</footer>

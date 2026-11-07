@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { t } from './i18n/t.js';
 </script>
 
-<a href={resolve('/')} class="logo" aria-label="stationcomplete, accueil">
+<a href={resolve('/')} class="logo" aria-label={t('common.logoLabel')}>
 	<svg
 		width="24"
 		height="24"

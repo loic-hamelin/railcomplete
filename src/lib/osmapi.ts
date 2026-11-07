@@ -3,6 +3,7 @@
 
 import type { BBox, OsmElement } from './core/osm.js';
 import { srv } from './osmserver.svelte.js';
+import { t } from './i18n/t.js';
 
 /** Racine de l'API du serveur choisi (vraie carte ou serveur de test). */
 export const osmApi = () => `${srv().api}/api/0.6`;
@@ -52,12 +53,8 @@ async function fetchBox(b: BBox, signal?: AbortSignal): Promise<OsmElement[]> {
 		];
 		return (await Promise.all(parts.map((p) => fetchBox(p, signal)))).flat();
 	}
-	if (r.status === 509 || r.status === 429)
-		throw new OsmApiError(
-			r.status,
-			'Le serveur OpenStreetMap est très sollicité. Réessayez dans une minute.'
-		);
-	if (!r.ok) throw new OsmApiError(r.status, `Erreur du serveur OpenStreetMap (${r.status}).`);
+	if (r.status === 509 || r.status === 429) throw new OsmApiError(r.status, t('error.osmBusy'));
+	if (!r.ok) throw new OsmApiError(r.status, t('error.osmServer', { status: r.status }));
 	return (await r.json()).elements as OsmElement[];
 }
 

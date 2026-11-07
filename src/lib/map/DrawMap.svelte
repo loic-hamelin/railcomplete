@@ -16,7 +16,8 @@
 	import Reticle from './Reticle.svelte';
 	import {
 		MAP,
-		OSM_ATTRIBUTION,
+		mapLocale,
+		osmAttribution,
 		QUAI_W,
 		UNDER_CASING,
 		UNDER_DASH,
@@ -28,6 +29,7 @@
 		plus
 	} from './style.js';
 	import { metersPerPixel } from '#lib/core/draw.js';
+	import { t } from '#lib/i18n/t.js';
 	import { onMount } from 'svelte';
 
 	let {
@@ -239,8 +241,8 @@
 					vertexLabel
 						? vertexLabel(i)
 						: closing
-							? 'Point 1 : fermer le quai'
-							: `Point ${i + 1} : le déplacer`
+							? t('mapA11y.closeRing')
+							: t('mapA11y.movePoint', { n: i + 1 })
 				);
 				if (i === selected) el.setAttribute('aria-pressed', 'true');
 				el.addEventListener('click', (e) => {
@@ -292,7 +294,7 @@
 				el.style.width = el.style.height = `${2 * r}px`;
 				el.setAttribute(
 					'aria-label',
-					`Ajouter un point entre ${i + 1} et ${((i + 1) % points.length) + 1}`
+					t('mapA11y.midpoint', { a: i + 1, b: ((i + 1) % points.length) + 1 })
 				);
 				el.append(document.createElement('span'));
 				el.addEventListener('click', (e) => {
@@ -377,6 +379,7 @@
 					minZoom: 15,
 					pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
 					attributionControl: { compact: true },
+					locale: mapLocale(),
 					dragRotate: false,
 					pitchWithRotate: false,
 					touchPitch: false,
@@ -400,7 +403,7 @@
 										properties: { k: 'quai', under: !!platformsUnder[i] }
 									}))
 								]),
-								attribution: OSM_ATTRIBUTION
+								attribution: osmAttribution()
 							},
 							trace: { type: 'geojson', data: drawing() }
 						},
@@ -595,7 +598,7 @@
 					}
 				});
 			} catch (e) {
-				failed = 'La carte ne peut pas s’afficher sur cet appareil (WebGL indisponible).';
+				failed = t('mapA11y.noWebgl');
 				console.warn('[stationcomplete] carte :', e);
 			}
 		})();
@@ -621,12 +624,7 @@
 </script>
 
 <div class="wrap">
-	<div
-		class="map"
-		bind:this={container}
-		role="region"
-		aria-label="Photo aérienne, la croix marque le prochain point du quai"
-	></div>
+	<div class="map" bind:this={container} role="region" aria-label={t('mapA11y.drawMap')}></div>
 	<Reticle {snapped} />
 	{#if failed}<p class="failed" role="alert">{failed}</p>{/if}
 </div>

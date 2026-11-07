@@ -3,6 +3,7 @@
 // pendant le pilote, /config.json le réserve aux testeurs (core/remote.ts).
 
 import { readPref, writePref } from './cache.js';
+import { t } from './i18n/t.js';
 
 export type ServerId = 'prod' | 'dev';
 
@@ -31,7 +32,10 @@ export const SERVERS: Record<ServerId, OsmServer> = {
 	},
 	dev: {
 		id: 'dev',
-		label: 'Serveur de test OSM',
+		// Libellé traduit lu à l'affichage (getter) : il suit la langue de l'interface.
+		get label() {
+			return t('server.dev');
+		},
 		web: 'https://master.apis.dev.openstreetmap.org',
 		api: 'https://master.apis.dev.openstreetmap.org',
 		// Application « stationcomplete (test) » déclarée par Loïc sur le serveur de test (public).

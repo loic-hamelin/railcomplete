@@ -3,73 +3,78 @@
 	import Logo from '#lib/Logo.svelte';
 	import { CONTACT_EMAIL, REPO_URL } from '#lib/config.js';
 	import { photoCredits } from '#lib/core/countries.js';
+	import Rich from '#lib/i18n/Rich.svelte';
+	import { t } from '#lib/i18n/t.js';
 </script>
 
 <svelte:head>
-	<title>À propos — stationcomplete</title>
+	<title>{t('about.title')}</title>
 </svelte:head>
 
 <main class="page">
 	<header><Logo /></header>
 
-	<h1>À propos de stationcomplete</h1>
+	<h1>{t('about.heading')}</h1>
 
 	<section>
-		<h2>Le projet</h2>
+		<h2>{t('about.project.title')}</h2>
 		<p>
-			stationcomplete aide chacun à compléter les données des gares françaises dans
-			<a href="https://www.openstreetmap.org/">OpenStreetMap</a> : numéros des quais, numéros des
-			voies et pancartes d'arrêt des trains. Ces données libres servent à tous, notamment aux outils
-			de conception ferroviaire comme <a href="https://osrd.fr/">OSRD</a>.
+			<Rich
+				text={t('about.project.text')}
+				links={{
+					osm: { href: 'https://www.openstreetmap.org/' },
+					osrd: { href: 'https://osrd.fr/' }
+				}}
+			/>
 		</p>
 	</section>
 
 	<section>
-		<h2>Sécurité</h2>
-		<p>
-			Restez toujours derrière la ligne de sécurité. Tout se fait depuis le quai ou à distance, sur
-			la photo aérienne. Ne descendez jamais sur les voies.
-		</p>
+		<h2>{t('about.safety.title')}</h2>
+		<p>{t('about.safety.text')}</p>
 	</section>
 
 	<section>
-		<h2>Données et licences</h2>
+		<h2>{t('about.data.title')}</h2>
 		<ul>
 			<li>
-				Les contributions sont publiées dans OpenStreetMap sous votre pseudo, sous licence
-				<a href="https://opendatacommons.org/licenses/odbl/">ODbL</a>. © les contributeurs
-				OpenStreetMap.
+				<Rich
+					text={t('about.data.osm')}
+					links={{ odbl: { href: 'https://opendatacommons.org/licenses/odbl/' } }}
+				/>
 			</li>
 			{#each photoCredits() as c (c.product)}
-				<li>Photographies aériennes : {c.product}, sous {c.licence}.</li>
+				<li>{t('about.data.photos', { product: c.product, licence: c.licence })}</li>
 			{/each}
 			<li>
-				Le code de stationcomplete est libre, sous licence GPL-3.0 ou ultérieure :
-				<a href={REPO_URL} rel="external">voir le code source</a>.
+				<Rich text={t('about.data.code')} links={{ code: { href: REPO_URL, rel: 'external' } }} />
 			</li>
 		</ul>
 	</section>
 
 	<section>
-		<h2>Vie privée</h2>
+		<h2>{t('about.privacy.title')}</h2>
 		<p>
-			Ce site ne dépose aucun cookie et n'utilise aucun outil de mesure d'audience. Vos saisies
-			restent sur votre téléphone jusqu'à leur envoi dans OpenStreetMap.
-			<a href={resolve('/donnees-personnelles')}>Données personnelles</a> ·
-			<a href={resolve('/mentions-legales')}>Mentions légales</a>
+			{t('about.privacy.text')}
+			<a href={resolve('/donnees-personnelles')}>{t('legal.dataLink')}</a> ·
+			<a href={resolve('/mentions-legales')}>{t('legal.noticeLink')}</a>
 		</p>
 	</section>
 
 	<section>
-		<h2>Contact</h2>
+		<h2>{t('about.contact.title')}</h2>
 		<p>
-			Une erreur, une idée, une gare qui pose problème ? Écrivez à
-			<a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> ou ouvrez un ticket sur
-			<a href={`${REPO_URL}/issues`} rel="external">GitHub</a>.
+			<Rich
+				text={t('about.contact.text', { email: CONTACT_EMAIL })}
+				links={{
+					mail: { href: `mailto:${CONTACT_EMAIL}` },
+					issues: { href: `${REPO_URL}/issues`, rel: 'external' }
+				}}
+			/>
 		</p>
 	</section>
 
-	<p><a href={resolve('/')}>← Retour à l'accueil</a></p>
+	<p><a href={resolve('/')}>{t('about.back')}</a></p>
 </main>
 
 <style>

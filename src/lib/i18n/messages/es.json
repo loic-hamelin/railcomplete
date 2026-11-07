@@ -1,0 +1,965 @@
+{
+	"common": {
+		"and": "y",
+		"closeMessage": "Cerrar el mensaje",
+		"logoLabel": "stationcomplete, inicio",
+		"cancel": "Cancelar",
+		"remove": "Eliminar",
+		"loading": "Cargando…",
+		"confirm": "Confirmar",
+		"retry": "Reintentar",
+		"osmAttribution": "© colaboradores de OpenStreetMap, ODbL",
+		"close": "Cerrar",
+		"saveFailed": "No se ha podido guardar en este teléfono. Inténtalo de nuevo.",
+		"seeOnOsm": "Ver en OpenStreetMap",
+		"quoted": "«{text}»",
+		"no": "No",
+		"yes": "Sí",
+		"save": "Guardar",
+		"zoomIn": "Acercar",
+		"zoomOut": "Alejar"
+	},
+	"format": {
+		"mb": "{n} MB"
+	},
+	"platform": {
+		"named": "Andén {ref}",
+		"noRef": "Andén sin número",
+		"plain": "Andén",
+		"tracks": "Andén vías {refs}"
+	},
+	"track": {
+		"named": "Vía {ref}",
+		"noRef": "Vía sin número"
+	},
+	"sign": {
+		"named": "Cartel de parada «{label}»",
+		"label": {
+			"stop": "Parada",
+			"all": "Todos"
+		},
+		"check": {
+			"type": "Elige el cartel que ves.",
+			"vehicles": "Indica el número de vehículos escrito en el cartel.",
+			"length": "Indica la longitud escrita en el cartel (en metros).",
+			"caption": "Copia el texto del cartel.",
+			"direction": "Indica el sentido de los trenes a los que se dirige este cartel.",
+			"position": "Indica a qué lado está el cartel."
+		},
+		"type": {
+			"long": "Tren largo",
+			"short": "Tren corto",
+			"all": "Todos los trenes",
+			"other": "Otro / ilegible",
+			"otherShort": "Otro",
+			"usum": "US / UM (próximamente)",
+			"usumPending": "A la espera de que se apruebe el esquema de etiquetado de OSM"
+		},
+		"reason": {
+			"gone": "Ya no existe",
+			"duplicate": "Duplicado",
+			"misplaced": "Mal colocado"
+		},
+		"reasonInline": {
+			"gone": "ya no existe",
+			"duplicate": "duplicado",
+			"misplaced": "mal colocado"
+		}
+	},
+	"feature": {
+		"platformLettered": "{length} · letra en «ref»: se esperan los números de las vías",
+		"platformTracks": "Vías {refs} · {length}",
+		"platformNoRef": "{length} · números de las vías por anotar in situ",
+		"trackRef": "Número de vía indicado",
+		"trackNoRef": "Número indicado en la estación, por anotar in situ",
+		"trackAway": "No discurre junto a ningún andén cartografiado",
+		"signLegacy": "Formato de etiquetas antiguo, por confirmar in situ",
+		"signDirection": "Sentido indicado",
+		"signNoDirection": "Sentido de los trenes por anotar in situ"
+	},
+	"quest": {
+		"q0": {
+			"title": "Ningún andén cartografiado",
+			"subtitle": "Podrás dibujarlo sobre la foto aérea"
+		},
+		"q1": {
+			"title": "{count, plural, one {# andén sin número} other {# andenes sin número}}"
+		},
+		"q2": {
+			"title": "{count, plural, one {# vía de andén sin número} other {# vías de andén sin número}}"
+		},
+		"q3": {
+			"title": "{count, plural, one {# andén con números por verificar} other {# andenes con números por verificar}}",
+			"subtitle": "Los números del andén y los de las vías no coinciden"
+		},
+		"q4": {
+			"title": "{count, plural, one {# lado de andén sin cartel de parada} other {# lados de andén sin cartel de parada}}"
+		},
+		"q5": {
+			"title": "{count, plural, one {# cartel de parada por completar} other {# carteles de parada por completar}}"
+		},
+		"q6": {
+			"title": "{count, plural, one {# objeto por verificar} other {# objetos por verificar}}",
+			"subtitle": "También se puede hacer a distancia"
+		},
+		"q7": {
+			"title": "{count, plural, one {# número de vía mal colocado} other {# números de vía mal colocados}}",
+			"duplicate": "Dos vías tienen el número {ref}",
+			"subtitle": "Verificar con prioridad"
+		}
+	},
+	"signRemoval": {
+		"why": {
+			"shared": "punto compartido con otro objeto (otra vía, un desvío…)",
+			"repeated": "punto repetido en la vía",
+			"extra": "contiene otra información ({keys})",
+			"relation": "miembro de una relación",
+			"shift": "quitarlo desplazaría la vía {shift} m",
+			"end": "extremo de la vía"
+		},
+		"summary": "Cartel de parada «{label}» eliminado ({reason}) — {mode, select, remove {punto retirado de la vía} other {punto conservado en la vía, etiquetas eliminadas}}",
+		"phraseNoWay": "Se eliminará el punto del cartel de parada.",
+		"phraseRemove": "El punto se retirará de la vía y luego se eliminará: la forma de la vía no cambia.",
+		"phraseUntag": "El punto se queda en la vía ({why}): solo se eliminan las etiquetas del cartel de parada. La forma de la vía nunca cambia."
+	},
+	"shape": {
+		"complex": "Andén complejo: edítalo con un editor como iD o JOSM.",
+		"reason": {
+			"duplicate": "Duplicado de otro andén",
+			"gone": "Ya no existe"
+		},
+		"reasonInline": {
+			"duplicate": "duplicado",
+			"gone": "ya no existe"
+		},
+		"reasonComment": {
+			"duplicate": "duplicado de otro andén",
+			"gone": "ya no existe"
+		},
+		"relationNo": "n.º {id}",
+		"rel": {
+			"stopArea": "del área de parada {name}",
+			"route": "de la línea {name}",
+			"routes": "de {count} líneas",
+			"other": "de la relación {name}",
+			"others": "de otras {count} relaciones",
+			"removed": "retirado {list}"
+		},
+		"summary": {
+			"area": "{name} redibujado como área",
+			"reshape": "{name}: forma modificada ({before} → {after} puntos)",
+			"delete": "{name} eliminado ({why})"
+		},
+		"link": {
+			"relation": "miembro de una relación",
+			"repeated": "punto repetido en el contorno",
+			"infoWhat": "punto con información ({what})"
+		},
+		"tags": "etiquetas",
+		"notice": {
+			"shared": "{count, plural, one {# punto de {total} está compartido con otros objetos ({objects}): seguirá tus cambios.} other {# puntos de {total} están compartidos con otros objetos ({objects}): seguirán tus cambios.}}",
+			"taggedInfo": "El punto {point} es un punto con información: moverlo mueve el objeto que describe.",
+			"tagged": "El punto {point} es {a}: moverlo mueve {the}.",
+			"taggedMany": "Los puntos {points} contienen información ({what}): moverlos mueve esos objetos."
+		},
+		"point": {
+			"alsoOf": "Este punto también es un punto de: {list} — {count, plural, one {{g, select, f {la seguirá} other {lo seguirá}}} other {seguirán}} el desplazamiento.",
+			"info": "Este punto contiene información: se moverá con ella.",
+			"is": "Este punto es {a}: {g, select, f {se moverá con ella} other {se moverá con él}}.",
+			"removeEdge": "No se puede quitar del contorno: el borde del andén lo necesita.",
+			"removeWays": "Si se quita, se queda en {list}; solo cambia el andén.",
+			"removeMap": "Si se quita, se queda en el mapa; solo cambia el andén."
+		},
+		"shared": {
+			"info": "contiene información",
+			"alsoOf": "también un punto {list}",
+			"linked": "unido a {list}",
+			"plain": "compartido"
+		},
+		"followers": {
+			"ways": "{list} {g, select, f {{count, plural, one {ajustada} other {ajustadas}}} other {{count, plural, one {ajustado} other {ajustados}}}} también",
+			"tags": "{list} {g, select, f {{count, plural, one {movida} other {movidas}}} other {{count, plural, one {movido} other {movidos}}}}"
+		},
+		"deleteRefused": "Este andén es el único miembro de la relación {name}: elimínalo con un editor como iD o JOSM.",
+		"lock": {
+			"foreign": "Un punto procede de otro objeto: forma rechazada.",
+			"twice": "Un punto aparece dos veces en el contorno.",
+			"movedLinked": "Se ha movido un punto unido a otro objeto: forma rechazada.",
+			"movedRepeated": "Se ha movido un punto repetido en el contorno: forma rechazada.",
+			"areaLinked": "{count, plural, one {El punto {points} de la antigua línea está unido a otros objetos: debe formar parte del contorno. Toca este punto (cuadrado) para añadirlo, o usa un editor como iD o JOSM.} other {Los puntos {points} de la antigua línea están unidos a otros objetos: deben formar parte del contorno. Toca estos puntos (cuadrados) para añadirlos, o usa un editor como iD o JOSM.}}",
+			"edge": "{count, plural, one {El punto {points} también es un punto del borde del andén: quitarlo del contorno lo dejaría en el borde. Mejor muévelo, o usa JOSM o iD.} other {Los puntos {points} también son puntos del borde del andén: quitarlos del contorno los dejaría en el borde. Mejor muévelos, o usa JOSM o iD.}}",
+			"repeated": "{count, plural, one {El punto {points} aparece varias veces en el contorno: no se puede quitar.} other {Los puntos {points} aparecen varias veces en el contorno: no se pueden quitar.}}"
+		}
+	},
+	"obj": {
+		"platformEdge": {
+			"name": "borde del andén",
+			"a": "el borde del andén",
+			"of": "del borde del andén",
+			"the": "el borde del andén",
+			"g": "m"
+		},
+		"roof": {
+			"name": "techo",
+			"a": "el techo",
+			"of": "del techo",
+			"the": "el techo",
+			"g": "m"
+		},
+		"indoor": {
+			"name": "espacio interior",
+			"a": "un espacio interior",
+			"of": "de un espacio interior",
+			"the": "el espacio interior",
+			"g": "m"
+		},
+		"steps": {
+			"name": "escalera",
+			"a": "una escalera",
+			"of": "de una escalera",
+			"the": "la escalera",
+			"g": "f"
+		},
+		"footway": {
+			"name": "camino peatonal",
+			"a": "un camino peatonal",
+			"of": "de un camino peatonal",
+			"the": "el camino peatonal",
+			"g": "m"
+		},
+		"elevator": {
+			"name": "ascensor",
+			"a": "un ascensor",
+			"of": "de un ascensor",
+			"the": "el ascensor",
+			"g": "m"
+		},
+		"road": {
+			"name": "carretera",
+			"a": "una carretera",
+			"of": "de una carretera",
+			"the": "la carretera",
+			"g": "f"
+		},
+		"station": {
+			"name": "estación",
+			"a": "la estación",
+			"of": "de la estación",
+			"the": "la estación",
+			"g": "f"
+		},
+		"building": {
+			"name": "edificio",
+			"a": "un edificio",
+			"of": "de un edificio",
+			"the": "el edificio",
+			"g": "m"
+		},
+		"otherPlatform": {
+			"name": "otro andén",
+			"a": "otro andén",
+			"of": "de otro andén",
+			"the": "el otro andén",
+			"g": "m"
+		},
+		"railway": {
+			"name": "vía o instalación ferroviaria",
+			"a": "una vía o instalación ferroviaria",
+			"of": "de una vía o instalación ferroviaria",
+			"the": "la vía o instalación ferroviaria",
+			"g": "f"
+		},
+		"barrierLine": {
+			"name": "valla o muro",
+			"a": "una valla o un muro",
+			"of": "de una valla o un muro",
+			"the": "la valla o el muro",
+			"g": "m"
+		},
+		"area": {
+			"name": "zona",
+			"a": "una zona",
+			"of": "de una zona",
+			"the": "la zona",
+			"g": "f"
+		},
+		"other": {
+			"name": "otro objeto",
+			"a": "otro objeto",
+			"of": "de otro objeto",
+			"the": "el otro objeto",
+			"g": "m"
+		},
+		"entrance": {
+			"name": "entrada",
+			"a": "una entrada",
+			"of": "de una entrada",
+			"the": "la entrada",
+			"g": "f"
+		},
+		"busStop": {
+			"name": "parada de autobús",
+			"a": "una parada de autobús",
+			"of": "de una parada de autobús",
+			"the": "la parada de autobús",
+			"g": "f"
+		},
+		"barrier": {
+			"name": "barrera",
+			"a": "una barrera",
+			"of": "de una barrera",
+			"the": "la barrera",
+			"g": "f"
+		},
+		"railwayNode": {
+			"name": "elemento ferroviario",
+			"a": "un elemento ferroviario",
+			"of": "de un elemento ferroviario",
+			"the": "el elemento ferroviario",
+			"g": "m"
+		},
+		"info": {
+			"name": "punto con información",
+			"a": "un punto con información",
+			"of": "de un punto con información",
+			"the": "el punto con información",
+			"g": "m"
+		}
+	},
+	"draw": {
+		"check": {
+			"points": "Coloca al menos 3 puntos.",
+			"crossing": "Algunos lados del andén se cruzan: mueve o quita un punto.",
+			"short": "Andén demasiado corto ({length}, mínimo {min}).",
+			"long": "Andén demasiado largo ({length}, máximo {max}).",
+			"track": "El andén cruza una vía: el borde debe quedar a lo largo de la vía.",
+			"overlap": "El andén se superpone a un andén ya cartografiado."
+		},
+		"lost": {
+			"track": "{track} ({gap})",
+			"theTrack": "la vía {ref}",
+			"aTrack": "una vía sin número",
+			"gap": "borde a {gap}",
+			"notParallel": "borde ya no paralelo a la vía",
+			"message": "El andén ya no discurre junto a {list}. Revisa la forma: el borde del andén debe seguir la vía."
+		}
+	},
+	"upload": {
+		"conflict": {
+			"changed": "El andén se ha modificado entretanto en OpenStreetMap: no se ha enviado nada para él. Repite el cambio en el mapa actualizado.",
+			"signChanged": "El cartel de parada o su vía se ha modificado entretanto en OpenStreetMap: no se ha enviado nada para él. Repite la eliminación en el mapa actualizado.",
+			"signLinked": "El cartel de parada se ha unido entretanto a otro objeto en OpenStreetMap: no se ha enviado nada para él. Repite la eliminación en el mapa actualizado.",
+			"nodeChanged": "Un punto del andén se ha modificado o unido a otro objeto entretanto en OpenStreetMap: no se ha enviado nada para él. Repite el cambio en el mapa actualizado.",
+			"gone": "Objeto eliminado entretanto en OpenStreetMap.",
+			"clash": "Modificado por otra persona entretanto ({key}).",
+			"trackGone": "La vía se ha eliminado entretanto.",
+			"trackRedrawn": "La vía se ha redibujado entretanto.",
+			"platformGone": "Andén eliminado entretanto en OpenStreetMap.",
+			"ringInvalid": "Contorno del andén no válido.",
+			"ringLocks": "Contorno del andén no válido (punto del borde del andén quitado o punto fijo movido).",
+			"platformDeleted": "Andén ya eliminado en OpenStreetMap.",
+			"relationEmpty": "La relación {name} quedaría vacía: elimínala con un editor como iD o JOSM.",
+			"signDeleted": "Cartel de parada ya eliminado en OpenStreetMap.",
+			"signTrack": "La vía del cartel de parada se ha eliminado o redibujado entretanto.",
+			"ringIncomplete": "Contorno del andén incompleto."
+		},
+		"comment": {
+			"numbers": "números de andenes y vías, carteles de parada",
+			"drawn": "andén dibujado",
+			"shape": "forma del andén corregida",
+			"deleted": "{name} eliminado ({why})",
+			"signDeleted": "cartel de parada «{label}» eliminado ({why}{mode, select, untag {, punto conservado en la vía} other {}})",
+			"station": "Estación de {name}: {parts}"
+		}
+	},
+	"bearing": {
+		"n": "norte",
+		"ne": "noreste",
+		"e": "este",
+		"se": "sureste",
+		"s": "sur",
+		"sw": "suroeste",
+		"w": "oeste",
+		"nw": "noroeste"
+	},
+	"edit": {
+		"label": {
+			"newSign": "Nuevo cartel de parada",
+			"newPlatform": "Nuevo andén",
+			"area": "Andén redibujado como área",
+			"shape": "Forma del andén",
+			"delete": "Eliminación · motivo: {why}",
+			"signDelete": "Eliminación de cartel de parada · motivo: {why}",
+			"tags": "Cambio"
+		},
+		"drawnSummary": "{summary} (dibujado)",
+		"error": {
+			"signDeleted": "Este cartel de parada está marcado para eliminar: quita primero esa edición.",
+			"platformDeleted": "Este andén está marcado para eliminar: quita primero esa edición."
+		}
+	},
+	"remote": {
+		"suspended": "Los envíos están suspendidos por el momento. Tus ediciones se quedan en este teléfono.",
+		"update": "Hace falta una nueva versión de la aplicación: ciérrala y vuelve a abrirla para actualizarla. Tus ediciones se conservan.",
+		"pilot": "stationcomplete está en fase piloto: el envío al mapa real está reservado a algunos probadores. Tus ediciones se quedan en este teléfono."
+	},
+	"error": {
+		"loginRefused": "El inicio de sesión fue rechazado o ha caducado.",
+		"profile": "Perfil no disponible ({status}).",
+		"stationNotFound": "Estación no encontrada en el índice.",
+		"osmUnreachable": "No se puede conectar con OpenStreetMap. Revisa tu conexión.",
+		"tilesFailed": "No se han podido descargar demasiadas fotos.",
+		"downloadInterrupted": "Descarga interrumpida.",
+		"osmBusy": "El servidor de OpenStreetMap está muy saturado. Inténtalo de nuevo dentro de un minuto.",
+		"osmServer": "Error del servidor de OpenStreetMap ({status}).",
+		"index": "Índice de estaciones no disponible ({status})"
+	},
+	"server": {
+		"dev": "Servidor de pruebas de OSM"
+	},
+	"seed": {
+		"limit": "El servidor de pruebas limita el número de cambios por hora para las cuentas recientes. Inténtalo de nuevo dentro de una hora: el límite aumenta con la antigüedad de la cuenta.",
+		"devOnly": "Solo para el servidor de pruebas.",
+		"readFailed": "No se ha podido leer la estación real ({status}).",
+		"empty": "No hay andenes ni vías que copiar para esta estación.",
+		"tooBig": "Estación demasiado grande para una copia de prueba.",
+		"comment": "Copia de prueba de la estación de {name} (andenes, vías, carteles de parada) para probar stationcomplete",
+		"openRefused": "Apertura rechazada por el servidor de pruebas ({status}).",
+		"copyRefused": "Copia rechazada por el servidor de pruebas ({status})."
+	},
+	"send": {
+		"demoRefused": "Algunas ediciones se hicieron en modo demostración, fuera de la estación: no pueden ir al mapa real. Quítalas abajo.",
+		"interrupted": "Un envío anterior se interrumpió. Por prudencia, inténtalo de nuevo dentro de {min} min.",
+		"unavailable": "Envío no disponible en este servidor.",
+		"offline": "Sin red: inténtalo de nuevo cuando tengas conexión.",
+		"busy": "Ya hay un envío en curso.",
+		"conflict412": "Rechazado por OpenStreetMap durante el envío: un objeto todavía está en uso o ha desaparecido. No se ha enviado nada.",
+		"conflict409": "Modificado en OpenStreetMap durante el envío.",
+		"rateLimit": "OpenStreetMap limita el número de cambios por hora (sobre todo para las cuentas recientes). Tus ediciones se conservan: inténtalo de nuevo dentro de una hora.",
+		"expired": "Tu sesión ha caducado: vuelve a iniciar sesión.",
+		"refused": "El servidor ha rechazado el envío ({status}).",
+		"lost": "Se ha perdido la conexión. Tus ediciones se conservan; inténtalo de nuevo más tarde."
+	},
+	"nav": {
+		"label": "Navegación principal",
+		"station": "Estación",
+		"contributions": "Contribuciones",
+		"pending": ", {count} pendientes",
+		"settings": "Ajustes"
+	},
+	"net": {
+		"offline": "Sin conexión — tus ediciones se quedan en este teléfono{count, plural, =0 {} one {; # envío saldrá cuando vuelva la red} other {; # envíos saldrán cuando vuelva la red}}.",
+		"station": "{name}:",
+		"sentAuto": "{count, plural, one {# cambio enviado automáticamente.} other {# cambios enviados automáticamente.}}",
+		"nothing": "nada que enviar{conflicts, plural, =0 {} other {, {conflicts} por revisar}}.",
+		"review": "Ver las ediciones por revisar"
+	},
+	"meta": {
+		"description": "stationcomplete: completa los datos ferroviarios de las estaciones en OpenStreetMap."
+	},
+	"home": {
+		"title": "stationcomplete — completa las estaciones en OpenStreetMap",
+		"skip": "Saltar",
+		"step": "Paso {step} de {total}",
+		"intro": {
+			"title": "Completa los datos de tu estación",
+			"text": "Números de andenes, números de vías, carteles de parada: en unos minutos en el andén, haces que esta información sea útil para todos, desde las aplicaciones de viaje hasta las herramientas ferroviarias como OSRD."
+		},
+		"safety": {
+			"kicker": "Seguridad",
+			"title": "Quédate detrás de la línea de seguridad.",
+			"text": "Todo se hace desde el andén, o desde casa gracias a la foto aérea. Nunca bajes a las vías y no vayas más allá del final del andén."
+		},
+		"osm": {
+			"title": "Tus contribuciones van a OpenStreetMap",
+			"text": "El mapa libre y colaborativo. Se publican con tu nombre de usuario de OSM, bajo licencia ODbL, y no se envía nada sin que lo hayas revisado."
+		},
+		"understood": "Entendido",
+		"start": "Empezar",
+		"next": "Siguiente",
+		"explore": {
+			"title": "Explora las estaciones de Francia",
+			"text": "Consulta desde ya lo que falta en cada estación: números de andenes, números de vías, carteles de parada. La edición y el envío a OpenStreetMap llegarán pronto."
+		},
+		"chooseStation": "Elegir una estación",
+		"more": "Más información sobre el proyecto",
+		"replay": "Volver a ver la presentación"
+	},
+	"about": {
+		"title": "Acerca de — stationcomplete",
+		"heading": "Acerca de stationcomplete",
+		"project": {
+			"title": "El proyecto",
+			"text": "stationcomplete ayuda a cualquiera a completar los datos de las estaciones francesas en <osm>OpenStreetMap</osm>: números de andenes, números de vías y carteles de parada de los trenes. Estos datos libres sirven a todos, en particular a las herramientas de diseño ferroviario como <osrd>OSRD</osrd>."
+		},
+		"safety": {
+			"title": "Seguridad",
+			"text": "Quédate siempre detrás de la línea de seguridad. Todo se hace desde el andén o a distancia, sobre la foto aérea. Nunca bajes a las vías."
+		},
+		"data": {
+			"title": "Datos y licencias",
+			"osm": "Las contribuciones se publican en OpenStreetMap con tu nombre de usuario, bajo licencia <odbl>ODbL</odbl>. © colaboradores de OpenStreetMap.",
+			"photos": "Fotos aéreas: {product}, bajo {licence}.",
+			"code": "El código de stationcomplete es libre, bajo licencia GPL-3.0 o posterior: <code>ver el código fuente</code>."
+		},
+		"privacy": {
+			"title": "Privacidad",
+			"text": "Este sitio no instala cookies ni usa herramientas de medición de audiencia. Tus ediciones se quedan en tu teléfono hasta que se envían a OpenStreetMap."
+		},
+		"contact": {
+			"title": "Contacto",
+			"text": "¿Un error, una idea, una estación que da problemas? Escribe a <mail>{email}</mail> o abre una incidencia en <issues>GitHub</issues>."
+		},
+		"back": "← Volver al inicio"
+	},
+	"legal": {
+		"title": "Aviso legal — stationcomplete",
+		"noticeLink": "Aviso legal",
+		"dataLink": "Datos personales",
+		"aboutLink": "Acerca de",
+		"publisher": {
+			"title": "Editor",
+			"text": "stationcomplete.org es un proyecto voluntario y sin ánimo de lucro, editado por Loïc Hamelin, particular, que es también el director de la publicación.",
+			"contact": "Contacto:"
+		},
+		"host": {
+			"title": "Alojamiento",
+			"text": "GitHub Pages — GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, Estados Unidos."
+		},
+		"content": {
+			"title": "Contenidos y licencias",
+			"osm": "Datos cartográficos: © colaboradores de OpenStreetMap, bajo licencia <odbl>ODbL</odbl>.",
+			"photos": "Fotos aéreas: {product}, bajo <licence>{licence}</licence>.",
+			"code": "Código de la aplicación: licencia GPL-3.0 o posterior, <code>código fuente en GitHub</code>.",
+			"independent": "stationcomplete es un proyecto personal: no es un servicio de la SNCF ni de la Fundación OpenStreetMap."
+		}
+	},
+	"country": {
+		"fr": {
+			"name": "Francia",
+			"of": "de Francia"
+		},
+		"ch": {
+			"name": "Suiza",
+			"of": "de Suiza"
+		}
+	},
+	"data": {
+		"title": "Datos personales — stationcomplete",
+		"lead": "stationcomplete no tiene servidor propio: no recibe, no almacena y no vende ningún dato sobre ti. Esta página explica lo que ocurre en tu teléfono y en los servicios con los que la aplicación se comunica.",
+		"phone": {
+			"title": "En tu teléfono",
+			"storage": "Las estaciones consultadas, tus ediciones aún no enviadas, tus ajustes y las fotos aéreas descargadas se quedan en la memoria del navegador de tu teléfono.",
+			"position": "Tu ubicación solo sirve para comprobar, en el teléfono, que de verdad estás en la estación. No se envía a nadie.",
+			"login": "Si inicias sesión, la clave de acceso a OpenStreetMap y tu nombre de usuario se guardan en el teléfono. stationcomplete nunca ve tu contraseña: la introduces en el sitio web de OpenStreetMap.",
+			"nothing": "Sin cookies, sin publicidad, sin medición de audiencia."
+		},
+		"publish": {
+			"title": "Lo que publicas en OpenStreetMap",
+			"text": "Cuando envías tus ediciones, se publican en OpenStreetMap con tu nombre de usuario, con la fecha y la descripción del envío. Como toda contribución a OpenStreetMap, son públicas y quedan en el historial del mapa. Estos datos los gestiona la Fundación OpenStreetMap, según su <policy>política de privacidad</policy>."
+		},
+		"services": {
+			"title": "Servicios con los que se comunica tu teléfono",
+			"lead": "Como en cualquier sitio web, estos servicios ven la dirección IP de tu conexión:",
+			"github": "<b>GitHub Pages</b> (GitHub, Inc., Estados Unidos): alojamiento de la aplicación. <gh>Declaración de privacidad de GitHub</gh>.",
+			"osm": "<b>OpenStreetMap</b> (Fundación OpenStreetMap, Reino Unido): lectura de los datos de las estaciones, inicio de sesión y envío de las contribuciones.",
+			"photos": "<b>{operator}</b> ({seat}): fotos aéreas."
+		},
+		"rights": {
+			"title": "Tus derechos",
+			"text": "Puedes borrar en cualquier momento todo lo que stationcomplete guarda en este teléfono. Para tus contribuciones publicadas y tu cuenta de OpenStreetMap, dirígete a la Fundación OpenStreetMap. Para cualquier pregunta: <mail>{email}</mail>. También puedes acudir a la <cnil>CNIL</cnil> (autoridad francesa de protección de datos)."
+		},
+		"wipe": {
+			"done": "<b>Hecho:</b> ya no queda nada de stationcomplete en este teléfono.",
+			"lost": "{count, plural, one {Se perderá # edición aún no enviada.} other {Se perderán # ediciones aún no enviadas.}}",
+			"confirm": "¿Borrar todo de este teléfono? Tus contribuciones ya publicadas no se tocan.",
+			"all": "Borrar todo",
+			"button": "Borrar mis datos de este teléfono"
+		}
+	},
+	"login": {
+		"title": "Inicio de sesión — stationcomplete",
+		"denied": "Has rechazado el acceso.",
+		"failed": "El inicio de sesión ha fallado.",
+		"finishing": "Iniciando sesión…",
+		"pseudo": "Publicadas con tu nombre de usuario, bajo la licencia libre ODbL.",
+		"review": "No se envía nada sin que lo hayas revisado.",
+		"password": "stationcomplete no pide ni guarda ninguna contraseña.",
+		"server": "Servidor:",
+		"signedIn": "Sesión iniciada como <b>{name}</b>.",
+		"myContributions": "Mis contribuciones",
+		"notConfigured": "El inicio de sesión en este servidor aún no está configurado. Elige el servidor de pruebas en los ajustes.",
+		"button": "Iniciar sesión con OpenStreetMap",
+		"create": "Crear una cuenta de OpenStreetMap"
+	},
+	"stations": {
+		"title": "Elegir una estación — stationcomplete",
+		"geoUnavailable": "La ubicación no está disponible en este dispositivo.",
+		"geoError": "Ubicación no disponible. Permite el acceso a la ubicación o busca por nombre.",
+		"halt": "apeadero",
+		"searchLabel": "Buscar una estación",
+		"placeholder": "Nombre de estación o municipio",
+		"locating": "Localizando…",
+		"nearby": "Estaciones cerca de mí",
+		"loading": "Cargando la lista de estaciones…",
+		"results": "Resultados",
+		"noMatch": "Ninguna estación coincide con «{query}».",
+		"around": "Cerca de mí",
+		"recent": "Recientes",
+		"count": "{count} estaciones y apeaderos {of}. Escribe al menos dos letras."
+	},
+	"settings": {
+		"title": "Ajustes — stationcomplete",
+		"account": "Cuenta de OpenStreetMap",
+		"logout": "Cerrar sesión",
+		"signedOut": "Sin sesión iniciada",
+		"login": "Iniciar sesión",
+		"loginUnavailable": "Inicio de sesión no disponible",
+		"notConfigured": "Aún no configurado para {server}.",
+		"appearance": "Apariencia",
+		"language": "Idioma",
+		"languageHint": "Idioma de la aplicación y del comentario de tus envíos.",
+		"theme": {
+			"label": "Tema",
+			"hint": "«Sistema» sigue el ajuste de tu teléfono.",
+			"system": "Sistema",
+			"light": "Claro",
+			"dark": "Oscuro"
+		},
+		"server": "Servidor",
+		"serverLegend": "Servidor de OpenStreetMap",
+		"prodHint": "El mapa real: tus envíos se publican y son visibles para todos.",
+		"devHint": "Para probar el envío: no aparece nada en el mapa real.",
+		"input": "Edición",
+		"demo": "Modo demostración",
+		"demoHint": "Permite probar la edición sin estar en la estación. Estas ediciones nunca irán al mapa real (solo al servidor de pruebas).",
+		"downloads": "Estaciones descargadas",
+		"removeDownload": "Quitar {name} del teléfono",
+		"noDownloads": "Ninguna",
+		"noDownloadsHint": "Descarga una estación desde su panel para usarla sin red.",
+		"aboutLink": "Seguridad, licencias, contacto"
+	},
+	"contributions": {
+		"title": "Mis contribuciones — stationcomplete",
+		"intro": "Tus ediciones se quedan en este teléfono, incluso sin red, hasta que las envíes estación por estación. Servidor: <b>{server}</b>.",
+		"empty": "Ninguna edición pendiente.",
+		"count": "{count, plural, one {# edición} other {# ediciones}}",
+		"review": "Por revisar",
+		"waiting": "Pendiente",
+		"removeLabel": "Quitar: {summary}",
+		"remove": "Quitar",
+		"send": "Revisar y enviar",
+		"toReview": "{count} por revisar"
+	},
+	"sendPage": {
+		"title": "Revisar y enviar — stationcomplete",
+		"back": "Volver a las contribuciones",
+		"step": {
+			"checking": "Comprobando un envío anterior…",
+			"reading": "Releyendo los datos actualizados…",
+			"opening": "Abriendo el conjunto de cambios…",
+			"uploading": "Enviando los cambios…",
+			"closing": "Cerrando…",
+			"sending": "Enviando…"
+		},
+		"offline": "Sin conexión. Tus ediciones se conservan. Tras revisarlas, puedes programar el envío: saldrá solo cuando vuelva la red, con la aplicación abierta.",
+		"cannotUpload": "Aún no es posible enviar a {server}. Para probar, elige otro servidor en los <settings>ajustes</settings>.",
+		"prod": "Tus cambios se publicarán en el mapa <b>OpenStreetMap</b>, visibles para todos.",
+		"dev": "Servidor: <b>{server}</b> — sin efecto en el mapa real.",
+		"sent": "{count, plural, one {# cambio enviado.} other {# cambios enviados.}}",
+		"thanks": "¡Gracias!",
+		"changeset": "Ver el conjunto de cambios n.º {id}",
+		"conflicts": "{count, plural, one {# edición está por revisar: el objeto ha cambiado entretanto en OpenStreetMap.} other {# ediciones están por revisar: el objeto ha cambiado entretanto en OpenStreetMap.}}",
+		"empty": "Ninguna edición pendiente para esta estación.",
+		"ready": "Listas para enviar ({count})",
+		"demo": "modo demostración",
+		"review": "Por revisar ({count})",
+		"redo": "Rehacer",
+		"open": "Abrir",
+		"keep": "Conservar",
+		"keepHint": "«Conservar» envía tu edición tal cual: comprueba antes in situ que es correcta. Una forma de andén o una eliminación se rehace en el mapa actualizado.",
+		"comment": "Descripción pública del envío",
+		"commentHint": "Visible para todos en OpenStreetMap, con tu nombre de usuario y la etiqueta #stationcomplete.",
+		"notConfigured": "El inicio de sesión en este servidor aún no está configurado.",
+		"login": "Iniciar sesión para enviar",
+		"by": "Enviado por <b>{name}</b>",
+		"you": "ti",
+		"blocked": "Envío imposible por el momento (ver el mensaje de arriba).",
+		"queued": "Esperando la red: el envío saldrá solo.",
+		"cancelQueue": "Cancelar el envío automático",
+		"send": "{count, plural, one {Enviar # cambio} other {Enviar # cambios}}",
+		"sendLater": "Enviar cuando vuelva la red"
+	},
+	"station": {
+		"title": "{name} — stationcomplete",
+		"change": "Cambiar de estación",
+		"cached": "Datos guardados en este teléfono el {date}",
+		"fresh": "Datos de OpenStreetMap actualizados",
+		"reload": "Volver a cargar los datos desde OpenStreetMap",
+		"demo": "Modo demostración: se puede editar fuera de la estación, pero estas ediciones no irán al mapa real.",
+		"pending": "{count, plural, one {# edición pendiente de envío en esta estación} other {# ediciones pendientes de envío en esta estación}}",
+		"none": "No se ha elegido ninguna estación.",
+		"loading": "Cargando los datos de la estación desde OpenStreetMap…",
+		"seed": {
+			"done": "{count} objetos copiados en el servidor de pruebas.",
+			"missing": "<b>Esta estación aún no existe en el servidor de pruebas.</b> Copia en él sus andenes, vías y carteles de parada desde el mapa real para probar la edición y el envío.",
+			"notConfigured": "El inicio de sesión en el servidor de pruebas aún no está configurado.",
+			"login": "Iniciar sesión en el servidor de pruebas",
+			"busy": "Copiando…",
+			"button": "Copiar aquí la estación real"
+		},
+		"gauges": "Grado de completitud de la estación",
+		"gauge": {
+			"platforms": "Andenes",
+			"platformsUnit": "numerados",
+			"tracks": "Vías",
+			"tracksUnit": "numeradas",
+			"signs": "Carteles de parada",
+			"signsUnit": "lados anotados",
+			"none": "nada que anotar"
+		},
+		"offline": {
+			"label": "Sin conexión",
+			"progress": "Descargando las fotos aéreas… {done} / {total}",
+			"available": "<b>Disponible sin conexión</b> · {size} · el {date}",
+			"update": "Actualizar",
+			"take": "Llevar la estación sin conexión"
+		},
+		"todo": "Por hacer aquí",
+		"view": {
+			"label": "Vista",
+			"list": "Lista",
+			"map": "Mapa"
+		},
+		"allDone": "Todo está completo en esta estación. ¡Bravo!",
+		"onSite": "Por hacer en la estación",
+		"drawMissing": "¿Falta un andén en el mapa? Dibújalo"
+	},
+	"map": {
+		"title": "Mapa — {name} — stationcomplete",
+		"back": "Volver al panel",
+		"onSite": "In situ",
+		"remote": "A distancia",
+		"checkPosition": ", comprobar mi ubicación",
+		"filters": "Objetos mostrados",
+		"legend": {
+			"open": "Leyenda del mapa",
+			"title": "Leyenda",
+			"close": "Cerrar la leyenda",
+			"quai": "Andén",
+			"voie": "Vía",
+			"pancarte": "Cartel de parada",
+			"sel": "Objeto seleccionado",
+			"edited": "Modificado por ti, pendiente de envío",
+			"under": "Subterráneo (túnel, nivel inferior)",
+			"todo": "Por completar",
+			"alert": "Verificar con prioridad"
+		},
+		"loading": "Cargando la estación…",
+		"locate": "Mostrar mi ubicación",
+		"addSign": "Añadir un cartel de parada",
+		"quest": {
+			"Q1": "Número del andén por anotar",
+			"Q2": "Número de la vía por anotar",
+			"Q3": "Números del andén y de las vías por verificar",
+			"Q4": "Carteles de parada por anotar a lo largo de este andén",
+			"Q5": "Cartel de parada por completar",
+			"Q6": "Por verificar (ninguna fecha de verificación reciente)",
+			"Q7": "Número de vía duplicado o incoherente"
+		},
+		"editedHere": "Modificado en este teléfono, pendiente de envío.",
+		"del": {
+			"chooseReason": "Elige el motivo de la eliminación.",
+			"goneOnSite": "«Ya no existe» solo se constata in situ.",
+			"pending": "{name}: eliminación pendiente de envío. Para anularla, quítala en tus contribuciones.",
+			"signTitle": "¿Eliminar este cartel de parada?",
+			"reason": "Motivo (visible en la descripción pública del envío)",
+			"seenOnSite": "Constatado in situ.",
+			"onSiteOnly": "Solo in situ: la foto aérea puede ser antigua.",
+			"signReplaced": "Se quitarán tus ediciones sobre este cartel de parada: {list}.",
+			"signButton": "Eliminar el cartel de parada",
+			"platformTitle": "¿Eliminar este andén?",
+			"relations": "También será {phrase}.",
+			"points": "{lost, plural, one {# punto eliminado} other {# puntos eliminados}}{kept, plural, =0 {} one {; # unido a otros objetos, conservado} other {; # unidos a otros objetos, conservados}}.",
+			"platformReplaced": "Se quitarán tus ediciones sobre este andén: {list}.",
+			"platformButton": "Eliminar el andén"
+		},
+		"seeContributions": "Ver mis contribuciones",
+		"fill": "Completar",
+		"signHere": "Cartel aquí",
+		"reshape": "Modificar la forma",
+		"toArea": "Redibujar como área",
+		"more": "Más acciones",
+		"deleteSign": "Eliminar este cartel de parada…",
+		"drawnHere": "Andén dibujado en este teléfono: para cambiar su forma, quítalo en tus contribuciones y vuelve a dibujarlo.",
+		"deletePlatform": "Eliminar este andén…",
+		"osmAttribution": "© colaboradores de OpenStreetMap",
+		"toggleAttribution": "Mostrar u ocultar los créditos"
+	},
+	"input": {
+		"title": "Ficha — stationcomplete",
+		"sheet": "Ficha",
+		"close": "Cerrar sin guardar",
+		"gone": "Este objeto ya no existe en los datos de la estación.",
+		"optional": "(opcional)",
+		"dir": {
+			"backward": "Sentido contrario de la vía",
+			"forward": "Sentido de la vía",
+			"towards": "Hacia el {name}"
+		},
+		"verified": "{kind, select, pancarte {Cartel de parada verificado} other {{what} verificado}}",
+		"onSite": {
+			"text": "Los números y los carteles de parada se anotan <b>in situ</b>, quedándose detrás de la línea de seguridad.",
+			"button": "Estoy en la estación",
+			"try": "Para probar desde casa: <settings>modo demostración o servidor de pruebas</settings>.",
+			"away": "Tu ubicación está fuera de la estación. Solo puedes verificar.",
+			"denied": "Ubicación no disponible: permite el acceso a la ubicación."
+		},
+		"platform": {
+			"needRef": "Indica al menos un número de vía a lo largo del andén.",
+			"summaryNamed": "Andén {name}: vías {refs}",
+			"summary": "Andén: vías {refs}",
+			"refs": "Números de las vías a lo largo de este andén",
+			"removeRef": "Quitar la vía {ref}",
+			"addRefLabel": "Añadir un número de vía",
+			"add": "Añadir",
+			"refsHint": "Los números que aparecen encima de las vías, no la letra del andén.",
+			"letter": "¿Tiene este andén una letra o un nombre?",
+			"letterLabel": "Letra o nombre del andén",
+			"letterPlaceholder": "P. ej. A"
+		},
+		"track": {
+			"split": "Un cartógrafo tendrá que dividir este tramo. La notificación (nota de OSM) llegará con el envío, en el lote 3.",
+			"needRef": "Indica el número o la letra que aparece en la estación.",
+			"ref": "Número o letra que aparece en la estación",
+			"refLabel": "Número de la vía",
+			"refPlaceholder": "P. ej. 3",
+			"refHint": "«Vía» o «V» se quitan automáticamente.",
+			"changes": "¿Cambia el número a lo largo de este tramo?"
+		},
+		"sign": {
+			"existing": "Cartel de parada existente",
+			"check": "Comprueba in situ que existe y que coincide, o corrígelo.",
+			"which": "¿Qué cartel ves?",
+			"vehicles": "Número de vehículos escrito en el cartel",
+			"otherNumber": "Otro número",
+			"length": "Longitud escrita en el cartel (m)",
+			"under": "Texto debajo de «{type}»",
+			"caption": "Texto del cartel",
+			"captionLabel": "Texto leído en el cartel",
+			"captionPlaceholder": "Copia el texto",
+			"direction": "Los trenes a los que se dirige este cartel van…",
+			"position": "Visto desde el maquinista, el cartel está…",
+			"left": "A la izquierda",
+			"right": "A la derecha",
+			"inTrack": "Entre los carriles",
+			"ground": "En el suelo",
+			"letterHint": "Una placa con una sola letra (A, B…) no es un cartel de parada: es una referencia de sector del andén."
+		},
+		"correct": "Es correcto",
+		"fix": "Corregir"
+	},
+	"place": {
+		"title": "Colocar un cartel de parada — stationcomplete",
+		"heading": "Colocar el cartel de parada",
+		"help": "Coloca la cruz <b>sobre la vía</b>, a la altura del cartel. Arrastra el mapa.",
+		"panel": "Posición del cartel de parada",
+		"snapped": "<b>Ajustado a la vía</b> · separación {gap} m",
+		"closer": "Acerca la cruz a una vía (menos de 3 m).",
+		"near": "Ya existe un cartel de parada a menos de 10 m en esta vía.",
+		"editThis": "Modificar ese",
+		"another": "Es otro distinto",
+		"validate": "Confirmar la posición"
+	},
+	"drawPage": {
+		"title": "Dibujar un andén — stationcomplete",
+		"heading": "Dibujar un andén",
+		"cancel": "Cancelar el dibujo",
+		"points": "{count, plural, one {# punto} other {# puntos}}",
+		"said": {
+			"moved": "Punto {n} movido.",
+			"movedSnapped": "Punto {n} movido, ajustado al borde de la vía.",
+			"added": "Punto {n} añadido.",
+			"moveUndone": "Desplazamiento deshecho.",
+			"removed": "Último punto quitado."
+		},
+		"summary": "Andén dibujado ({length})",
+		"help": {
+			"move": "Coloca la cruz en la nueva posición del <b>punto {n}</b>.",
+			"start": "Rodea el andén, esquina tras esquina, sin salirte de su borde. Un punto colocado se puede arrastrar con el dedo.",
+			"close": "Continúa, o toca el <b>punto 1</b> (el más grande) para cerrar el andén."
+		},
+		"panel": "Trazado del andén",
+		"snapped": "<b>Ajustado al borde de la vía</b> (a {offset} m de su eje)",
+		"underCross": "Punto bajo la cruz",
+		"length": "longitud {length}",
+		"snapOption": "Ajustar a la vía",
+		"saveAnyway": "Guardar de todos modos",
+		"undoMove": "Deshacer el desplazamiento",
+		"undoPoint": "Deshacer el punto",
+		"moveHere": "Mover aquí el punto {n}",
+		"addPoint": "Añadir un punto",
+		"close": "Cerrar el andén"
+	},
+	"shapePage": {
+		"title": "{name} — stationcomplete",
+		"vertex": {
+			"locked": "Punto {n}: unido a otros objetos ({links}), no modificable",
+			"shared": "Punto {n}: {what}, seleccionarlo",
+			"plain": "Punto {n}: seleccionarlo"
+		},
+		"anchor": "Punto unido {n} de la antigua línea: añadirlo al contorno",
+		"said": {
+			"moved": "Punto {n} movido{snapped, select, yes {, ajustado al borde de la vía} other {}}{hasAlso, select, yes {: {also}} other {}}.",
+			"deselected": "Punto {n} deseleccionado.",
+			"locked": "Punto {n}: unido a {links}, se queda en su sitio.",
+			"selectedShared": "Punto {n} seleccionado. {info}",
+			"selected": "Punto {n} seleccionado: está bajo la cruz.",
+			"inserted": "Punto {n} añadido entre {a} y {b}{snapped, select, yes {, ajustado al borde de la vía} other {}}.",
+			"removed": "Punto {n} quitado del andén.",
+			"anchored": "Punto unido recuperado: punto {n} del contorno.",
+			"undone": "Última acción deshecha."
+		},
+		"error": {
+			"noPoint": "No hay ningún punto bajo la cruz: lleva la cruz sobre un punto del andén (círculo blanco), o toca directamente el punto.",
+			"noSide": "Coloca la cruz sobre un lado del andén y luego pulsa «Añadir un punto aquí».",
+			"unchanged": "Ningún cambio: mueve, añade o quita un punto."
+		},
+		"notFound": "No se ha encontrado este andén en los datos de la estación.",
+		"backToMap": "Volver al mapa",
+		"quit": "Salir sin guardar",
+		"help": {
+			"locked": "El punto {n} está unido a: <b>{links}</b>. Se queda en su sitio; corrígelo con JOSM o iD, o añade puntos alrededor.",
+			"move": "Arrastra el mapa hasta la nueva posición del <b>punto {n}</b>.",
+			"area": "Rodea el andén, esquina tras esquina; la antigua línea aparece en trazo claro.",
+			"anchors": "Toca sus puntos cuadrados para recuperarlos.",
+			"reshape": "Coloca la cruz sobre un punto (o tócalo, o arrástralo), o sobre un lado para añadir uno.",
+			"shared": "Los puntos con el centro oscuro están compartidos con otros objetos."
+		},
+		"understood": "Entendido",
+		"snapped": "<b>Ajustado al borde de la vía</b> ({offset} m del eje)",
+		"pick": "Tomar este punto",
+		"addHere": "Añadir un punto aquí",
+		"remove": "Quitar este punto",
+		"moveHere": "Mover aquí el punto",
+		"undoLabel": "Deshacer la última acción",
+		"finish": "Terminar"
+	},
+	"mapA11y": {
+		"closeRing": "Punto 1: cerrar el andén",
+		"movePoint": "Punto {n}: moverlo",
+		"midpoint": "Añadir un punto entre {a} y {b}",
+		"noWebgl": "El mapa no se puede mostrar en este dispositivo (WebGL no disponible).",
+		"noWebglList": "El mapa no se puede mostrar en este dispositivo (WebGL no disponible). Usa la lista.",
+		"drawMap": "Foto aérea, la cruz marca el próximo punto del andén",
+		"placeMap": "Foto aérea, la cruz marca la posición elegida",
+		"myPosition": "Mi ubicación",
+		"stationMap": "Mapa de la estación sobre la foto aérea",
+		"nudge": "Ajustar al centímetro",
+		"nudgePad": "Mover la cruz 20 cm",
+		"up": "Mover la cruz hacia arriba",
+		"left": "Mover la cruz hacia la izquierda",
+		"right": "Mover la cruz hacia la derecha",
+		"down": "Mover la cruz hacia abajo"
+	}
+}

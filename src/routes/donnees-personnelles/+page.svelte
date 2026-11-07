@@ -5,8 +5,15 @@
 	import { CONTACT_EMAIL } from '#lib/config.js';
 	import { photoCredits } from '#lib/core/countries.js';
 	import { loadEdits, pending } from '#lib/edits.svelte.js';
+	import { lang } from '#lib/i18n/i18n.svelte.js';
+	import Rich from '#lib/i18n/Rich.svelte';
+	import { t } from '#lib/i18n/t.js';
 	import { onMount } from 'svelte';
 
+	// Déclaration de confidentialité de GitHub dans la langue de l'interface (pas d'italien).
+	const githubPrivacy = $derived(
+		`https://docs.github.com/${lang.current === 'it' ? 'en' : lang.current}/site-policy/privacy-policies/github-general-privacy-statement`
+	);
 	let confirming = $state(false);
 	let done = $state(false);
 	onMount(() => loadEdits());
@@ -20,120 +27,102 @@
 </script>
 
 <svelte:head>
-	<title>Données personnelles — stationcomplete</title>
+	<title>{t('data.title')}</title>
 </svelte:head>
 
 <main class="page">
 	<header><Logo /></header>
 
-	<h1>Données personnelles</h1>
-	<p class="lead">
-		stationcomplete n’a pas de serveur à lui : il ne reçoit, ne stocke et ne vend aucune donnée vous
-		concernant. Cette page explique ce qui se passe sur votre téléphone et auprès des services que
-		l’appli contacte.
-	</p>
+	<h1>{t('legal.dataLink')}</h1>
+	<p class="lead">{t('data.lead')}</p>
 
 	<section>
-		<h2>Sur votre téléphone</h2>
+		<h2>{t('data.phone.title')}</h2>
 		<ul>
-			<li>
-				Les gares consultées, vos saisies pas encore envoyées, vos réglages et les photos aériennes
-				téléchargées restent dans la mémoire du navigateur de votre téléphone.
-			</li>
-			<li>
-				Votre position sert seulement à vérifier, sur le téléphone, que vous êtes bien en gare. Elle
-				n’est envoyée à personne.
-			</li>
-			<li>
-				Si vous vous connectez, la clé de connexion à OpenStreetMap et votre pseudo sont gardés sur
-				le téléphone. Votre mot de passe n’est jamais vu par stationcomplete : vous le saisissez sur
-				le site d’OpenStreetMap.
-			</li>
-			<li>Aucun cookie, aucune publicité, aucune mesure d’audience.</li>
+			<li>{t('data.phone.storage')}</li>
+			<li>{t('data.phone.position')}</li>
+			<li>{t('data.phone.login')}</li>
+			<li>{t('data.phone.nothing')}</li>
 		</ul>
 	</section>
 
 	<section>
-		<h2>Ce que vous publiez sur OpenStreetMap</h2>
+		<h2>{t('data.publish.title')}</h2>
 		<p>
-			Quand vous envoyez vos saisies, elles sont publiées sur OpenStreetMap sous votre pseudo, avec
-			la date et la description de l’envoi. Comme toute contribution à OpenStreetMap, elles sont
-			publiques et restent dans l’historique de la carte. Ces données sont gérées par la Fondation
-			OpenStreetMap, selon sa
-			<a href="https://osmfoundation.org/wiki/Privacy_Policy" rel="external"
-				>politique de confidentialité</a
-			>.
+			<Rich
+				text={t('data.publish.text')}
+				links={{
+					policy: { href: 'https://osmfoundation.org/wiki/Privacy_Policy', rel: 'external' }
+				}}
+			/>
 		</p>
 	</section>
 
 	<section>
-		<h2>Services contactés par votre téléphone</h2>
-		<p>Comme pour tout site web, ces services voient l’adresse IP de votre connexion :</p>
+		<h2>{t('data.services.title')}</h2>
+		<p>{t('data.services.lead')}</p>
 		<ul>
 			<li>
-				<strong>GitHub Pages</strong> (GitHub, Inc., États-Unis) : hébergement de l’appli.
-				<a
-					href="https://docs.github.com/fr/site-policy/privacy-policies/github-general-privacy-statement"
-					rel="external">Déclaration de confidentialité de GitHub</a
-				>.
+				<Rich
+					text={t('data.services.github')}
+					links={{ gh: { href: githubPrivacy, rel: 'external' } }}
+				/>
 			</li>
-			<li>
-				<strong>OpenStreetMap</strong> (Fondation OpenStreetMap, Royaume-Uni) : lecture des données des
-				gares, connexion et envoi des contributions.
-			</li>
+			<li><Rich text={t('data.services.osm')} /></li>
 			{#each photoCredits() as c (c.operator)}
 				<li>
-					<strong>{c.operator}</strong> ({c.operatorSeat}) : photos aériennes.
+					<Rich
+						text={t('data.services.photos', {
+							operator: c.operator,
+							seat: c.operatorSeat === 'France' ? t('country.fr.name') : c.operatorSeat
+						})}
+					/>
 				</li>
 			{/each}
 		</ul>
 	</section>
 
 	<section>
-		<h2>Vos droits</h2>
+		<h2>{t('data.rights.title')}</h2>
 		<p>
-			Vous pouvez effacer à tout moment tout ce que stationcomplete garde sur ce téléphone. Pour vos
-			contributions publiées et votre compte OpenStreetMap, adressez-vous à la Fondation
-			OpenStreetMap. Pour toute question : <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
-			Vous pouvez aussi saisir la <a href="https://www.cnil.fr/fr/plaintes" rel="external">CNIL</a>.
+			<Rich
+				text={t('data.rights.text', { email: CONTACT_EMAIL })}
+				links={{
+					mail: { href: `mailto:${CONTACT_EMAIL}` },
+					cnil: { href: 'https://www.cnil.fr/fr/plaintes', rel: 'external' }
+				}}
+			/>
 		</p>
 
 		<div class="wipe">
 			{#if done}
 				<p role="status">
-					<strong>C’est fait :</strong> plus rien de stationcomplete sur ce téléphone.
+					<Rich text={t('data.wipe.done')} />
 				</p>
 			{:else if confirming}
 				<p role="alert">
 					{#if pending.list.length}
-						<strong
-							>{pending.list.length} saisie{pending.list.length > 1 ? 's' : ''} pas encore envoyée{pending
-								.list.length > 1
-								? 's'
-								: ''} sera{pending.list.length > 1 ? 'ont' : ''} perdue{pending.list.length > 1
-								? 's'
-								: ''}.</strong
-						>
+						<strong>{t('data.wipe.lost', { count: pending.list.length })}</strong>
 					{/if}
-					Tout effacer de ce téléphone ? Vos contributions déjà publiées ne sont pas touchées.
+					{t('data.wipe.confirm')}
 				</p>
 				<div class="two">
 					<button class="btn btn-secondary" type="button" onclick={() => (confirming = false)}
-						>Annuler</button
+						>{t('common.cancel')}</button
 					>
-					<button class="btn danger" type="button" onclick={wipe}>Tout effacer</button>
+					<button class="btn danger" type="button" onclick={wipe}>{t('data.wipe.all')}</button>
 				</div>
 			{:else}
 				<button class="btn btn-secondary" type="button" onclick={() => (confirming = true)}>
-					Effacer mes données de ce téléphone
+					{t('data.wipe.button')}
 				</button>
 			{/if}
 		</div>
 	</section>
 
 	<p>
-		<a href={resolve('/mentions-legales')}>Mentions légales</a> ·
-		<a href={resolve('/a-propos')}>À propos</a>
+		<a href={resolve('/mentions-legales')}>{t('legal.noticeLink')}</a> ·
+		<a href={resolve('/a-propos')}>{t('legal.aboutLink')}</a>
 	</p>
 </main>
 

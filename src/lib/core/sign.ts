@@ -11,15 +11,23 @@
 
 import { LocalProjection, dist, projectOnSegment } from './geo';
 import type { OsmNode, OsmRelation, OsmWay, Tags } from './osm';
+import { fmtDecimal, t as tr } from '../i18n/t.ts';
 
 /** Écart maximal (m) de la voie quand on retire le nœud : au-delà, on garde le nœud. */
 export const MAX_SHIFT_M = 0.3;
 
+/** Motifs de suppression d'une pancarte, en clair dans la langue de l'interface. */
 export const SIGN_REASONS = {
-	gone: 'N’existe plus',
-	duplicate: 'En double',
-	misplaced: 'Mal placée'
-} as const;
+	get gone() {
+		return tr('sign.reason.gone');
+	},
+	get duplicate() {
+		return tr('sign.reason.duplicate');
+	},
+	get misplaced() {
+		return tr('sign.reason.misplaced');
+	}
+};
 export type SignReason = keyof typeof SIGN_REASONS;
 
 /** Clés propres à une pancarte (liste explicite) : rien d'autre n'est retiré ni toléré. */
@@ -27,7 +35,12 @@ const SIGN_KEYS = new Set([
 	'railway',
 	'ref',
 	'note',
+	// Notes en clair de chaque langue de l'interface (l'appli n'en écrit pas : lot traduction).
 	'note:fr',
+	'note:en',
+	'note:de',
+	'note:it',
+	'note:es',
 	'fixme',
 	'FIXME',
 	'description',
@@ -106,15 +119,15 @@ export function signRemoval(
 	const at = way ? way.nodes.indexOf(node.id) : -1;
 	const repeated = !!way && way.nodes.filter((x) => x === node.id).length > 1;
 	let shiftM = way ? removalShift(way, at, nodeOf) : 0;
-	if (uniq.length > 1) why.push('point partagé avec un autre objet (autre voie, aiguillage…)');
-	else if (repeated) why.push('point répété dans la voie');
-	if (extra.length) why.push(`porte d’autres informations (${extra.slice(0, 3).join(', ')})`);
-	if (relations.length) why.push('membre d’une relation');
+	if (uniq.length > 1) why.push(tr('signRemoval.why.shared'));
+	else if (repeated) why.push(tr('signRemoval.why.repeated'));
+	if (extra.length) why.push(tr('signRemoval.why.extra', { keys: extra.slice(0, 3).join(', ') }));
+	if (relations.length) why.push(tr('signRemoval.why.relation'));
 	if (way && uniq.length === 1 && shiftM >= MAX_SHIFT_M)
 		why.push(
 			Number.isFinite(shiftM)
-				? `le retirer déplacerait la voie de ${shiftM.toFixed(1).replace('.', ',')} m`
-				: 'extrémité de la voie'
+				? tr('signRemoval.why.shift', { shift: fmtDecimal(shiftM) })
+				: tr('signRemoval.why.end')
 		);
 	if (!way) shiftM = 0;
 	const mode = why.length ? 'untag' : 'remove';
@@ -139,17 +152,12 @@ export function withoutSign(tags: Tags = {}, keys: string[]) {
 
 /** « Pancarte « TGV 2 » supprimée (n’existe plus) — point retiré de la voie ». */
 export function signDeleteSummary(label: string, reason: SignReason, mode: 'remove' | 'untag') {
-	const why = SIGN_REASONS[reason].toLowerCase();
-	return `Pancarte « ${label} » supprimée (${why}) — ${
-		mode === 'remove' ? 'point retiré de la voie' : 'point gardé dans la voie, tags retirés'
-	}`;
+	return tr('signRemoval.summary', { label, reason: tr(`sign.reasonInline.${reason}`), mode });
 }
 
 /** Phrase du récapitulatif avant de confirmer. */
 export function signRemovalPhrase(r: SignRemoval) {
 	if (r.mode === 'remove')
-		return r.way === undefined
-			? 'Le point de la pancarte sera supprimé.'
-			: 'Le point sera retiré de la voie puis supprimé : la forme de la voie ne change pas.';
-	return `Le point reste dans la voie (${r.why.join(' ; ')}) : seuls les tags de la pancarte sont retirés. La forme de la voie ne change jamais.`;
+		return r.way === undefined ? tr('signRemoval.phraseNoWay') : tr('signRemoval.phraseRemove');
+	return tr('signRemoval.phraseUntag', { why: r.why.join(' ; ') });
 }

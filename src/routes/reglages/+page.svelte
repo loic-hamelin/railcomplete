@@ -1,5 +1,5 @@
 <script lang="ts">
-	// E10 — Réglages : compte OpenStreetMap, serveur, mode démonstration, informations.
+	// E10 — Réglages : compte OpenStreetMap, langue, thème, serveur, mode démonstration, informations.
 	import { resolve } from '$app/paths';
 	import BottomNav from '#lib/BottomNav.svelte';
 	import Icon from '#lib/Icon.svelte';
@@ -10,6 +10,9 @@
 	import { SERVERS, server, setServer, type ServerId } from '#lib/osmserver.svelte.js';
 	import { downloads, reloadDownloads, removeDownload } from '#lib/offline.svelte.js';
 	import { loadAllStations, type Station } from '#lib/stations.js';
+	import { lang, LANGUAGES, setLocale } from '#lib/i18n/i18n.svelte.js';
+	import type { Locale } from '#lib/i18n/locales.js';
+	import { fmtDate, fmtMegabytes, t } from '#lib/i18n/t.js';
 	import { onMount } from 'svelte';
 
 	let mounted = $state(false);
@@ -25,13 +28,13 @@
 			/* index indisponible : suppression des données seulement */
 		}
 	});
-	const mo = (b: number) => `${(b / 1e6).toFixed(1).replace('.', ',')} Mo`;
+	const mo = fmtMegabytes;
 	const total = $derived(downloads.list.reduce((n, d) => n + d.bytes, 0));
-	const THEMES: [Theme, string][] = [
-		['system', 'Système'],
-		['light', 'Clair'],
-		['dark', 'Sombre']
-	];
+	const THEMES = $derived<[Theme, string][]>([
+		['system', t('settings.theme.system')],
+		['light', t('settings.theme.light')],
+		['dark', t('settings.theme.dark')]
+	]);
 	function choose(id: ServerId) {
 		setServer(id);
 		resetStation();
@@ -40,13 +43,13 @@
 	}
 </script>
 
-<svelte:head><title>Réglages — stationcomplete</title></svelte:head>
+<svelte:head><title>{t('settings.title')}</title></svelte:head>
 
 <div class="screen">
 	<main>
-		<h1>Réglages</h1>
+		<h1>{t('nav.settings')}</h1>
 
-		<h2 class="overline">Compte OpenStreetMap</h2>
+		<h2 class="overline">{t('settings.account')}</h2>
 		<div class="group">
 			<div class="row">
 				{#if mounted && signedIn() && account.user}
@@ -55,26 +58,47 @@
 							>{SERVERS[server.id].label}</span
 						></span
 					>
-					<button class="btn-sm" type="button" onclick={logout}>Se déconnecter</button>
+					<button class="btn-sm" type="button" onclick={logout}>{t('settings.logout')}</button>
 				{:else if mounted && configured()}
-					<span class="txt"><span>Non connecté</span></span>
-					<button class="btn-sm" type="button" onclick={() => login()}>Se connecter</button>
+					<span class="txt"><span>{t('settings.signedOut')}</span></span>
+					<button class="btn-sm" type="button" onclick={() => login()}>{t('settings.login')}</button
+					>
 				{:else}
 					<span class="txt"
-						><span>Connexion indisponible</span><span class="small"
-							>Pas encore configurée pour {SERVERS[server.id].label}.</span
+						><span>{t('settings.loginUnavailable')}</span><span class="small"
+							>{t('settings.notConfigured', { server: SERVERS[server.id].label })}</span
 						></span
 					>
 				{/if}
 			</div>
 		</div>
 
-		<h2 class="overline">Apparence</h2>
+		<h2 class="overline">{t('settings.appearance')}</h2>
 		<div class="group">
+			<div class="row">
+				<span class="txt"
+					><label for="lang"
+						>{t('settings.language')}{#if lang.current !== 'en'}<span class="small" lang="en"
+								>&nbsp;· Language</span
+							>{/if}</label
+					><span class="small" id="lang-desc">{t('settings.languageHint')}</span></span
+				>
+				<!-- Nom de chaque langue dans sa propre langue, sans drapeau (une langue n'est pas un pays). -->
+				<select
+					id="lang"
+					aria-describedby="lang-desc"
+					value={lang.current}
+					onchange={(e) => setLocale(e.currentTarget.value as Locale)}
+				>
+					{#each LANGUAGES as l (l.code)}
+						<option value={l.code} lang={l.code}>{l.name}</option>
+					{/each}
+				</select>
+			</div>
 			<div class="row col">
 				<span class="txt"
-					><span id="theme-label">Thème</span><span class="small"
-						>« Système » suit le réglage de votre téléphone.</span
+					><span id="theme-label">{t('settings.theme.label')}</span><span class="small"
+						>{t('settings.theme.hint')}</span
 					></span
 				>
 				<div class="seg" role="group" aria-labelledby="theme-label">
@@ -87,9 +111,9 @@
 			</div>
 		</div>
 
-		<h2 class="overline">Serveur</h2>
+		<h2 class="overline">{t('settings.server')}</h2>
 		<fieldset class="group">
-			<legend class="visually-hidden">Serveur OpenStreetMap</legend>
+			<legend class="visually-hidden">{t('settings.serverLegend')}</legend>
 			<label class="row">
 				<input
 					type="radio"
@@ -98,9 +122,7 @@
 					onchange={() => choose('prod')}
 				/>
 				<span class="txt"
-					><span>OpenStreetMap</span><span class="small"
-						>La vraie carte : vos envois sont publiés, visibles par tous.</span
-					></span
+					><span>OpenStreetMap</span><span class="small">{t('settings.prodHint')}</span></span
 				>
 			</label>
 			<label class="row">
@@ -111,22 +133,17 @@
 					onchange={() => choose('dev')}
 				/>
 				<span class="txt"
-					><span>Serveur de test OSM</span><span class="small"
-						>Pour essayer l’envoi : rien n’apparaît sur la vraie carte.</span
-					></span
+					><span>{t('server.dev')}</span><span class="small">{t('settings.devHint')}</span></span
 				>
 			</label>
 		</fieldset>
 
-		<h2 class="overline">Saisie</h2>
+		<h2 class="overline">{t('settings.input')}</h2>
 		<div class="group">
 			<div class="row">
 				<span class="txt">
-					<span id="demo-label">Mode démonstration</span>
-					<span class="small" id="demo-desc"
-						>Permet d’essayer la saisie sans être dans la gare. Ces saisies ne partiront jamais sur
-						la vraie carte (seulement sur le serveur de test).</span
-					>
+					<span id="demo-label">{t('settings.demo')}</span>
+					<span class="small" id="demo-desc">{t('settings.demoHint')}</span>
 				</span>
 				<button
 					type="button"
@@ -143,45 +160,43 @@
 		</div>
 
 		<h2 class="overline">
-			Gares téléchargées{#if downloads.list.length}
+			{t('settings.downloads')}{#if downloads.list.length}
 				· {mo(total)}{/if}
 		</h2>
 		<div class="group">
 			{#each downloads.list as d (d.id)}
 				<div class="row">
 					<span class="txt"
-						><span>{d.name}</span><span class="small"
-							>{mo(d.bytes)} · {new Date(d.at).toLocaleDateString('fr-FR')}</span
-						></span
+						><span>{d.name}</span><span class="small">{mo(d.bytes)} · {fmtDate(d.at)}</span></span
 					>
 					<button
 						class="btn-sm"
 						type="button"
-						aria-label={`Supprimer ${d.name} du téléphone`}
-						onclick={() => removeDownload(d, bboxes[d.id])}>Supprimer</button
+						aria-label={t('settings.removeDownload', { name: d.name })}
+						onclick={() => removeDownload(d, bboxes[d.id])}>{t('common.remove')}</button
 					>
 				</div>
 			{:else}
 				<div class="row">
 					<span class="txt"
-						><span>Aucune</span><span class="small"
-							>Téléchargez une gare depuis son tableau de bord pour l’utiliser sans réseau.</span
+						><span>{t('settings.noDownloads')}</span><span class="small"
+							>{t('settings.noDownloadsHint')}</span
 						></span
 					>
 				</div>
 			{/each}
 		</div>
 
-		<h2 class="overline">À propos</h2>
+		<h2 class="overline">{t('legal.aboutLink')}</h2>
 		<div class="group">
 			<a class="row link" href={resolve('/a-propos')}>
-				<span class="txt">Sécurité, licences, contact</span><Icon name="chev" size={18} />
+				<span class="txt">{t('settings.aboutLink')}</span><Icon name="chev" size={18} />
 			</a>
 			<a class="row link" href={resolve('/donnees-personnelles')}>
-				<span class="txt">Données personnelles</span><Icon name="chev" size={18} />
+				<span class="txt">{t('legal.dataLink')}</span><Icon name="chev" size={18} />
 			</a>
 			<a class="row link" href={resolve('/mentions-legales')}>
-				<span class="txt">Mentions légales</span><Icon name="chev" size={18} />
+				<span class="txt">{t('legal.noticeLink')}</span><Icon name="chev" size={18} />
 			</a>
 		</div>
 	</main>
@@ -244,8 +259,23 @@
 		display: flex;
 		flex-direction: column;
 	}
-	.txt > span:first-child {
+	.txt > span:first-child,
+	.txt > label {
 		font-weight: 600;
+	}
+	label .small {
+		font-weight: 400;
+	}
+	select {
+		flex-shrink: 0;
+		min-height: 44px;
+		max-width: 50%;
+		padding: 0 10px;
+		border: 1px solid var(--border-strong);
+		border-radius: var(--radius);
+		background: var(--bg);
+		color: var(--text);
+		font: inherit;
 	}
 	.small {
 		font-size: 0.875rem;

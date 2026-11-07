@@ -1,0 +1,965 @@
+{
+	"common": {
+		"and": "e",
+		"closeMessage": "Chiudi il messaggio",
+		"logoLabel": "stationcomplete, pagina iniziale",
+		"cancel": "Annulla",
+		"remove": "Rimuovi",
+		"loading": "Caricamento…",
+		"confirm": "Conferma",
+		"retry": "Riprova",
+		"osmAttribution": "© collaboratori di OpenStreetMap, ODbL",
+		"close": "Chiudi",
+		"saveFailed": "Il salvataggio su questo telefono non è riuscito. Riprova.",
+		"seeOnOsm": "Vedi su OpenStreetMap",
+		"quoted": "«{text}»",
+		"no": "No",
+		"yes": "Sì",
+		"save": "Salva",
+		"zoomIn": "Ingrandisci",
+		"zoomOut": "Riduci"
+	},
+	"format": {
+		"mb": "{n} MB"
+	},
+	"platform": {
+		"named": "Marciapiede {ref}",
+		"noRef": "Marciapiede senza numero",
+		"plain": "Marciapiede",
+		"tracks": "Marciapiede binari {refs}"
+	},
+	"track": {
+		"named": "Binario {ref}",
+		"noRef": "Binario senza numero"
+	},
+	"sign": {
+		"named": "Tabella di fermata «{label}»",
+		"label": {
+			"stop": "Fermata",
+			"all": "Tutti"
+		},
+		"check": {
+			"type": "Scegli la tabella che vedi.",
+			"vehicles": "Indica il numero di veicoli scritto sulla tabella.",
+			"length": "Indica la lunghezza scritta sulla tabella (in metri).",
+			"caption": "Ricopia il testo della tabella.",
+			"direction": "Indica la direzione dei treni a cui è rivolta questa tabella.",
+			"position": "Indica da quale lato si trova la tabella."
+		},
+		"type": {
+			"long": "Treno lungo",
+			"short": "Treno corto",
+			"all": "Tutti i treni",
+			"other": "Altro / illeggibile",
+			"otherShort": "Altro",
+			"usum": "US / UM (in arrivo)",
+			"usumPending": "In attesa dell’approvazione dello schema di tag OSM"
+		},
+		"reason": {
+			"gone": "Non esiste più",
+			"duplicate": "Doppione",
+			"misplaced": "Posizionata male"
+		},
+		"reasonInline": {
+			"gone": "non esiste più",
+			"duplicate": "doppione",
+			"misplaced": "posizionata male"
+		}
+	},
+	"feature": {
+		"platformLettered": "{length} · lettera in «ref»: sono attesi i numeri dei binari",
+		"platformTracks": "Binari {refs} · {length}",
+		"platformNoRef": "{length} · numeri dei binari da rilevare sul posto",
+		"trackRef": "Numero del binario indicato",
+		"trackNoRef": "Numero esposto in stazione, da rilevare sul posto",
+		"trackAway": "Non costeggia nessun marciapiede mappato",
+		"signLegacy": "Vecchio formato dei tag, da confermare sul posto",
+		"signDirection": "Direzione indicata",
+		"signNoDirection": "Direzione dei treni da rilevare sul posto"
+	},
+	"quest": {
+		"q0": {
+			"title": "Nessun marciapiede mappato",
+			"subtitle": "Potrai disegnarlo sulla foto aerea"
+		},
+		"q1": {
+			"title": "{count, plural, one {# marciapiede senza numero} other {# marciapiedi senza numero}}"
+		},
+		"q2": {
+			"title": "{count, plural, one {# binario di marciapiede senza numero} other {# binari di marciapiede senza numero}}"
+		},
+		"q3": {
+			"title": "{count, plural, one {# marciapiede con numeri da verificare} other {# marciapiedi con numeri da verificare}}",
+			"subtitle": "I numeri del marciapiede e quelli dei binari non corrispondono"
+		},
+		"q4": {
+			"title": "{count, plural, one {# lato di marciapiede senza tabella di fermata} other {# lati di marciapiede senza tabella di fermata}}"
+		},
+		"q5": {
+			"title": "{count, plural, one {# tabella di fermata da completare} other {# tabelle di fermata da completare}}"
+		},
+		"q6": {
+			"title": "{count, plural, one {# oggetto da verificare} other {# oggetti da verificare}}",
+			"subtitle": "Si può fare anche a distanza"
+		},
+		"q7": {
+			"title": "{count, plural, one {# numero di binario posizionato male} other {# numeri di binario posizionati male}}",
+			"duplicate": "Due binari hanno il numero {ref}",
+			"subtitle": "Da verificare con priorità"
+		}
+	},
+	"signRemoval": {
+		"why": {
+			"shared": "punto condiviso con un altro oggetto (altro binario, deviatoio…)",
+			"repeated": "punto ripetuto nel binario",
+			"extra": "contiene altre informazioni ({keys})",
+			"relation": "membro di una relazione",
+			"shift": "rimuoverlo sposterebbe il binario di {shift} m",
+			"end": "estremità del binario"
+		},
+		"summary": "Tabella di fermata «{label}» eliminata ({reason}) — {mode, select, remove {punto rimosso dal binario} other {punto mantenuto nel binario, tag rimossi}}",
+		"phraseNoWay": "Il punto della tabella di fermata sarà eliminato.",
+		"phraseRemove": "Il punto sarà rimosso dal binario e poi eliminato: la forma del binario non cambia.",
+		"phraseUntag": "Il punto resta nel binario ({why}): vengono rimossi solo i tag della tabella di fermata. La forma del binario non cambia mai."
+	},
+	"shape": {
+		"complex": "Marciapiede complesso: da modificare con un editor come iD o JOSM.",
+		"reason": {
+			"duplicate": "Doppione di un altro marciapiede",
+			"gone": "Non esiste più"
+		},
+		"reasonInline": {
+			"duplicate": "doppione",
+			"gone": "non esiste più"
+		},
+		"reasonComment": {
+			"duplicate": "doppione di un altro marciapiede",
+			"gone": "non esiste più"
+		},
+		"relationNo": "n. {id}",
+		"rel": {
+			"stopArea": "dall’area di fermata {name}",
+			"route": "dalla linea {name}",
+			"routes": "da {count} linee",
+			"other": "dalla relazione {name}",
+			"others": "da altre {count} relazioni",
+			"removed": "rimosso {list}"
+		},
+		"summary": {
+			"area": "{name} ridisegnato come area",
+			"reshape": "{name}: forma modificata ({before} → {after} punti)",
+			"delete": "{name} eliminato ({why})"
+		},
+		"link": {
+			"relation": "membro di una relazione",
+			"repeated": "punto ripetuto nel contorno",
+			"infoWhat": "punto con informazioni ({what})"
+		},
+		"tags": "tag",
+		"notice": {
+			"shared": "{count, plural, one {# punto su {total} è condiviso con altri oggetti ({objects}): seguirà le tue modifiche.} other {# punti su {total} sono condivisi con altri oggetti ({objects}): seguiranno le tue modifiche.}}",
+			"taggedInfo": "Il punto {point} è un punto con informazioni: spostarlo sposta l’oggetto che descrive.",
+			"tagged": "Il punto {point} è {a}: spostarlo sposta {the}.",
+			"taggedMany": "I punti {points} contengono informazioni ({what}): spostarli sposta questi oggetti."
+		},
+		"point": {
+			"alsoOf": "Questo punto è anche un punto di: {list} — {count, plural, one {seguirà} other {seguiranno}} lo spostamento.",
+			"info": "Questo punto contiene informazioni: sarà spostato insieme a esse.",
+			"is": "Questo punto è {a}: {g, select, f {sarà spostata} other {sarà spostato}}.",
+			"removeEdge": "Non può essere rimosso dal contorno: serve al bordo del marciapiede.",
+			"removeWays": "Se rimosso, resta in {list}; cambia solo il marciapiede.",
+			"removeMap": "Se rimosso, resta sulla mappa; cambia solo il marciapiede."
+		},
+		"shared": {
+			"info": "contiene informazioni",
+			"alsoOf": "anche un punto {list}",
+			"linked": "collegato a {list}",
+			"plain": "condiviso"
+		},
+		"followers": {
+			"ways": "{list} {g, select, f {{count, plural, one {adattata} other {adattate}}} other {{count, plural, one {adattato} other {adattati}}}} anche",
+			"tags": "{list} {g, select, f {{count, plural, one {spostata} other {spostate}}} other {{count, plural, one {spostato} other {spostati}}}}"
+		},
+		"deleteRefused": "Questo marciapiede è l’unico membro della relazione {name}: da eliminare con un editor come iD o JOSM.",
+		"lock": {
+			"foreign": "Un punto proviene da un altro oggetto: forma rifiutata.",
+			"twice": "Un punto compare due volte nel contorno.",
+			"movedLinked": "È stato spostato un punto collegato a un altro oggetto: forma rifiutata.",
+			"movedRepeated": "È stato spostato un punto ripetuto nel contorno: forma rifiutata.",
+			"areaLinked": "{count, plural, one {Il punto {points} della vecchia linea è collegato ad altri oggetti: deve far parte del contorno. Tocca questo punto (quadrato) per aggiungerlo, oppure usa un editor come iD o JOSM.} other {I punti {points} della vecchia linea sono collegati ad altri oggetti: devono far parte del contorno. Tocca questi punti (quadrati) per aggiungerli, oppure usa un editor come iD o JOSM.}}",
+			"edge": "{count, plural, one {Il punto {points} è anche un punto del bordo del marciapiede: rimuoverlo dal contorno lo lascerebbe nel bordo. Spostalo piuttosto, oppure usa JOSM o iD.} other {I punti {points} sono anche punti del bordo del marciapiede: rimuoverli dal contorno li lascerebbe nel bordo. Spostali piuttosto, oppure usa JOSM o iD.}}",
+			"repeated": "{count, plural, one {Il punto {points} compare più volte nel contorno: non può essere rimosso.} other {I punti {points} compaiono più volte nel contorno: non possono essere rimossi.}}"
+		}
+	},
+	"obj": {
+		"platformEdge": {
+			"name": "bordo del marciapiede",
+			"a": "il bordo del marciapiede",
+			"of": "del bordo del marciapiede",
+			"the": "il bordo del marciapiede",
+			"g": "m"
+		},
+		"roof": {
+			"name": "tetto",
+			"a": "il tetto",
+			"of": "del tetto",
+			"the": "il tetto",
+			"g": "m"
+		},
+		"indoor": {
+			"name": "spazio interno",
+			"a": "uno spazio interno",
+			"of": "di uno spazio interno",
+			"the": "lo spazio interno",
+			"g": "m"
+		},
+		"steps": {
+			"name": "scala",
+			"a": "una scala",
+			"of": "di una scala",
+			"the": "la scala",
+			"g": "f"
+		},
+		"footway": {
+			"name": "percorso pedonale",
+			"a": "un percorso pedonale",
+			"of": "di un percorso pedonale",
+			"the": "il percorso pedonale",
+			"g": "m"
+		},
+		"elevator": {
+			"name": "ascensore",
+			"a": "un ascensore",
+			"of": "di un ascensore",
+			"the": "l’ascensore",
+			"g": "m"
+		},
+		"road": {
+			"name": "strada",
+			"a": "una strada",
+			"of": "di una strada",
+			"the": "la strada",
+			"g": "f"
+		},
+		"station": {
+			"name": "stazione",
+			"a": "la stazione",
+			"of": "della stazione",
+			"the": "la stazione",
+			"g": "f"
+		},
+		"building": {
+			"name": "edificio",
+			"a": "un edificio",
+			"of": "di un edificio",
+			"the": "l’edificio",
+			"g": "m"
+		},
+		"otherPlatform": {
+			"name": "altro marciapiede",
+			"a": "un altro marciapiede",
+			"of": "di un altro marciapiede",
+			"the": "l’altro marciapiede",
+			"g": "m"
+		},
+		"railway": {
+			"name": "binario o impianto ferroviario",
+			"a": "un binario o impianto ferroviario",
+			"of": "di un binario o impianto ferroviario",
+			"the": "il binario o impianto ferroviario",
+			"g": "m"
+		},
+		"barrierLine": {
+			"name": "recinzione o muro",
+			"a": "una recinzione o un muro",
+			"of": "di una recinzione o un muro",
+			"the": "la recinzione o il muro",
+			"g": "m"
+		},
+		"area": {
+			"name": "area",
+			"a": "un’area",
+			"of": "di un’area",
+			"the": "l’area",
+			"g": "f"
+		},
+		"other": {
+			"name": "altro oggetto",
+			"a": "un altro oggetto",
+			"of": "di un altro oggetto",
+			"the": "l’altro oggetto",
+			"g": "m"
+		},
+		"entrance": {
+			"name": "ingresso",
+			"a": "un ingresso",
+			"of": "di un ingresso",
+			"the": "l’ingresso",
+			"g": "m"
+		},
+		"busStop": {
+			"name": "fermata dell’autobus",
+			"a": "una fermata dell’autobus",
+			"of": "di una fermata dell’autobus",
+			"the": "la fermata dell’autobus",
+			"g": "f"
+		},
+		"barrier": {
+			"name": "barriera",
+			"a": "una barriera",
+			"of": "di una barriera",
+			"the": "la barriera",
+			"g": "f"
+		},
+		"railwayNode": {
+			"name": "elemento ferroviario",
+			"a": "un elemento ferroviario",
+			"of": "di un elemento ferroviario",
+			"the": "l’elemento ferroviario",
+			"g": "m"
+		},
+		"info": {
+			"name": "punto con informazioni",
+			"a": "un punto con informazioni",
+			"of": "di un punto con informazioni",
+			"the": "il punto con informazioni",
+			"g": "m"
+		}
+	},
+	"draw": {
+		"check": {
+			"points": "Posiziona almeno 3 punti.",
+			"crossing": "Alcuni lati del marciapiede si incrociano: sposta o rimuovi un punto.",
+			"short": "Marciapiede troppo corto ({length}, minimo {min}).",
+			"long": "Marciapiede troppo lungo ({length}, massimo {max}).",
+			"track": "Il marciapiede attraversa un binario: il bordo deve restare lungo il binario.",
+			"overlap": "Il marciapiede si sovrappone a un marciapiede già mappato."
+		},
+		"lost": {
+			"track": "{track} ({gap})",
+			"theTrack": "il binario {ref}",
+			"aTrack": "un binario senza numero",
+			"gap": "bordo a {gap}",
+			"notParallel": "bordo non più parallelo al binario",
+			"message": "Il marciapiede non costeggia più {list}. Verifica la forma: il bordo del marciapiede deve seguire il binario."
+		}
+	},
+	"upload": {
+		"conflict": {
+			"changed": "Il marciapiede è stato modificato nel frattempo su OpenStreetMap: per esso non è stato inviato nulla. Ripeti la modifica sulla mappa aggiornata.",
+			"signChanged": "La tabella di fermata o il suo binario è stato modificato nel frattempo su OpenStreetMap: per essa non è stato inviato nulla. Ripeti l’eliminazione sulla mappa aggiornata.",
+			"signLinked": "La tabella di fermata è stata collegata nel frattempo a un altro oggetto su OpenStreetMap: per essa non è stato inviato nulla. Ripeti l’eliminazione sulla mappa aggiornata.",
+			"nodeChanged": "Un punto del marciapiede è stato modificato o collegato a un altro oggetto nel frattempo su OpenStreetMap: per esso non è stato inviato nulla. Ripeti la modifica sulla mappa aggiornata.",
+			"gone": "Oggetto eliminato nel frattempo su OpenStreetMap.",
+			"clash": "Modificato da qualcun altro nel frattempo ({key}).",
+			"trackGone": "Il binario è stato eliminato nel frattempo.",
+			"trackRedrawn": "Il binario è stato ridisegnato nel frattempo.",
+			"platformGone": "Marciapiede eliminato nel frattempo su OpenStreetMap.",
+			"ringInvalid": "Contorno del marciapiede non valido.",
+			"ringLocks": "Contorno del marciapiede non valido (punto del bordo del marciapiede rimosso o punto fisso spostato).",
+			"platformDeleted": "Marciapiede già eliminato su OpenStreetMap.",
+			"relationEmpty": "La relazione {name} resterebbe vuota: eliminala con un editor come iD o JOSM.",
+			"signDeleted": "Tabella di fermata già eliminata su OpenStreetMap.",
+			"signTrack": "Il binario della tabella di fermata è stato eliminato o ridisegnato nel frattempo.",
+			"ringIncomplete": "Contorno del marciapiede incompleto."
+		},
+		"comment": {
+			"numbers": "numeri di marciapiedi e binari, tabelle di fermata",
+			"drawn": "marciapiede disegnato",
+			"shape": "forma del marciapiede corretta",
+			"deleted": "{name} eliminato ({why})",
+			"signDeleted": "tabella di fermata «{label}» eliminata ({why}{mode, select, untag {, punto mantenuto nel binario} other {}})",
+			"station": "Stazione di {name}: {parts}"
+		}
+	},
+	"bearing": {
+		"n": "nord",
+		"ne": "nord-est",
+		"e": "est",
+		"se": "sud-est",
+		"s": "sud",
+		"sw": "sud-ovest",
+		"w": "ovest",
+		"nw": "nord-ovest"
+	},
+	"edit": {
+		"label": {
+			"newSign": "Nuova tabella di fermata",
+			"newPlatform": "Nuovo marciapiede",
+			"area": "Marciapiede ridisegnato come area",
+			"shape": "Forma del marciapiede",
+			"delete": "Eliminazione · motivo: {why}",
+			"signDelete": "Eliminazione di tabella di fermata · motivo: {why}",
+			"tags": "Modifica"
+		},
+		"drawnSummary": "{summary} (disegnato)",
+		"error": {
+			"signDeleted": "Questa tabella di fermata è segnata da eliminare: rimuovi prima quella modifica.",
+			"platformDeleted": "Questo marciapiede è segnato da eliminare: rimuovi prima quella modifica."
+		}
+	},
+	"remote": {
+		"suspended": "Gli invii sono sospesi per il momento. Le tue modifiche restano su questo telefono.",
+		"update": "Serve una nuova versione dell’app: chiudila e riaprila per aggiornarla. Le tue modifiche sono conservate.",
+		"pilot": "stationcomplete è in fase pilota: l’invio sulla mappa reale è riservato ad alcuni tester. Le tue modifiche restano su questo telefono."
+	},
+	"error": {
+		"loginRefused": "L’accesso è stato rifiutato o è scaduto.",
+		"profile": "Profilo non disponibile ({status}).",
+		"stationNotFound": "Stazione non trovata nell’indice.",
+		"osmUnreachable": "Impossibile raggiungere OpenStreetMap. Controlla la connessione.",
+		"tilesFailed": "Troppe foto non sono state scaricate.",
+		"downloadInterrupted": "Download interrotto.",
+		"osmServer": "Errore del server di OpenStreetMap ({status}).",
+		"osmBusy": "Il server di OpenStreetMap è molto sollecitato. Riprova tra un minuto.",
+		"index": "Indice delle stazioni non disponibile ({status})"
+	},
+	"server": {
+		"dev": "Server di prova OSM"
+	},
+	"seed": {
+		"limit": "Il server di prova limita il numero di modifiche all’ora per gli account recenti. Riprova tra un’ora: il limite aumenta con l’anzianità dell’account.",
+		"devOnly": "Riservato al server di prova.",
+		"readFailed": "Impossibile leggere la stazione reale ({status}).",
+		"empty": "Nessun marciapiede né binario da copiare per questa stazione.",
+		"tooBig": "Stazione troppo grande per una copia di prova.",
+		"comment": "Copia di prova della stazione di {name} (marciapiedi, binari, tabelle di fermata) per provare stationcomplete",
+		"openRefused": "Apertura rifiutata dal server di prova ({status}).",
+		"copyRefused": "Copia rifiutata dal server di prova ({status})."
+	},
+	"send": {
+		"demoRefused": "Alcune modifiche sono state fatte in modalità dimostrativa, fuori dalla stazione: non possono andare sulla mappa reale. Rimuovile qui sotto.",
+		"interrupted": "Un invio precedente è stato interrotto. Per prudenza, riprova tra {min} min.",
+		"unavailable": "Invio non disponibile su questo server.",
+		"offline": "Nessuna rete: riprova quando sarai connesso.",
+		"busy": "Un invio è già in corso.",
+		"conflict412": "Rifiutato da OpenStreetMap durante l’invio: un oggetto è ancora in uso o è scomparso. Non è stato inviato nulla.",
+		"conflict409": "Modificato su OpenStreetMap durante l’invio.",
+		"rateLimit": "OpenStreetMap limita il numero di modifiche all’ora (soprattutto per gli account recenti). Le tue modifiche sono conservate: riprova tra un’ora.",
+		"expired": "Il tuo accesso è scaduto: accedi di nuovo.",
+		"refused": "Il server ha rifiutato l’invio ({status}).",
+		"lost": "La connessione si è interrotta. Le tue modifiche sono conservate; riprova più tardi."
+	},
+	"nav": {
+		"label": "Navigazione principale",
+		"station": "Stazione",
+		"contributions": "Contributi",
+		"pending": ", {count} in attesa",
+		"settings": "Impostazioni"
+	},
+	"net": {
+		"offline": "Offline — le tue modifiche restano su questo telefono{count, plural, =0 {} one {; # invio partirà al ritorno della rete} other {; # invii partiranno al ritorno della rete}}.",
+		"station": "{name}:",
+		"sentAuto": "{count, plural, one {# modifica inviata automaticamente.} other {# modifiche inviate automaticamente.}}",
+		"nothing": "niente da inviare{conflicts, plural, =0 {} other {, {conflicts} da rivedere}}.",
+		"review": "Vedi le modifiche da rivedere"
+	},
+	"meta": {
+		"description": "stationcomplete: completa i dati ferroviari delle stazioni in OpenStreetMap."
+	},
+	"home": {
+		"title": "stationcomplete — completa le stazioni in OpenStreetMap",
+		"skip": "Salta",
+		"step": "Passo {step} di {total}",
+		"intro": {
+			"title": "Completa i dati della tua stazione",
+			"text": "Numeri dei marciapiedi, numeri dei binari, tabelle di fermata: in pochi minuti sul marciapiede rendi queste informazioni utili a tutti, dalle app di viaggio agli strumenti ferroviari come OSRD."
+		},
+		"safety": {
+			"kicker": "Sicurezza",
+			"title": "Resta dietro la linea di sicurezza.",
+			"text": "Tutto si fa dal marciapiede, oppure da casa grazie alla foto aerea. Non scendere mai sui binari e non superare la fine del marciapiede."
+		},
+		"osm": {
+			"title": "I tuoi contributi vanno in OpenStreetMap",
+			"text": "La mappa libera e collaborativa. Sono pubblicati con il tuo nome utente OSM, con licenza ODbL, e niente viene inviato senza che tu l’abbia riletto."
+		},
+		"understood": "Ho capito",
+		"start": "Inizia",
+		"next": "Avanti",
+		"explore": {
+			"title": "Esplora le stazioni della Francia",
+			"text": "Guarda fin da ora cosa manca in ogni stazione: numeri dei marciapiedi, numeri dei binari, tabelle di fermata. L’inserimento e l’invio a OpenStreetMap arriveranno presto."
+		},
+		"chooseStation": "Scegli una stazione",
+		"more": "Scopri di più sul progetto",
+		"replay": "Rivedi la presentazione"
+	},
+	"about": {
+		"title": "Informazioni — stationcomplete",
+		"heading": "Informazioni su stationcomplete",
+		"project": {
+			"title": "Il progetto",
+			"text": "stationcomplete aiuta chiunque a completare i dati delle stazioni francesi in <osm>OpenStreetMap</osm>: numeri dei marciapiedi, numeri dei binari e tabelle di fermata dei treni. Questi dati liberi servono a tutti, in particolare agli strumenti di progettazione ferroviaria come <osrd>OSRD</osrd>."
+		},
+		"safety": {
+			"title": "Sicurezza",
+			"text": "Resta sempre dietro la linea di sicurezza. Tutto si fa dal marciapiede o a distanza, sulla foto aerea. Non scendere mai sui binari."
+		},
+		"data": {
+			"title": "Dati e licenze",
+			"osm": "I contributi sono pubblicati in OpenStreetMap con il tuo nome utente, con licenza <odbl>ODbL</odbl>. © collaboratori di OpenStreetMap.",
+			"photos": "Foto aeree: {product}, con licenza {licence}.",
+			"code": "Il codice di stationcomplete è libero, con licenza GPL-3.0 o successiva: <code>vedi il codice sorgente</code>."
+		},
+		"privacy": {
+			"title": "Privacy",
+			"text": "Questo sito non usa cookie né strumenti di misurazione del pubblico. Le tue modifiche restano sul telefono fino al loro invio a OpenStreetMap."
+		},
+		"contact": {
+			"title": "Contatti",
+			"text": "Un errore, un’idea, una stazione che crea problemi? Scrivi a <mail>{email}</mail> o apri una segnalazione su <issues>GitHub</issues>."
+		},
+		"back": "← Torna alla pagina iniziale"
+	},
+	"legal": {
+		"title": "Note legali — stationcomplete",
+		"noticeLink": "Note legali",
+		"dataLink": "Dati personali",
+		"aboutLink": "Informazioni",
+		"publisher": {
+			"title": "Editore",
+			"text": "stationcomplete.org è un progetto volontario e non commerciale, pubblicato da Loïc Hamelin, privato cittadino, che ne è anche il direttore responsabile.",
+			"contact": "Contatto:"
+		},
+		"host": {
+			"title": "Hosting",
+			"text": "GitHub Pages — GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, Stati Uniti."
+		},
+		"content": {
+			"title": "Contenuti e licenze",
+			"osm": "Dati cartografici: © collaboratori di OpenStreetMap, con licenza <odbl>ODbL</odbl>.",
+			"photos": "Foto aeree: {product}, con licenza <licence>{licence}</licence>.",
+			"code": "Codice dell’app: licenza GPL-3.0 o successiva, <code>codice sorgente su GitHub</code>.",
+			"independent": "stationcomplete è un progetto personale: non è un servizio della SNCF né della OpenStreetMap Foundation."
+		}
+	},
+	"country": {
+		"fr": {
+			"name": "Francia",
+			"of": "della Francia"
+		},
+		"ch": {
+			"name": "Svizzera",
+			"of": "della Svizzera"
+		}
+	},
+	"data": {
+		"title": "Dati personali — stationcomplete",
+		"lead": "stationcomplete non ha un server proprio: non riceve, non conserva e non vende alcun dato che ti riguardi. Questa pagina spiega cosa succede sul tuo telefono e presso i servizi che l’app contatta.",
+		"phone": {
+			"title": "Sul tuo telefono",
+			"storage": "Le stazioni consultate, le modifiche non ancora inviate, le tue impostazioni e le foto aeree scaricate restano nella memoria del browser del tuo telefono.",
+			"position": "La tua posizione serve solo a verificare, sul telefono, che ti trovi davvero in stazione. Non viene inviata a nessuno.",
+			"login": "Se accedi, la chiave di accesso a OpenStreetMap e il tuo nome utente sono conservati sul telefono. La tua password non è mai vista da stationcomplete: la inserisci sul sito di OpenStreetMap.",
+			"nothing": "Nessun cookie, nessuna pubblicità, nessuna misurazione del pubblico."
+		},
+		"publish": {
+			"title": "Cosa pubblichi su OpenStreetMap",
+			"text": "Quando invii le tue modifiche, sono pubblicate su OpenStreetMap con il tuo nome utente, con la data e la descrizione dell’invio. Come ogni contributo a OpenStreetMap, sono pubbliche e restano nella cronologia della mappa. Questi dati sono gestiti dalla OpenStreetMap Foundation, secondo la sua <policy>informativa sulla privacy</policy>."
+		},
+		"services": {
+			"title": "Servizi contattati dal tuo telefono",
+			"lead": "Come per qualsiasi sito web, questi servizi vedono l’indirizzo IP della tua connessione:",
+			"github": "<b>GitHub Pages</b> (GitHub, Inc., Stati Uniti): hosting dell’app. <gh>Informativa sulla privacy di GitHub</gh>.",
+			"osm": "<b>OpenStreetMap</b> (OpenStreetMap Foundation, Regno Unito): lettura dei dati delle stazioni, accesso e invio dei contributi.",
+			"photos": "<b>{operator}</b> ({seat}): foto aeree."
+		},
+		"rights": {
+			"title": "I tuoi diritti",
+			"text": "Puoi cancellare in qualsiasi momento tutto ciò che stationcomplete conserva su questo telefono. Per i contributi pubblicati e il tuo account OpenStreetMap, rivolgiti alla OpenStreetMap Foundation. Per qualsiasi domanda: <mail>{email}</mail>. Puoi anche rivolgerti alla <cnil>CNIL</cnil> (autorità francese per la protezione dei dati)."
+		},
+		"wipe": {
+			"done": "<b>Fatto:</b> non resta più nulla di stationcomplete su questo telefono.",
+			"lost": "{count, plural, one {# modifica non ancora inviata andrà persa.} other {# modifiche non ancora inviate andranno perse.}}",
+			"confirm": "Cancellare tutto da questo telefono? I contributi già pubblicati non vengono toccati.",
+			"all": "Cancella tutto",
+			"button": "Cancella i miei dati da questo telefono"
+		}
+	},
+	"login": {
+		"title": "Accesso — stationcomplete",
+		"denied": "Hai rifiutato l’accesso.",
+		"failed": "L’accesso non è riuscito.",
+		"finishing": "Accesso in corso…",
+		"pseudo": "Pubblicati con il tuo nome utente, con la licenza libera ODbL.",
+		"review": "Niente viene inviato senza che tu l’abbia riletto.",
+		"password": "stationcomplete non chiede né conserva alcuna password.",
+		"server": "Server:",
+		"signedIn": "Accesso effettuato come <b>{name}</b>.",
+		"myContributions": "I miei contributi",
+		"notConfigured": "L’accesso a questo server non è ancora configurato. Scegli il server di prova nelle impostazioni.",
+		"button": "Accedi con OpenStreetMap",
+		"create": "Crea un account OpenStreetMap"
+	},
+	"stations": {
+		"title": "Scegli una stazione — stationcomplete",
+		"geoUnavailable": "La localizzazione non è disponibile su questo dispositivo.",
+		"geoError": "Posizione non disponibile. Consenti la localizzazione o cerca per nome.",
+		"halt": "fermata",
+		"searchLabel": "Cerca una stazione",
+		"placeholder": "Nome della stazione o del comune",
+		"locating": "Localizzazione…",
+		"nearby": "Stazioni vicino a me",
+		"loading": "Caricamento dell’elenco delle stazioni…",
+		"results": "Risultati",
+		"noMatch": "Nessuna stazione corrisponde a «{query}».",
+		"around": "Vicino a me",
+		"recent": "Recenti",
+		"count": "{count} stazioni e fermate {of}. Digita almeno due lettere."
+	},
+	"settings": {
+		"title": "Impostazioni — stationcomplete",
+		"account": "Account OpenStreetMap",
+		"logout": "Esci",
+		"signedOut": "Non connesso",
+		"login": "Accedi",
+		"loginUnavailable": "Accesso non disponibile",
+		"notConfigured": "Non ancora configurato per {server}.",
+		"appearance": "Aspetto",
+		"language": "Lingua",
+		"languageHint": "Lingua dell’app e del commento dei tuoi invii.",
+		"theme": {
+			"label": "Tema",
+			"hint": "«Sistema» segue l’impostazione del tuo telefono.",
+			"system": "Sistema",
+			"light": "Chiaro",
+			"dark": "Scuro"
+		},
+		"server": "Server",
+		"serverLegend": "Server OpenStreetMap",
+		"prodHint": "La mappa reale: i tuoi invii sono pubblicati, visibili a tutti.",
+		"devHint": "Per provare l’invio: nulla appare sulla mappa reale.",
+		"input": "Inserimento",
+		"demo": "Modalità dimostrativa",
+		"demoHint": "Permette di provare l’inserimento senza essere in stazione. Queste modifiche non andranno mai sulla mappa reale (solo sul server di prova).",
+		"downloads": "Stazioni scaricate",
+		"removeDownload": "Rimuovi {name} dal telefono",
+		"noDownloads": "Nessuna",
+		"noDownloadsHint": "Scarica una stazione dal suo pannello per usarla senza rete.",
+		"aboutLink": "Sicurezza, licenze, contatti"
+	},
+	"contributions": {
+		"title": "I miei contributi — stationcomplete",
+		"intro": "Le tue modifiche restano su questo telefono, anche senza rete, fino al loro invio stazione per stazione. Server: <b>{server}</b>.",
+		"empty": "Nessuna modifica in attesa.",
+		"count": "{count, plural, one {# modifica} other {# modifiche}}",
+		"review": "Da rivedere",
+		"waiting": "In attesa",
+		"removeLabel": "Rimuovi: {summary}",
+		"remove": "Rimuovi",
+		"send": "Rileggi e invia",
+		"toReview": "{count} da rivedere"
+	},
+	"sendPage": {
+		"title": "Rileggi e invia — stationcomplete",
+		"back": "Torna ai contributi",
+		"step": {
+			"checking": "Verifica di un invio precedente…",
+			"reading": "Rilettura dei dati aggiornati…",
+			"opening": "Apertura del gruppo di modifiche…",
+			"uploading": "Invio delle modifiche…",
+			"closing": "Chiusura…",
+			"sending": "Invio…"
+		},
+		"offline": "Offline. Le tue modifiche sono conservate. Dopo averle rilette, puoi programmare l’invio: partirà da solo al ritorno della rete, con l’app aperta.",
+		"cannotUpload": "L’invio verso {server} non è ancora possibile. Per provare, scegli un altro server nelle <settings>impostazioni</settings>.",
+		"prod": "Le tue modifiche saranno pubblicate sulla mappa <b>OpenStreetMap</b>, visibili a tutti.",
+		"dev": "Server: <b>{server}</b> — nessun effetto sulla mappa reale.",
+		"sent": "{count, plural, one {# modifica inviata.} other {# modifiche inviate.}}",
+		"thanks": "Grazie!",
+		"changeset": "Vedi il gruppo di modifiche n. {id}",
+		"conflicts": "{count, plural, one {# modifica è da rivedere: l’oggetto è cambiato su OpenStreetMap nel frattempo.} other {# modifiche sono da rivedere: l’oggetto è cambiato su OpenStreetMap nel frattempo.}}",
+		"empty": "Nessuna modifica in attesa per questa stazione.",
+		"ready": "Pronte all’invio ({count})",
+		"demo": "modalità dimostrativa",
+		"review": "Da rivedere ({count})",
+		"redo": "Rifai",
+		"open": "Apri",
+		"keep": "Mantieni",
+		"keepHint": "«Mantieni» invia la tua modifica così com’è: verifica prima sul posto che sia corretta. Una forma di marciapiede o un’eliminazione si rifà sulla mappa aggiornata.",
+		"comment": "Descrizione pubblica dell’invio",
+		"commentHint": "Visibile a tutti su OpenStreetMap, con il tuo nome utente e l’hashtag #stationcomplete.",
+		"notConfigured": "L’accesso a questo server non è ancora configurato.",
+		"login": "Accedi per inviare",
+		"by": "Inviato da <b>{name}</b>",
+		"you": "te",
+		"blocked": "Invio impossibile per il momento (vedi il messaggio in alto).",
+		"queued": "In attesa della rete: l’invio partirà da solo.",
+		"cancelQueue": "Annulla l’invio automatico",
+		"send": "{count, plural, one {Invia # modifica} other {Invia # modifiche}}",
+		"sendLater": "Invia al ritorno della rete"
+	},
+	"station": {
+		"title": "{name} — stationcomplete",
+		"change": "Cambia stazione",
+		"cached": "Dati salvati su questo telefono il {date}",
+		"fresh": "Dati OpenStreetMap aggiornati",
+		"reload": "Ricarica i dati da OpenStreetMap",
+		"demo": "Modalità dimostrativa: inserimento possibile fuori dalla stazione, ma queste modifiche non andranno sulla mappa reale.",
+		"pending": "{count, plural, one {# modifica in attesa di invio in questa stazione} other {# modifiche in attesa di invio in questa stazione}}",
+		"none": "Nessuna stazione scelta.",
+		"loading": "Caricamento dei dati della stazione da OpenStreetMap…",
+		"seed": {
+			"done": "{count} oggetti copiati sul server di prova.",
+			"missing": "<b>Questa stazione non esiste ancora sul server di prova.</b> Copiaci i suoi marciapiedi, binari e tabelle di fermata dalla mappa reale per provare l’inserimento e l’invio.",
+			"notConfigured": "L’accesso al server di prova non è ancora configurato.",
+			"login": "Accedi al server di prova",
+			"busy": "Copia in corso…",
+			"button": "Copia qui la stazione reale"
+		},
+		"gauges": "Completezza della stazione",
+		"gauge": {
+			"platforms": "Marciapiedi",
+			"platformsUnit": "numerati",
+			"tracks": "Binari",
+			"tracksUnit": "numerati",
+			"signs": "Tabelle di fermata",
+			"signsUnit": "lati rilevati",
+			"none": "niente da rilevare"
+		},
+		"offline": {
+			"label": "Offline",
+			"progress": "Download delle foto aeree… {done} / {total}",
+			"available": "<b>Disponibile offline</b> · {size} · il {date}",
+			"update": "Aggiorna",
+			"take": "Porta la stazione offline"
+		},
+		"todo": "Da fare qui",
+		"view": {
+			"label": "Visualizzazione",
+			"list": "Elenco",
+			"map": "Mappa"
+		},
+		"allDone": "In questa stazione è tutto completo. Bravo!",
+		"onSite": "Da fare in stazione",
+		"drawMissing": "Manca un marciapiede sulla mappa? Disegnalo"
+	},
+	"map": {
+		"title": "Mappa — {name} — stationcomplete",
+		"back": "Torna al pannello",
+		"onSite": "Sul posto",
+		"remote": "A distanza",
+		"checkPosition": ", verifica la mia posizione",
+		"filters": "Oggetti visualizzati",
+		"legend": {
+			"open": "Legenda della mappa",
+			"title": "Legenda",
+			"close": "Chiudi la legenda",
+			"quai": "Marciapiede",
+			"voie": "Binario",
+			"pancarte": "Tabella di fermata",
+			"sel": "Oggetto selezionato",
+			"edited": "Modificato da te, in attesa di invio",
+			"under": "Sotterraneo (galleria, livello inferiore)",
+			"todo": "Da completare",
+			"alert": "Da verificare con priorità"
+		},
+		"loading": "Caricamento della stazione…",
+		"locate": "Mostra la mia posizione",
+		"addSign": "Aggiungi una tabella di fermata",
+		"quest": {
+			"Q1": "Numero del marciapiede da rilevare",
+			"Q2": "Numero del binario da rilevare",
+			"Q3": "Numeri del marciapiede e dei binari da verificare",
+			"Q4": "Tabelle di fermata da rilevare lungo questo marciapiede",
+			"Q5": "Tabella di fermata da completare",
+			"Q6": "Da verificare (nessuna data di verifica recente)",
+			"Q7": "Numero di binario doppio o incoerente"
+		},
+		"editedHere": "Modificato su questo telefono, in attesa di invio.",
+		"del": {
+			"chooseReason": "Scegli il motivo dell’eliminazione.",
+			"goneOnSite": "«Non esiste più» si constata solo sul posto.",
+			"pending": "{name}: eliminazione in attesa di invio. Per annullarla, rimuovila nei tuoi contributi.",
+			"signTitle": "Eliminare questa tabella di fermata?",
+			"reason": "Motivo (visibile nella descrizione pubblica dell’invio)",
+			"seenOnSite": "Constatato sul posto.",
+			"onSiteOnly": "Solo sul posto: la foto aerea può essere vecchia.",
+			"signReplaced": "Le tue modifiche su questa tabella di fermata saranno rimosse: {list}.",
+			"signButton": "Elimina la tabella di fermata",
+			"platformTitle": "Eliminare questo marciapiede?",
+			"relations": "Sarà anche {phrase}.",
+			"points": "{lost, plural, one {# punto eliminato} other {# punti eliminati}}{kept, plural, =0 {} one {; # collegato ad altri oggetti, mantenuto} other {; # collegati ad altri oggetti, mantenuti}}.",
+			"platformReplaced": "Le tue modifiche su questo marciapiede saranno rimosse: {list}.",
+			"platformButton": "Elimina il marciapiede"
+		},
+		"seeContributions": "Vedi i miei contributi",
+		"fill": "Compila",
+		"signHere": "Tabella qui",
+		"reshape": "Modifica la forma",
+		"toArea": "Ridisegna come area",
+		"more": "Altre azioni",
+		"deleteSign": "Elimina questa tabella di fermata…",
+		"drawnHere": "Marciapiede disegnato su questo telefono: per cambiarne la forma, rimuovilo nei tuoi contributi e ridisegnalo.",
+		"deletePlatform": "Elimina questo marciapiede…",
+		"osmAttribution": "© collaboratori di OpenStreetMap",
+		"toggleAttribution": "Mostra o nascondi i crediti"
+	},
+	"input": {
+		"title": "Scheda — stationcomplete",
+		"sheet": "Scheda",
+		"close": "Chiudi senza salvare",
+		"gone": "Questo oggetto non esiste più nei dati della stazione.",
+		"optional": "(facoltativo)",
+		"dir": {
+			"backward": "Senso opposto al binario",
+			"forward": "Senso del binario",
+			"towards": "Verso {name}"
+		},
+		"verified": "{kind, select, pancarte {Tabella di fermata verificata} other {{what} verificato}}",
+		"onSite": {
+			"text": "I numeri e le tabelle di fermata si rilevano <b>sul posto</b>, restando dietro la linea di sicurezza.",
+			"button": "Sono in stazione",
+			"try": "Per provare da casa: <settings>modalità dimostrativa o server di prova</settings>.",
+			"away": "La tua posizione è fuori dalla stazione. Puoi solo verificare.",
+			"denied": "Posizione non disponibile: consenti la localizzazione."
+		},
+		"platform": {
+			"needRef": "Indica almeno un numero di binario lungo il marciapiede.",
+			"summaryNamed": "Marciapiede {name}: binari {refs}",
+			"summary": "Marciapiede: binari {refs}",
+			"refs": "Numeri dei binari lungo questo marciapiede",
+			"removeRef": "Rimuovi il binario {ref}",
+			"addRefLabel": "Aggiungi un numero di binario",
+			"add": "Aggiungi",
+			"refsHint": "I numeri esposti sopra i binari, non la lettera del marciapiede.",
+			"letter": "Questo marciapiede ha una lettera o un nome?",
+			"letterLabel": "Lettera o nome del marciapiede",
+			"letterPlaceholder": "Es. A"
+		},
+		"track": {
+			"split": "Questo tratto dovrà essere diviso da un mappatore. La segnalazione (nota OSM) arriverà con l’invio, nel lotto 3.",
+			"needRef": "Indica il numero o la lettera esposti in stazione.",
+			"ref": "Numero o lettera esposti in stazione",
+			"refLabel": "Numero del binario",
+			"refPlaceholder": "Es. 3",
+			"refHint": "«Binario» o «Bin.» vengono rimossi automaticamente.",
+			"changes": "Il numero cambia lungo questo tratto?"
+		},
+		"sign": {
+			"existing": "Tabella di fermata esistente",
+			"check": "Verifica sul posto che esista e che corrisponda, oppure correggila.",
+			"which": "Quale tabella vedi?",
+			"vehicles": "Numero di veicoli scritto sulla tabella",
+			"otherNumber": "Altro numero",
+			"length": "Lunghezza scritta sulla tabella (m)",
+			"under": "Testo sotto «{type}»",
+			"caption": "Testo della tabella",
+			"captionLabel": "Testo letto sulla tabella",
+			"captionPlaceholder": "Ricopia il testo",
+			"direction": "I treni a cui è rivolta questa tabella vanno…",
+			"position": "Visto dal macchinista, la tabella è…",
+			"left": "A sinistra",
+			"right": "A destra",
+			"inTrack": "Tra le rotaie",
+			"ground": "A terra",
+			"letterHint": "Una targa con una sola lettera (A, B…) non è una tabella di fermata: è un riferimento di settore del marciapiede."
+		},
+		"correct": "È corretto",
+		"fix": "Correggi"
+	},
+	"place": {
+		"title": "Posiziona una tabella di fermata — stationcomplete",
+		"heading": "Posiziona la tabella di fermata",
+		"help": "Posiziona il mirino <b>sul binario</b>, all’altezza della tabella. Trascina la mappa.",
+		"panel": "Posizione della tabella di fermata",
+		"snapped": "<b>Agganciata al binario</b> · scarto {gap} m",
+		"closer": "Avvicina il mirino a un binario (meno di 3 m).",
+		"near": "Esiste già una tabella di fermata a meno di 10 m su questo binario.",
+		"editThis": "Modifica quella",
+		"another": "È un’altra",
+		"validate": "Conferma la posizione"
+	},
+	"drawPage": {
+		"title": "Disegna un marciapiede — stationcomplete",
+		"heading": "Disegna un marciapiede",
+		"cancel": "Annulla il disegno",
+		"points": "{count, plural, one {# punto} other {# punti}}",
+		"said": {
+			"moved": "Punto {n} spostato.",
+			"movedSnapped": "Punto {n} spostato, agganciato al bordo del binario.",
+			"added": "Punto {n} aggiunto.",
+			"moveUndone": "Spostamento annullato.",
+			"removed": "Ultimo punto rimosso."
+		},
+		"summary": "Marciapiede disegnato ({length})",
+		"help": {
+			"move": "Posiziona il mirino nella nuova posizione del <b>punto {n}</b>.",
+			"start": "Fai il giro del marciapiede, angolo dopo angolo, restando sul suo bordo. Un punto posizionato si può trascinare con il dito.",
+			"close": "Continua, oppure tocca il <b>punto 1</b> (il più grande) per chiudere il marciapiede."
+		},
+		"panel": "Tracciato del marciapiede",
+		"snapped": "<b>Agganciato al bordo del binario</b> (a {offset} m dal suo asse)",
+		"underCross": "Punto sotto il mirino",
+		"length": "lunghezza {length}",
+		"snapOption": "Aggancia al binario",
+		"saveAnyway": "Salva comunque",
+		"undoMove": "Annulla lo spostamento",
+		"undoPoint": "Annulla il punto",
+		"moveHere": "Sposta qui il punto {n}",
+		"addPoint": "Aggiungi un punto",
+		"close": "Chiudi il marciapiede"
+	},
+	"shapePage": {
+		"title": "{name} — stationcomplete",
+		"vertex": {
+			"locked": "Punto {n}: collegato ad altri oggetti ({links}), non modificabile",
+			"shared": "Punto {n}: {what}, selezionalo",
+			"plain": "Punto {n}: selezionalo"
+		},
+		"anchor": "Punto collegato {n} della vecchia linea: aggiungilo al contorno",
+		"said": {
+			"moved": "Punto {n} spostato{snapped, select, yes {, agganciato al bordo del binario} other {}}{hasAlso, select, yes {: {also}} other {}}.",
+			"deselected": "Punto {n} deselezionato.",
+			"locked": "Punto {n}: collegato a {links}, resta al suo posto.",
+			"selectedShared": "Punto {n} selezionato. {info}",
+			"selected": "Punto {n} selezionato: è sotto il mirino.",
+			"inserted": "Punto {n} aggiunto tra {a} e {b}{snapped, select, yes {, agganciato al bordo del binario} other {}}.",
+			"removed": "Punto {n} rimosso dal marciapiede.",
+			"anchored": "Punto collegato ripreso: punto {n} del contorno.",
+			"undone": "Ultima azione annullata."
+		},
+		"error": {
+			"noPoint": "Nessun punto sotto il mirino: porta il mirino su un punto del marciapiede (cerchio bianco), oppure tocca direttamente il punto.",
+			"noSide": "Posiziona il mirino su un lato del marciapiede, poi «Aggiungi un punto qui».",
+			"unchanged": "Nessuna modifica: sposta, aggiungi o rimuovi un punto."
+		},
+		"notFound": "Questo marciapiede non è stato trovato nei dati della stazione.",
+		"backToMap": "Torna alla mappa",
+		"quit": "Esci senza salvare",
+		"help": {
+			"locked": "Il punto {n} è collegato a: <b>{links}</b>. Resta al suo posto; correggilo con JOSM o iD, oppure aggiungi punti intorno.",
+			"move": "Trascina la mappa fino alla nuova posizione del <b>punto {n}</b>.",
+			"area": "Fai il giro del marciapiede, angolo dopo angolo; la vecchia linea è in tratto chiaro.",
+			"anchors": "Tocca i suoi punti quadrati per riprenderli.",
+			"reshape": "Posiziona il mirino su un punto (oppure toccalo o trascinalo), o su un lato per aggiungerne uno.",
+			"shared": "I punti con il centro scuro sono condivisi con altri oggetti."
+		},
+		"understood": "Ho capito",
+		"snapped": "<b>Agganciato al bordo del binario</b> ({offset} m dall’asse)",
+		"pick": "Prendi questo punto",
+		"addHere": "Aggiungi un punto qui",
+		"remove": "Rimuovi questo punto",
+		"moveHere": "Sposta qui il punto",
+		"undoLabel": "Annulla l’ultima azione",
+		"finish": "Fine"
+	},
+	"mapA11y": {
+		"closeRing": "Punto 1: chiudi il marciapiede",
+		"movePoint": "Punto {n}: spostalo",
+		"midpoint": "Aggiungi un punto tra {a} e {b}",
+		"noWebgl": "La mappa non può essere visualizzata su questo dispositivo (WebGL non disponibile).",
+		"noWebglList": "La mappa non può essere visualizzata su questo dispositivo (WebGL non disponibile). Usa l’elenco.",
+		"drawMap": "Foto aerea, il mirino indica il prossimo punto del marciapiede",
+		"placeMap": "Foto aerea, il mirino indica la posizione scelta",
+		"myPosition": "La mia posizione",
+		"stationMap": "Mappa della stazione sulla foto aerea",
+		"nudge": "Regola al centimetro",
+		"nudgePad": "Sposta il mirino di 20 cm",
+		"up": "Sposta il mirino in alto",
+		"left": "Sposta il mirino a sinistra",
+		"right": "Sposta il mirino a destra",
+		"down": "Sposta il mirino in basso"
+	}
+}

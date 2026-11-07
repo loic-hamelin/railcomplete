@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import Icon from './Icon.svelte';
 	import { loadEdits, mine } from './edits.svelte.js';
+	import { t } from './i18n/t.js';
 	import { onMount } from 'svelte';
 	let { current }: { current: 'gare' | 'contributions' | 'reglages' } = $props();
 	onMount(() => {
@@ -10,9 +11,9 @@
 	const n = $derived(mine().length);
 </script>
 
-<nav aria-label="Navigation principale">
+<nav aria-label={t('nav.label')}>
 	<a href={resolve('/gares')} aria-current={current === 'gare' ? 'page' : undefined}>
-		<Icon name="gare" size={24} />Gare
+		<Icon name="gare" size={24} />{t('nav.station')}
 	</a>
 	<a
 		href={resolve('/contributions')}
@@ -22,10 +23,12 @@
 			<Icon name="list" size={24} />
 			{#if n}<span class="badge">{n}</span>{/if}
 		</span>
-		Contributions{#if n}<span class="visually-hidden">, {n} en attente</span>{/if}
+		{t('nav.contributions')}{#if n}<span class="visually-hidden"
+				>{t('nav.pending', { count: n })}</span
+			>{/if}
 	</a>
 	<a href={resolve('/reglages')} aria-current={current === 'reglages' ? 'page' : undefined}>
-		<Icon name="settings" size={24} />Réglages
+		<Icon name="settings" size={24} />{t('nav.settings')}
 	</a>
 </nav>
 

@@ -16,16 +16,9 @@ import {
 } from './edits';
 import { DEFAULT_COUNTRY, imageryOf, type CountryCode } from './countries';
 import type { BBox, OsmElement, OsmNode, OsmRelation, OsmWay, Tags } from './osm';
-import {
-	COMPLEX,
-	REASONS,
-	followers,
-	followersPhrase,
-	hasTags,
-	isLinked,
-	shapeDiff
-} from './shape';
-import { SIGN_REASONS, signRemoval, withoutSign } from './sign';
+import { locale, t as tr, tk } from '../i18n/t.ts';
+import { complexText, followers, followersPhrase, hasTags, isLinked, shapeDiff } from './shape';
+import { signRemoval, withoutSign } from './sign';
 
 export interface Plan {
 	/** Objets à créer : nœuds d'abord, puis ways (quais dessinés). */
@@ -104,14 +97,12 @@ export const signsToCheck = (edits: Edit[]) =>
 export const deletedWays = (edits: Edit[]) =>
 	edits.filter((e): e is DeleteEdit => e.kind === 'delete').map((e) => wayId(e.target));
 
-const CHANGED =
-	'Le quai a été modifié entre-temps sur OpenStreetMap : rien n’a été envoyé pour lui. Refaites la modification sur la carte à jour.';
-const SIGN_CHANGED =
-	'La pancarte ou sa voie a été modifiée entre-temps sur OpenStreetMap : rien n’a été envoyé pour elle. Refaites la suppression sur la carte à jour.';
-const SIGN_LINKED =
-	'La pancarte a été reliée à un autre objet entre-temps sur OpenStreetMap : rien n’a été envoyé pour elle. Refaites la suppression sur la carte à jour.';
-const NODE_CHANGED =
-	'Un point du quai a été modifié ou relié à un autre objet entre-temps sur OpenStreetMap : rien n’a été envoyé pour lui. Refaites la modification sur la carte à jour.';
+// Motifs des conflits, enregistrés avec la saisie « à revoir » (dans la langue de l'interface au
+// moment de l'envoi).
+const CHANGED = () => tr('upload.conflict.changed');
+const SIGN_CHANGED = () => tr('upload.conflict.signChanged');
+const SIGN_LINKED = () => tr('upload.conflict.signLinked');
+const NODE_CHANGED = () => tr('upload.conflict.nodeChanged');
 
 /**
  * Applique les saisies aux versions à jour lues sur le serveur.
@@ -162,7 +153,7 @@ export function planUpload(edits: Edit[], fresh: OsmElement[]): Plan {
 	for (const ed of edits.filter((e): e is TagEdit => e.kind === 'tags')) {
 		const el = byKey.get(ed.target);
 		if (!el) {
-			conflict(ed.id, 'Objet supprimé entre-temps sur OpenStreetMap.');
+			conflict(ed.id, tr('upload.conflict.gone'));
 			continue;
 		}
 		const tags: Tags = { ...(el.tags ?? {}) };
@@ -174,7 +165,7 @@ export function planUpload(edits: Edit[], fresh: OsmElement[]): Plan {
 				if (now !== before && now !== (v || null)) clash = k;
 			}
 		if (clash) {
-			conflict(ed.id, `Modifié par quelqu’un d’autre entre-temps (${clash}).`);
+			conflict(ed.id, tr('upload.conflict.clash', { key: clash }));
 			continue;
 		}
 		el.tags = changeTags(tags, ed.tags);
@@ -185,14 +176,14 @@ export function planUpload(edits: Edit[], fresh: OsmElement[]): Plan {
 	for (const ed of edits.filter((e): e is NewNodeEdit => e.kind === 'node')) {
 		const w = byKey.get(`way/${ed.way}`) as OsmWay | undefined;
 		if (!w) {
-			conflict(ed.id, 'La voie a été supprimée entre-temps.');
+			conflict(ed.id, tr('upload.conflict.trackGone'));
 			continue;
 		}
 		// Retrouve la place par le nœud voisin ; à défaut, par l'indice si la voie n'a pas bougé.
 		let at = ed.afterNode !== undefined ? w.nodes.indexOf(ed.afterNode) : -1;
 		if (at < 0 && (ed.wayVersion === undefined || ed.wayVersion === w.version)) at = ed.after;
 		if (at < 0 || at >= w.nodes.length - 1) {
-			conflict(ed.id, 'La voie a été redessinée entre-temps.');
+			conflict(ed.id, tr('upload.conflict.trackRedrawn'));
 			continue;
 		}
 		w.nodes = [...w.nodes.slice(0, at + 1), ed.tempId, ...w.nodes.slice(at + 1)];
@@ -207,11 +198,11 @@ export function planUpload(edits: Edit[], fresh: OsmElement[]): Plan {
 	for (const ed of edits.filter((e): e is ShapeEdit => e.kind === 'shape')) {
 		const w = byKey.get(ed.target) as OsmWay | undefined;
 		if (!w) {
-			conflict(ed.id, 'Quai supprimé entre-temps sur OpenStreetMap.');
+			conflict(ed.id, tr('upload.conflict.platformGone'));
 			continue;
 		}
 		if (ed.version !== undefined && w.version !== ed.version) {
-			conflict(ed.id, CHANGED);
+			conflict(ed.id, CHANGED());
 			continue;
 		}
 		const id = wayId(ed.target);
@@ -219,7 +210,7 @@ export function planUpload(edits: Edit[], fresh: OsmElement[]): Plan {
 			w.tags?.type === 'multipolygon' ||
 			(relationsOf.get(ed.target) ?? []).some((r) => r.tags?.type === 'multipolygon')
 		) {
-			conflict(ed.id, COMPLEX);
+			conflict(ed.id, complexText());
 			continue;
 		}
 		const d = shapeDiff(ed.before, ed.nodes);
@@ -229,7 +220,7 @@ export function planUpload(edits: Edit[], fresh: OsmElement[]): Plan {
 			d.foreign.length ||
 			new Set(ed.nodes.map((n) => n.id)).size !== ed.nodes.length
 		) {
-			conflict(ed.id, 'Contour du quai invalide.');
+			conflict(ed.id, tr('upload.conflict.ringInvalid'));
 			continue;
 		}
 		// Nœuds déplacés (lot 7c) : libres ou partagés — c'est le même nœud, les objets qui le
@@ -248,10 +239,7 @@ export function planUpload(edits: Edit[], fresh: OsmElement[]): Plan {
 			d.moved.some((n) => orig.get(n.id)!.locked) ||
 			(ed.mode === 'area' && d.moved.some((n) => isLinked(orig.get(n.id)!)))
 		) {
-			conflict(
-				ed.id,
-				'Contour du quai invalide (point du bord du quai retiré ou point fixe déplacé).'
-			);
+			conflict(ed.id, tr('upload.conflict.ringLocks'));
 			continue;
 		}
 		let ok = true;
@@ -267,7 +255,7 @@ export function planUpload(edits: Edit[], fresh: OsmElement[]): Plan {
 			if (now && sameVersion(now, o)) drops.push(now);
 		}
 		if (!ok) {
-			conflict(ed.id, NODE_CHANGED);
+			conflict(ed.id, NODE_CHANGED());
 			continue;
 		}
 		for (const n of moves) {
@@ -294,24 +282,24 @@ export function planUpload(edits: Edit[], fresh: OsmElement[]): Plan {
 	for (const ed of edits.filter((e): e is DeleteEdit => e.kind === 'delete')) {
 		const w = byKey.get(ed.target) as OsmWay | undefined;
 		if (!w) {
-			conflict(ed.id, 'Quai déjà supprimé sur OpenStreetMap.');
+			conflict(ed.id, tr('upload.conflict.platformDeleted'));
 			continue;
 		}
 		if (ed.version !== undefined && w.version !== ed.version) {
-			conflict(ed.id, CHANGED);
+			conflict(ed.id, CHANGED());
 			continue;
 		}
 		const id = wayId(ed.target);
 		const parents = (relationsOf.get(ed.target) ?? []).map((r) => byKey.get(key(r)) as OsmRelation);
 		if (w.tags?.type === 'multipolygon' || parents.some((r) => r.tags?.type === 'multipolygon')) {
-			conflict(ed.id, COMPLEX);
+			conflict(ed.id, complexText());
 			continue;
 		}
 		const emptied = parents.find((r) => r.members.every((m) => m.type === 'way' && m.ref === id));
 		if (emptied) {
 			conflict(
 				ed.id,
-				`La relation ${emptied.tags?.name ?? emptied.id} ne contiendrait plus rien : suppression à faire avec un éditeur comme iD ou JOSM.`
+				tr('upload.conflict.relationEmpty', { name: emptied.tags?.name ?? emptied.id })
 			);
 			continue;
 		}
@@ -327,7 +315,7 @@ export function planUpload(edits: Edit[], fresh: OsmElement[]): Plan {
 			else if (!o || !isLinked(o)) ok = false;
 		}
 		if (!ok) {
-			conflict(ed.id, NODE_CHANGED);
+			conflict(ed.id, NODE_CHANGED());
 			continue;
 		}
 		for (const r of parents) {
@@ -345,21 +333,21 @@ export function planUpload(edits: Edit[], fresh: OsmElement[]): Plan {
 		const n = raw.get(ed.target) as OsmNode | undefined;
 		const now = byKey.get(ed.target) as OsmNode | undefined;
 		if (!n || !now) {
-			conflict(ed.id, 'Pancarte déjà supprimée sur OpenStreetMap.');
+			conflict(ed.id, tr('upload.conflict.signDeleted'));
 			continue;
 		}
 		if (ed.version !== undefined && n.version !== ed.version) {
-			conflict(ed.id, SIGN_CHANGED);
+			conflict(ed.id, SIGN_CHANGED());
 			continue;
 		}
 		if (ed.way !== undefined) {
 			const w = raw.get(`way/${ed.way}`) as OsmWay | undefined;
 			if (!w || !w.nodes.includes(n.id)) {
-				conflict(ed.id, 'La voie de la pancarte a été supprimée ou redessinée entre-temps.');
+				conflict(ed.id, tr('upload.conflict.signTrack'));
 				continue;
 			}
 			if (ed.wayVersion !== undefined && w.version !== ed.wayVersion) {
-				conflict(ed.id, SIGN_CHANGED);
+				conflict(ed.id, SIGN_CHANGED());
 				continue;
 			}
 		}
@@ -374,7 +362,7 @@ export function planUpload(edits: Edit[], fresh: OsmElement[]): Plan {
 		);
 		if (ed.mode === 'remove' && r.mode !== 'remove') {
 			// Annoncé « retiré de la voie » : on ne décide pas autre chose à l'aveugle.
-			conflict(ed.id, SIGN_LINKED);
+			conflict(ed.id, SIGN_LINKED());
 			continue;
 		}
 		if (ed.mode === 'remove') {
@@ -400,7 +388,7 @@ export function planUpload(edits: Edit[], fresh: OsmElement[]): Plan {
 	const newWays: OsmWay[] = [];
 	for (const ed of edits.filter((e): e is NewWayEdit => e.kind === 'way')) {
 		if (ed.nodes.length < 3) {
-			conflict(ed.id, 'Contour du quai incomplet.');
+			conflict(ed.id, tr('upload.conflict.ringIncomplete'));
 			continue;
 		}
 		for (const n of ed.nodes) plan.create.push({ type: 'node', id: n.id, lat: n.lat, lon: n.lon });
@@ -424,8 +412,8 @@ export function planUpload(edits: Edit[], fresh: OsmElement[]): Plan {
 export function proposedComment(stationName: string, edits: Edit[]) {
 	const parts: string[] = [];
 	if (edits.some((e) => e.kind === 'tags' || e.kind === 'node'))
-		parts.push('numéros de quais et de voies, pancartes d’arrêt');
-	if (edits.some((e) => e.kind === 'way')) parts.push('quai dessiné');
+		parts.push(tr('upload.comment.numbers'));
+	if (edits.some((e) => e.kind === 'way')) parts.push(tr('upload.comment.drawn'));
 	const shapes = edits.filter((e): e is ShapeEdit => e.kind === 'shape');
 	if (shapes.length) {
 		// Objets qui ont suivi les points déplacés (lot 7c) : dits aussi dans le commentaire.
@@ -436,16 +424,26 @@ export function proposedComment(stationName: string, edits: Edit[]) {
 			one.tags.forEach((t) => f.tags.add(t));
 		}
 		const also = followersPhrase({ ways: [...f.ways], tags: [...f.tags] });
-		parts.push(`forme de quai corrigée${also ? ` (${also})` : ''}`);
+		parts.push(tr('upload.comment.shape') + (also ? ` (${also})` : ''));
 	}
 	for (const e of edits)
-		if (e.kind === 'delete') parts.push(`${e.name} supprimé (${REASONS[e.reason].toLowerCase()})`);
+		if (e.kind === 'delete')
+			parts.push(
+				tr('upload.comment.deleted', {
+					name: e.name,
+					why: tk(`shape.reasonComment.${e.reason}`)
+				})
+			);
 		else if (e.kind === 'signdelete')
 			parts.push(
-				`pancarte d’arrêt « ${e.label} » supprimée (${SIGN_REASONS[e.reason].toLowerCase()}${e.mode === 'untag' ? ', point gardé dans la voie' : ''})`
+				tr('upload.comment.signDeleted', {
+					label: e.label,
+					why: tk(`sign.reasonInline.${e.reason}`),
+					mode: e.mode
+				})
 			);
-	if (!parts.length) parts.push('numéros de quais et de voies, pancartes d’arrêt');
-	return `Gare de ${stationName} : ${parts.join(' ; ')}`;
+	if (!parts.length) parts.push(tr('upload.comment.numbers'));
+	return tr('upload.comment.station', { name: stationName, parts: parts.join(' ; ') });
 }
 
 // ---------- XML ----------
@@ -667,7 +665,8 @@ export function conflictTarget(message: string) {
 
 /**
  * Tags du changeset d'une gare (rapport tags § 6 : un changeset par gare). `imagery_used` est
- * la valeur de la photo aérienne du pays de la gare ; `locale` est la langue de l'interface.
+ * la valeur de la photo aérienne du pays de la gare ; `locale` est la langue de l'interface
+ * (langue active par défaut : le commentaire proposé est rédigé dans cette langue).
  */
 export function changesetTags(o: {
 	comment: string;
@@ -681,7 +680,7 @@ export function changesetTags(o: {
 		created_by: `stationcomplete ${o.version}`,
 		comment: o.comment.trim().slice(0, 255),
 		hashtags: '#stationcomplete',
-		locale: o.locale ?? 'fr'
+		locale: o.locale ?? locale()
 	};
 	if (o.survey) t.source = 'survey';
 	if (o.imagery) t.imagery_used = imageryOf(o.country ?? DEFAULT_COUNTRY).imageryUsed;

@@ -7,6 +7,8 @@
 	import { loadEdits, mine, pending, removeEdit } from '#lib/edits.svelte.js';
 	import { srv } from '#lib/osmserver.svelte.js';
 	import { loadAllStations, type Station } from '#lib/stations.js';
+	import Rich from '#lib/i18n/Rich.svelte';
+	import { fmtDateTime, t } from '#lib/i18n/t.js';
 	import { onMount } from 'svelte';
 
 	let names = $state<Record<string, Station>>({});
@@ -29,26 +31,24 @@
 		return Object.entries(by).map(([station, edits]) => ({ station, edits }));
 	});
 	const icon = (e: Edit) => editIcon(e);
-	const when = (t: number) =>
-		new Date(t).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
+	const when = fmtDateTime;
 </script>
 
-<svelte:head><title>Mes contributions — stationcomplete</title></svelte:head>
+<svelte:head><title>{t('contributions.title')}</title></svelte:head>
 
 <div class="screen">
 	<main>
-		<h1>Mes contributions</h1>
+		<h1>{t('login.myContributions')}</h1>
 		<p class="intro">
-			Vos saisies restent sur ce téléphone, même sans réseau, jusqu’à leur envoi gare par gare.
-			Serveur : <strong>{srv().label}</strong>.
+			<Rich text={t('contributions.intro', { server: srv().label })} />
 		</p>
 
 		{#if !pending.loaded}
-			<p class="note" role="status">Chargement…</p>
+			<p class="note" role="status">{t('common.loading')}</p>
 		{:else if !groups.length}
 			<div class="empty">
-				<p>Aucune saisie en attente.</p>
-				<a class="btn" href={resolve('/gares')}>Choisir une gare</a>
+				<p>{t('contributions.empty')}</p>
+				<a class="btn" href={resolve('/gares')}>{t('home.chooseStation')}</a>
 			</div>
 		{:else}
 			{#each groups as g (g.station)}
@@ -57,7 +57,7 @@
 						<a href={resolve(`/gare?id=${encodeURIComponent(g.station)}`)}
 							>{names[g.station]?.name ?? g.station}</a
 						>
-						<span>{g.edits.length} saisie{g.edits.length > 1 ? 's' : ''}</span>
+						<span>{t('contributions.count', { count: g.edits.length })}</span>
 					</h2>
 					<ul class="group">
 						{#each g.edits as e (e.id)}
@@ -67,29 +67,34 @@
 									<span class="sum">{e.summary}</span>
 									<span class="meta"
 										>{editLabel(e)} · {when(e.createdAt)}{#if e.conflict}
-											· <span class="review"><Icon name="alert" size={14} /> À revoir</span>{:else}
-											· <span class="wait"><Icon name="clock" size={14} /> En attente</span
+											· <span class="review"
+												><Icon name="alert" size={14} /> {t('contributions.review')}</span
+											>{:else}
+											· <span class="wait"
+												><Icon name="clock" size={14} /> {t('contributions.waiting')}</span
 											>{/if}</span
 									>
 								</span>
 								{#if confirmId === e.id}
 									<button class="btn-sm danger" type="button" onclick={() => removeEdit(e.id)}
-										>Confirmer</button
+										>{t('common.confirm')}</button
 									>
 								{:else}
 									<button
 										class="btn-sm"
 										type="button"
-										aria-label={`Retirer : ${e.summary}`}
-										onclick={() => (confirmId = e.id)}>Retirer</button
+										aria-label={t('contributions.removeLabel', { summary: e.summary })}
+										onclick={() => (confirmId = e.id)}>{t('contributions.remove')}</button
 									>
 								{/if}
 							</li>
 						{/each}
 					</ul>
 					<a class="btn send" href={resolve(`/envoi?id=${encodeURIComponent(g.station)}`)}>
-						Relire et envoyer{#if g.edits.some((e) => e.conflict)}
-							· {g.edits.filter((e) => e.conflict).length} à revoir{/if}
+						{t('contributions.send')}{#if g.edits.some((e) => e.conflict)}
+							· {t('contributions.toReview', {
+								count: g.edits.filter((e) => e.conflict).length
+							})}{/if}
 					</a>
 				</section>
 			{/each}

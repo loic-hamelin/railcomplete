@@ -18,6 +18,7 @@ Site : <https://stationcomplete.org>
 - Lot 7 : modifier un quai existant — forme (déplacer, ajouter, retirer des sommets ; un point partagé avec d'autres objets peut être déplacé, ils suivent, et l'appli le dit avant ; jamais supprimé), quai tracé en ligne redessiné en surface (même way), suppression d'un quai avec motif et retrait de sa zone d'arrêt.
 - Lot 7d : suppression d'une pancarte d'arrêt existante (nœud retiré de la voie seulement si c'est sans risque, sinon tags retirés ; la géométrie des voies ne change jamais), pointillés estompés réservés aux objets souterrains et légende de la carte, accrochage limité à 12 px de la croix et sommets glissés au doigt.
 - Lot P1 : organisation par pays, sans changement visible. Tout ce qui est propre à un pays (index des gares, photo aérienne, schéma des pancartes, subdivision, règles de quêtes, langues) est décrit dans `src/lib/core/countries.ts` ; la politique de sécurité, le service worker et la construction hebdomadaire de l'index en découlent. Seule la France est activée ; la Suisse est déclarée mais désactivée.
+- Lot traduction : interface en français, anglais, allemand, italien et espagnol. Langue détectée au premier lancement d'après le téléphone, modifiable dans Réglages ; seule la langue active est téléchargée. Le commentaire proposé du changeset est rédigé dans la langue de l'interface ; les tags ne se traduisent jamais.
 
 ## Développer sur son ordinateur
 
@@ -43,6 +44,10 @@ L'appli est organisée par pays : chaque gare appartient au pays de son index (`
 node scripts/build-stations.mjs rail-fr.geojsonseq --country fr
 ```
 
+## Langues
+
+Textes de l'interface : `src/lib/i18n/messages/<langue>.json` (fr, langue source ; en, de, it, es). Ajouter une chaîne ou une langue : `docs/architecture.md` (§ 9.2). Vocabulaire : `docs/i18n/glossaire.md`. Relecteurs bénévoles : `docs/i18n/relecture.md`. Un test unitaire vérifie que chaque clé existe dans les cinq langues avec les mêmes paramètres.
+
 ## Publication
 
 Chaque envoi sur la branche `main` déclenche le workflow `.github/workflows/deploy.yml`, qui vérifie (types, mise en forme, lint), construit, contrôle le budget de poids, lance les tests de bout en bout, puis publie le site sur GitHub Pages. Si une étape échoue, rien n'est publié. Le fichier `static/CNAME` relie le site au domaine `stationcomplete.org`.
@@ -53,7 +58,8 @@ Chaque lundi, le workflow `.github/workflows/stations.yml` reconstruit l'index d
 
 - `docs/ux-spec.md` : spécification UX (écrans, quêtes, principes visuels)
 - `docs/osm-tags-rapport.md` : modèle de données OpenStreetMap
-- `docs/architecture.md` : architecture technique et plan en lots ; § 13 : organisation par pays et check-list « ajouter un pays »
+- `docs/architecture.md` : architecture technique et plan en lots ; § 9.2 : traduction ; § 13 : organisation par pays et check-list « ajouter un pays »
+- `docs/i18n/` : glossaire fr/en/de/it/es et guide des relecteurs
 - `docs/pays/` : études par pays (Suisse)
 
 ## Licences

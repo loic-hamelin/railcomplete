@@ -16,7 +16,7 @@
 	import { editsOf, loadEdits, pending, removeEdit, updateEdits } from '#lib/edits.svelte.js';
 	import {
 		APP_VERSION,
-		DEMO_REFUSED,
+		demoRefused,
 		sendStation,
 		sending,
 		type SendResult
@@ -27,6 +27,8 @@
 	import { refreshConfig, remote } from '#lib/remote.svelte.js';
 	import { dequeue, enqueue, isQueued } from '#lib/queue.svelte.js';
 	import { findStation, type Station } from '#lib/stations.js';
+	import Rich from '#lib/i18n/Rich.svelte';
+	import { t } from '#lib/i18n/t.js';
 	import { onMount } from 'svelte';
 
 	let mounted = $state(false);
@@ -69,16 +71,16 @@
 		!mounted
 			? undefined
 			: real && ready.some((e) => e.demo)
-				? DEMO_REFUSED
+				? demoRefused()
 				: uploadBlock(remote.cfg, APP_VERSION, real && !!account.user, account.user?.name)
 	);
-	const STEPS: Record<string, string> = {
-		checking: 'Vérification d’un envoi précédent…',
-		reading: 'Relecture des données à jour…',
-		opening: 'Ouverture du groupe de modifications…',
-		uploading: 'Envoi des modifications…',
-		closing: 'Fermeture…'
-	};
+	const STEPS = $derived<Record<string, string>>({
+		checking: t('sendPage.step.checking'),
+		reading: t('sendPage.step.reading'),
+		opening: t('sendPage.step.opening'),
+		uploading: t('sendPage.step.uploading'),
+		closing: t('sendPage.step.closing')
+	});
 	const icon = (e: Edit) => editIcon(e);
 	const family = (e: Edit) => editFamily(e);
 
@@ -102,15 +104,15 @@
 	}
 </script>
 
-<svelte:head><title>Relire et envoyer — stationcomplete</title></svelte:head>
+<svelte:head><title>{t('sendPage.title')}</title></svelte:head>
 
 <div class="screen">
 	<header class="head">
-		<a class="icon-btn" href={resolve('/contributions')} aria-label="Retour aux contributions">
+		<a class="icon-btn" href={resolve('/contributions')} aria-label={t('sendPage.back')}>
 			<Icon name="back" />
 		</a>
 		<div>
-			<h1>Relire et envoyer</h1>
+			<h1>{t('contributions.send')}</h1>
 			<span class="sub">{station?.name ?? ''}</span>
 		</div>
 	</header>
@@ -118,24 +120,27 @@
 	<main>
 		{#if !online}
 			<p class="banner warn" role="status">
-				<Icon name="offline" size={18} />Hors-ligne. Vos saisies sont conservées. Après relecture,
-				vous pouvez programmer l’envoi : il partira tout seul au retour du réseau, appli ouverte.
+				<Icon name="offline" size={18} />{t('sendPage.offline')}
 			</p>
 		{/if}
 		{#if !srv().canUpload}
 			<p class="banner warn" role="note">
-				<Icon name="alert" size={18} />L’envoi n’est pas encore possible vers {srv().label}. Pour
-				essayer, choisissez un autre serveur dans les <a href={resolve('/reglages')}>réglages</a>.
+				<Icon name="alert" size={18} /><span
+					><Rich
+						text={t('sendPage.cannotUpload', { server: srv().label })}
+						links={{ settings: { href: resolve('/reglages') } }}
+					/></span
+				>
 			</p>
 		{:else if real}
 			<p class="banner" role="note">
-				<Icon name="info" size={18} />Vos modifications seront publiées sur la carte
-				<strong>OpenStreetMap</strong>, visibles par tous.
+				<Icon name="info" size={18} /><span><Rich text={t('sendPage.prod')} /></span>
 			</p>
 		{:else}
 			<p class="banner" role="note">
-				<Icon name="info" size={18} />Serveur : <strong>{srv().label}</strong> — aucun effet sur la vraie
-				carte.
+				<Icon name="info" size={18} /><span
+					><Rich text={t('sendPage.dev', { server: srv().label })} /></span
+				>
 			</p>
 		{/if}
 		{#if blocked && srv().canUpload}
@@ -149,15 +154,11 @@
 				<Icon name="check" size={18} />
 				<div>
 					<p>
-						<strong
-							>{result.sent} modification{result.sent > 1 ? 's' : ''} envoyée{result.sent > 1
-								? 's'
-								: ''}.</strong
-						>
-						Merci !
+						<strong>{t('sendPage.sent', { count: result.sent })}</strong>
+						{t('sendPage.thanks')}
 					</p>
 					<a href={`${srv().web}/changeset/${result.changeset}`} rel="external"
-						>Voir le groupe de modifications n° {result.changeset}</a
+						>{t('sendPage.changeset', { id: result.changeset })}</a
 					>
 				</div>
 			</div>
@@ -165,31 +166,30 @@
 		{#if result?.error}<p class="banner err" role="alert">{result.error}</p>{/if}
 		{#if result && !result.error && result.conflicts}
 			<p class="banner err" role="alert">
-				{result.conflicts} saisie{result.conflicts > 1 ? 's sont' : ' est'} à revoir : l’objet a changé
-				sur OpenStreetMap entre-temps.
+				{t('sendPage.conflicts', { count: result.conflicts })}
 			</p>
 		{/if}
 
 		{#if !pending.loaded}
-			<p class="note" role="status">Chargement…</p>
+			<p class="note" role="status">{t('common.loading')}</p>
 		{:else if !edits.length}
-			<p class="note">Aucune saisie en attente pour cette gare.</p>
+			<p class="note">{t('sendPage.empty')}</p>
 		{:else}
 			{#if ready.length}
-				<h2 class="overline">Prêtes à partir ({ready.length})</h2>
+				<h2 class="overline">{t('sendPage.ready', { count: ready.length })}</h2>
 				<ul class="group">
 					{#each ready as e (e.id)}
 						<li class={family(e)}>
 							<Icon name={icon(e)} size={20} />
 							<span class="txt"
 								><span class="sum">{e.summary}</span><span class="meta"
-									>{editLabel(e)}{e.demo ? ' · mode démonstration' : ''}</span
+									>{editLabel(e)}{e.demo ? ` · ${t('sendPage.demo')}` : ''}</span
 								></span
 							>
 							{#if real && e.demo}
 								<span class="acts">
 									<button class="btn-sm" type="button" onclick={() => removeEdit(e.id)}
-										>Retirer</button
+										>{t('contributions.remove')}</button
 									>
 								</span>
 							{/if}
@@ -198,7 +198,7 @@
 				</ul>
 			{/if}
 			{#if review.length}
-				<h2 class="overline">À revoir ({review.length})</h2>
+				<h2 class="overline">{t('sendPage.review', { count: review.length })}</h2>
 				<ul class="group">
 					{#each review as e (e.id)}
 						<li class="review">
@@ -212,33 +212,32 @@
 									<a
 										class="btn-sm"
 										href={resolve(`/gare/carte?id=${encodeURIComponent(id)}&focus=${e.target}`)}
-										>Refaire</a
+										>{t('sendPage.redo')}</a
 									>
 								{:else}
 									<a
 										class="btn-sm"
 										href={resolve(
 											`/gare/saisie?id=${encodeURIComponent(id)}&osm=${e.kind === 'node' ? `way/${e.way}` : editKey(e)}`
-										)}>Ouvrir</a
+										)}>{t('sendPage.open')}</a
 									>
-									<button class="btn-sm" type="button" onclick={() => retry(e)}>Garder</button>
+									<button class="btn-sm" type="button" onclick={() => retry(e)}
+										>{t('sendPage.keep')}</button
+									>
 								{/if}
 								<button class="btn-sm" type="button" onclick={() => removeEdit(e.id)}
-									>Retirer</button
+									>{t('contributions.remove')}</button
 								>
 							</span>
 						</li>
 					{/each}
 				</ul>
-				<p class="hint">
-					« Garder » renvoie votre saisie telle quelle : vérifiez d’abord sur place qu’elle est
-					juste. Une forme de quai ou une suppression se refait sur la carte à jour.
-				</p>
+				<p class="hint">{t('sendPage.keepHint')}</p>
 			{/if}
 
 			{#if ready.length && srv().canUpload}
 				<label class="field">
-					<span>Description publique de l’envoi</span>
+					<span>{t('sendPage.comment')}</span>
 					<textarea
 						class="input"
 						rows="3"
@@ -246,9 +245,7 @@
 						bind:value={comment}
 						oninput={() => (commentEdited = true)}></textarea>
 				</label>
-				<p class="hint">
-					Visible par tous sur OpenStreetMap, avec votre pseudo et la mention #stationcomplete.
-				</p>
+				<p class="hint">{t('sendPage.commentHint')}</p>
 			{/if}
 		{/if}
 	</main>
@@ -256,25 +253,28 @@
 	{#if ready.length && srv().canUpload}
 		<footer>
 			{#if busy}
-				<p class="progress" role="status">{STEPS[sending.step] ?? 'Envoi…'}</p>
+				<p class="progress" role="status">{STEPS[sending.step] ?? t('sendPage.step.sending')}</p>
 			{:else if !configured()}
-				<p class="hint">La connexion à ce serveur n’est pas encore configurée.</p>
+				<p class="hint">{t('sendPage.notConfigured')}</p>
 			{:else if !(mounted && signedIn())}
-				<button class="btn" type="button" onclick={() => login()}>Se connecter pour envoyer</button>
+				<button class="btn" type="button" onclick={() => login()}>{t('sendPage.login')}</button>
 			{:else}
-				<p class="who">Envoyé par <strong>{account.user?.name ?? 'vous'}</strong></p>
+				<p class="who">
+					<Rich text={t('sendPage.by', { name: account.user?.name ?? t('sendPage.you') })} />
+				</p>
 				{#if blocked}
-					<p class="hint">Envoi impossible pour le moment (voir le message en haut).</p>
+					<p class="hint">{t('sendPage.blocked')}</p>
 				{:else if isQueued(id)}
 					<p class="queued" role="status">
-						<Icon name="clock" size={18} /> En attente du réseau : l’envoi partira tout seul.
+						<Icon name="clock" size={18} />
+						{t('sendPage.queued')}
 					</p>
 					<button class="btn btn-secondary" type="button" onclick={() => dequeue(id)}
-						>Annuler l’envoi automatique</button
+						>{t('sendPage.cancelQueue')}</button
 					>
 				{:else if online}
 					<button class="btn" type="button" onclick={send}>
-						Envoyer {ready.length} modification{ready.length > 1 ? 's' : ''}
+						{t('sendPage.send', { count: ready.length })}
 					</button>
 				{:else}
 					<button
@@ -282,7 +282,7 @@
 						type="button"
 						onclick={() => enqueue(id, station?.name ?? id, comment)}
 					>
-						Envoyer dès le retour du réseau
+						{t('sendPage.sendLater')}
 					</button>
 				{/if}
 			{/if}

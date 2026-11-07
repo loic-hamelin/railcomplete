@@ -10,30 +10,43 @@
 // - les quais en multipolygone ne sont pas modifiables dans l'appli.
 
 import type { OrigNode, RelationRef, RingNode } from './edits';
-import { platformTitle } from './features';
+import { isPlainPlatform, platformTitle } from './features';
 import { OsmData, type OsmWay, type Tags } from './osm';
+import { fmtList, t as tr, tk } from '../i18n/t.ts';
 
-export const COMPLEX = 'Quai complexe : à modifier avec un éditeur comme iD ou JOSM.';
+/** Message du refus « quai complexe » (multipolygone), dans la langue de l'interface. */
+export const complexText = () => tr('shape.complex');
+/**
+ * Même texte, figé en langue source au chargement du module : gardé pour les tests unitaires
+ * (qui posent les messages français avant d'importer). L'appli appelle complexText().
+ */
+export const COMPLEX = complexText();
 
+/** Motifs de suppression d'un quai, en clair dans la langue de l'interface. */
 export const REASONS = {
-	duplicate: 'En double avec un autre quai',
-	gone: 'N’existe plus'
-} as const;
+	get duplicate() {
+		return tr('shape.reason.duplicate');
+	},
+	get gone() {
+		return tr('shape.reason.gone');
+	}
+};
 
 /** Le nœud porte-t-il des tags ? (les tags vides ne comptent pas). */
 export const hasTags = (t?: Tags) => !!t && Object.keys(t).length > 0;
 
 /** Nom d'un quai pour les résumés : « Quai A », « Quai B-C », « Quai voies 1-2 ». */
 export function platformName(t: Tags = {}) {
-	const title = platformTitle(t);
-	return title === 'Quai' && t.ref ? `Quai voies ${t.ref.replaceAll(';', '-')}` : title;
+	return isPlainPlatform(t)
+		? tr('platform.tracks', { refs: t.ref.replaceAll(';', '-') })
+		: platformTitle(t);
 }
 
 /** Nature et nom lisible d'une relation. */
 export function relationRef(id: number, t: Tags = {}): RelationRef {
 	const kind =
 		t.public_transport === 'stop_area' ? 'stop_area' : t.type === 'route' ? 'route' : 'other';
-	return { id, kind, name: t.name ?? t.ref ?? `n° ${id}` };
+	return { id, kind, name: t.name ?? t.ref ?? tr('shape.relationNo', { id }) };
 }
 
 /** « retiré de la zone d’arrêt Gare d'Ambérieu et de 2 lignes » (vide sans relation). */
@@ -41,15 +54,14 @@ export function relationsPhrase(rels: RelationRef[]) {
 	if (!rels.length) return '';
 	const parts: string[] = [];
 	for (const r of rels.filter((r) => r.kind === 'stop_area'))
-		parts.push(`de la zone d’arrêt ${r.name}`);
+		parts.push(tr('shape.rel.stopArea', { name: r.name }));
 	const routes = rels.filter((r) => r.kind === 'route');
-	if (routes.length === 1) parts.push(`de la ligne ${routes[0].name}`);
-	else if (routes.length) parts.push(`de ${routes.length} lignes`);
+	if (routes.length === 1) parts.push(tr('shape.rel.route', { name: routes[0].name }));
+	else if (routes.length) parts.push(tr('shape.rel.routes', { count: routes.length }));
 	const other = rels.filter((r) => r.kind === 'other');
-	if (other.length === 1) parts.push(`de la relation ${other[0].name}`);
-	else if (other.length) parts.push(`de ${other.length} autres relations`);
-	const last = parts.pop()!;
-	return `retiré ${parts.length ? `${parts.join(', ')} et ${last}` : last}`;
+	if (other.length === 1) parts.push(tr('shape.rel.other', { name: other[0].name }));
+	else if (other.length) parts.push(tr('shape.rel.others', { count: other.length }));
+	return tr('shape.rel.removed', { list: fmtList(parts) });
 }
 
 export function shapeSummary(
@@ -61,17 +73,22 @@ export function shapeSummary(
 	also = ''
 ) {
 	return mode === 'area'
-		? `${name} redessiné en surface`
-		: `${name} : forme modifiée (${before} → ${after} points)${also ? ` — ${also}` : ''}`;
+		? tr('shape.summary.area', { name })
+		: tr('shape.summary.reshape', { name, before, after }) + (also ? ` — ${also}` : '');
 }
 
 export function deleteSummary(name: string, reason: keyof typeof REASONS, rels: RelationRef[]) {
-	const why = reason === 'duplicate' ? 'en double' : 'n’existe plus';
 	const from = relationsPhrase(rels);
-	return `${name} supprimé (${why})${from ? ` — ${from}` : ''}`;
+	return (
+		tr('shape.summary.delete', { name, why: tr(`shape.reasonInline.${reason}`) }) +
+		(from ? ` — ${from}` : '')
+	);
 }
 
-/** Ce à quoi un way voisin correspond, en clair, pour expliquer un point verrouillé. */
+/** Ce à quoi un way voisin correspond, pour expliquer un point partagé. */
+// Les libellés renvoyés (« toit », « gare »…) sont des identifiants, enregistrés tels quels
+// dans les saisies (OrigNode.ways, .tag, .links) depuis le lot 7 : on les traduit à l'affichage
+// (objectName et ses variantes), ce qui garde lisibles les saisies déjà sur les téléphones.
 export function wayLabel(t: Tags = {}) {
 	if (t.railway === 'platform_edge') return 'bord du quai';
 	if (t.building === 'roof' || t['building:part'] === 'roof' || t.roof) return 'toit';
@@ -115,35 +132,64 @@ export function nodeTagsLabel(t: Tags = {}) {
 export const isLinked = (n: OrigNode) => n.locked || !!n.edge || !!n.shared;
 
 const INFO = 'point avec des informations';
-const FEM = new Set([
-	'gare',
-	'route',
-	'zone',
-	'voie ou installation ferroviaire',
-	'entrée',
-	'barrière',
-	'clôture ou mur'
-]);
-const fem = (labels: string[]) => labels.every((l) => FEM.has(l) && l !== 'clôture ou mur');
-/** Accord : « ajusté », « ajustée », « ajustés », « ajustées ». */
-const agree = (labels: string[], word: string) =>
-	`${word}${fem(labels) ? 'e' : ''}${labels.length > 1 ? 's' : ''}`;
 
-/** « l’ascenseur », « la barrière », « le toit ». */
-const theLabel = (label: string) =>
-	/^[aeéèiouh]/i.test(label) ? `l’${label}` : `${FEM.has(label) ? 'la' : 'le'} ${label}`;
+/** Identifiant de libellé (enregistré dans les saisies) → clé de message « obj.<clé> ». */
+const OBJECTS: Record<string, string> = {
+	'bord du quai': 'platformEdge',
+	toit: 'roof',
+	'espace intérieur': 'indoor',
+	escalier: 'steps',
+	'chemin piéton': 'footway',
+	ascenseur: 'elevator',
+	route: 'road',
+	gare: 'station',
+	bâtiment: 'building',
+	'autre quai': 'otherPlatform',
+	'voie ou installation ferroviaire': 'railway',
+	'clôture ou mur': 'barrierLine',
+	zone: 'area',
+	'autre objet': 'other',
+	entrée: 'entrance',
+	'arrêt de bus': 'busStop',
+	barrière: 'barrier',
+	'élément ferroviaire': 'railwayNode',
+	[INFO]: 'info'
+};
 
-/** « la gare », « le toit », « un bâtiment », « une entrée ». */
-export function withArticle(label: string) {
-	if (label === 'gare') return 'la gare';
-	if (label === 'toit' || label === 'bord du quai') return `le ${label}`;
-	if (label === 'clôture ou mur') return 'une clôture ou un mur';
-	return `${FEM.has(label) ? 'une' : 'un'} ${label}`;
+type Form = 'name' | 'a' | 'of' | 'the' | 'g';
+/**
+ * Forme d'un objet dans la langue de l'interface : nom seul (« toit »), avec article
+ * (« le toit », « une entrée »), complément (« du toit », « d’une entrée »), défini (« l’entrée »)
+ * et genre grammatical (« m », « f », « n ») pour les accords. Libellé inconnu : tel quel.
+ */
+function form(label: string, f: Form) {
+	const k = OBJECTS[label];
+	if (!k) return f === 'g' ? 'm' : label;
+	return tk(`obj.${k}.${f}`);
 }
+/** Nom d'un objet dans la langue de l'interface (« toit », « roof », « Dach »). */
+export const objectName = (label: string) => form(label, 'name');
+/** « la gare », « le toit », « un bâtiment », « une entrée ». */
+export const withArticle = (label: string) => form(label, 'a');
+const ofLabel = (label: string) => form(label, 'of');
+const theLabel = (label: string) => form(label, 'the');
+/** Genre commun d'une liste d'objets : celui de tous, sinon masculin (accord du français). */
+const genderOf = (labels: string[]) => {
+	const g = labels.map((l) => form(l, 'g'));
+	return g.every((x) => x === g[0]) ? g[0] : 'm';
+};
 
-/** Liste lisible : « toit, bâtiment et chemin piéton ». */
-export const listFr = (items: string[]) =>
-	items.length <= 1 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} et ${items.at(-1)}`;
+/** Liste lisible dans la langue de l'interface : « toit, bâtiment et chemin piéton ». */
+export const listFr = (items: string[]) => fmtList(items);
+
+/** Lien d'un point avec d'autres objets (OrigNode.links), en clair. */
+export function linkName(link: string) {
+	if (link === 'membre d’une relation') return tr('shape.link.relation');
+	if (link === 'point répété dans le contour') return tr('shape.link.repeated');
+	const m = /^point avec des informations \((.+)\)$/.exec(link);
+	if (m) return tr('shape.link.infoWhat', { what: objectName(m[1]) });
+	return objectName(link);
+}
 
 /**
  * Bandeau d'ouverture de E12 quand une part notable des points est partagée (lot 7c) :
@@ -157,11 +203,8 @@ export function shareNotice(nodes: OrigNode[]) {
 		const freq = new Map<string, number>();
 		for (const n of shared) for (const l of n.ways!) freq.set(l, (freq.get(l) ?? 0) + 1);
 		const top = [...freq].sort((a, b) => b[1] - a[1]).map(([l]) => l);
-		const why = ` (${top.slice(0, 2).join(', ')}${top.length > 2 ? '…' : ''})`;
-		const many = shared.length > 1;
-		out.push(
-			`${shared.length} point${many ? 's' : ''} sur ${nodes.length} ${many ? 'sont partagés' : 'est partagé'} avec d’autres objets${why} : ${many ? 'ils suivront' : 'il suivra'} vos modifications.`
-		);
+		const objects = `${top.slice(0, 2).map(objectName).join(', ')}${top.length > 2 ? '…' : ''}`;
+		out.push(tr('shape.notice.shared', { count: shared.length, total: nodes.length, objects }));
 	}
 	const tagged = nodes.filter((n) => n.tag);
 	if (tagged.length) {
@@ -169,8 +212,17 @@ export function shareNotice(nodes: OrigNode[]) {
 		const what = [...new Set(tagged.map((n) => n.tag!))];
 		out.push(
 			tagged.length === 1
-				? `Le point ${which[0]} est ${what[0] === INFO ? 'un point avec des informations' : withArticle(what[0])} : le déplacer ${what[0] === INFO ? 'déplace l’objet qu’il décrit' : `déplace ${theLabel(what[0])}`}.`
-				: `Les points ${listFr(which.map(String))} portent des informations (${listFr(what.filter((w) => w !== INFO)) || 'tags'}) : les déplacer déplace ces objets.`
+				? what[0] === INFO
+					? tr('shape.notice.taggedInfo', { point: which[0] })
+					: tr('shape.notice.tagged', {
+							point: which[0],
+							a: withArticle(what[0]),
+							the: theLabel(what[0])
+						})
+				: tr('shape.notice.taggedMany', {
+						points: fmtList(which.map(String)),
+						what: fmtList(what.filter((w) => w !== INFO).map(objectName)) || tr('shape.tags')
+					})
 		);
 	}
 	return out.join(' ');
@@ -181,42 +233,37 @@ export function pointInfo(o: OrigNode | undefined) {
 	if (!o) return { move: '', remove: '' };
 	const parts: string[] = [];
 	const ways = o.ways ?? (o.edge ? ['bord du quai'] : []);
-	if (ways.length) {
-		const one = ways.length === 1;
-		const f = fem(ways);
-		parts.push(
-			`Ce point est aussi un point de : ${listFr(ways.map(withArticle))} — ${one ? (f ? 'elle suivra' : 'il suivra') : f ? 'elles suivront' : 'ils suivront'} le déplacement.`
-		);
-	}
+	const list = fmtList(ways.map(withArticle));
+	if (ways.length)
+		parts.push(tr('shape.point.alsoOf', { list, count: ways.length, g: genderOf(ways) }));
 	if (o.tag)
 		parts.push(
 			o.tag === INFO
-				? 'Ce point porte des informations : il sera déplacé avec elles.'
-				: `Ce point est ${withArticle(o.tag)} : ${FEM.has(o.tag) ? 'elle sera déplacée' : 'il sera déplacé'}.`
+				? tr('shape.point.info')
+				: tr('shape.point.is', { a: withArticle(o.tag), g: form(o.tag, 'g') })
 		);
 	const remove = o.edge
-		? 'Il ne peut pas être retiré du contour : le bord du quai en a besoin.'
+		? tr('shape.point.removeEdge')
 		: ways.length
-			? `Retiré, il reste dans ${listFr(ways.map(withArticle))} ; seul le quai change.`
+			? tr('shape.point.removeWays', { list })
 			: o.tag || o.shared
-				? 'Retiré, il reste sur la carte ; seul le quai change.'
+				? tr('shape.point.removeMap')
 				: '';
 	return { move: parts.join(' '), remove };
 }
-
-/** « de la gare », « du toit », « d’un bâtiment ». */
-const ofLabel = (label: string) => {
-	const a = withArticle(label);
-	return a.startsWith('le ') ? `du ${a.slice(3)}` : a.startsWith('un') ? `d’${a}` : `de ${a}`;
-};
 
 /** Libellé accessible d'un sommet partagé : « aussi un point de la gare et du toit ». */
 export function sharedLabel(o: OrigNode) {
 	const ways = o.ways ?? (o.edge ? ['bord du quai'] : []);
 	const parts: string[] = [];
-	if (o.tag) parts.push(o.tag === INFO ? 'porte des informations' : withArticle(o.tag));
-	if (ways.length) parts.push(`aussi un point ${listFr(ways.map(ofLabel))}`);
-	if (!parts.length) parts.push(o.links?.length ? `relié à ${listFr(o.links)}` : 'partagé');
+	if (o.tag) parts.push(o.tag === INFO ? tr('shape.shared.info') : withArticle(o.tag));
+	if (ways.length) parts.push(tr('shape.shared.alsoOf', { list: fmtList(ways.map(ofLabel)) }));
+	if (!parts.length)
+		parts.push(
+			o.links?.length
+				? tr('shape.shared.linked', { list: fmtList(o.links.map(linkName)) })
+				: tr('shape.shared.plain')
+		);
 	return parts.join(', ');
 }
 
@@ -233,9 +280,22 @@ export function followers(before: OrigNode[], nodes: RingNode[]) {
 /** « gare et bâtiment ajustés aussi, ascenseur déplacé » (vide si rien ne suit). */
 export function followersPhrase(f: { ways: string[]; tags: string[] }) {
 	const parts: string[] = [];
-	if (f.ways.length) parts.push(`${listFr(f.ways)} ${agree(f.ways, 'ajusté')} aussi`);
-	const tags = f.tags.map((t) => (t === INFO ? 'point avec des informations' : t));
-	if (tags.length) parts.push(`${listFr(tags)} ${agree(f.tags, 'déplacé')}`);
+	if (f.ways.length)
+		parts.push(
+			tr('shape.followers.ways', {
+				list: fmtList(f.ways.map(objectName)),
+				count: f.ways.length,
+				g: genderOf(f.ways)
+			})
+		);
+	if (f.tags.length)
+		parts.push(
+			tr('shape.followers.tags', {
+				list: fmtList(f.tags.map(objectName)),
+				count: f.tags.length,
+				g: genderOf(f.tags)
+			})
+		);
 	return parts.join(', ');
 }
 
@@ -308,10 +368,12 @@ export function platformShape(data: OsmData, wayId: number): PlatformShape | und
 		relations: parents.map((r) => relationRef(r.id, r.tags))
 	};
 	if (way.tags?.type === 'multipolygon' || parents.some((r) => r.tags?.type === 'multipolygon'))
-		out.refused = COMPLEX;
+		out.refused = complexText();
 	const empty = parents.find((r) => r.members.every((m) => m.type === 'way' && m.ref === wayId));
 	if (empty)
-		out.deleteRefused = `Ce quai est le seul membre de la relation ${relationRef(empty.id, empty.tags).name} : à supprimer avec un éditeur comme iD ou JOSM.`;
+		out.deleteRefused = tr('shape.deleteRefused', {
+			name: relationRef(empty.id, empty.tags).name
+		});
 	return out;
 }
 
@@ -348,13 +410,8 @@ export const isFixed = (n: OrigNode, mode: 'reshape' | 'area') =>
 export function checkLocks(before: OrigNode[], nodes: RingNode[], mode: 'reshape' | 'area') {
 	const d = shapeDiff(before, nodes);
 	const pos = (n: OrigNode) => before.indexOf(n) + 1;
-	const which = (list: number[]) =>
-		list.length === 1
-			? `Le point ${list[0]}`
-			: `Les points ${list.slice(0, -1).join(', ')} et ${list.at(-1)}`;
-	if (d.foreign.length) return 'Un point vient d’un autre objet : forme refusée.';
-	if (new Set(nodes.map((n) => n.id)).size !== nodes.length)
-		return 'Un point apparaît deux fois dans le contour.';
+	if (d.foreign.length) return tr('shape.lock.foreign');
+	if (new Set(nodes.map((n) => n.id)).size !== nodes.length) return tr('shape.lock.twice');
 	const movedFixed = d.moved.filter((n) =>
 		isFixed(
 			before.find((o) => o.id === n.id)!,
@@ -362,16 +419,12 @@ export function checkLocks(before: OrigNode[], nodes: RingNode[], mode: 'reshape
 		)
 	);
 	if (movedFixed.length)
-		return mode === 'area'
-			? 'Un point relié à un autre objet a été déplacé : forme refusée.'
-			: 'Un point répété dans le contour a été déplacé : forme refusée.';
+		return mode === 'area' ? tr('shape.lock.movedLinked') : tr('shape.lock.movedRepeated');
 	const lost = d.removed.filter((n) => isFixed(n, mode) || n.edge);
 	if (!lost.length) return undefined;
 	const list = lost.map(pos);
-	const many = list.length > 1;
-	if (mode === 'area')
-		return `${which(list)} de l’ancienne ligne ${many ? 'sont reliés' : 'est relié'} à d’autres objets : ${many ? 'ils doivent' : 'il doit'} faire partie du contour. Touchez ${many ? 'ces points' : 'ce point'} (carrés) pour ${many ? 'les ajouter' : 'l’ajouter'}, ou utilisez un éditeur comme iD ou JOSM.`;
-	if (lost.every((n) => n.edge))
-		return `${which(list)} ${many ? 'sont aussi des points' : 'est aussi un point'} du bord du quai : ${many ? 'les' : 'le'} retirer du contour ${many ? 'les' : 'le'} laisserait dans le bord. Déplacez-${many ? 'les' : 'le'} plutôt, ou utilisez JOSM ou iD.`;
-	return `${which(list)} ${many ? 'apparaissent' : 'apparaît'} plusieurs fois dans le contour : ${many ? 'ils ne peuvent' : 'il ne peut'} pas être retiré${many ? 's' : ''}.`;
+	const p = { count: list.length, points: fmtList(list.map(String)) };
+	if (mode === 'area') return tr('shape.lock.areaLinked', p);
+	if (lost.every((n) => n.edge)) return tr('shape.lock.edge', p);
+	return tr('shape.lock.repeated', p);
 }

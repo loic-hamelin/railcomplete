@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import Icon from './Icon.svelte';
 	import { net, queue, watchNetwork } from './queue.svelte.js';
+	import { t } from './i18n/t.js';
 	import { onMount } from 'svelte';
 
 	onMount(() => watchNetwork());
@@ -11,29 +12,27 @@
 
 {#if !net.online}
 	<p class="offline" role="status">
-		Hors-ligne — vos saisies restent sur ce téléphone{#if queue.list.length}
-			; {queue.list.length} envoi{queue.list.length > 1 ? 's' : ''} partira{queue.list.length > 1
-				? 'ont'
-				: ''} au retour du réseau{/if}.
+		{t('net.offline', { count: queue.list.length })}
 	</p>
 {/if}
 {#if last}
 	<div class="toast" role="status">
 		<p>
 			{#if last.changeset}
-				<strong>{last.name} :</strong>
-				{last.sent} modification{last.sent > 1 ? 's' : ''} envoyée{last.sent > 1 ? 's' : ''} automatiquement.
+				<strong>{t('net.station', { name: last.name })}</strong>
+				{t('net.sentAuto', { count: last.sent })}
 			{:else if last.error}
-				<strong>{last.name} :</strong> {last.error}
+				<strong>{t('net.station', { name: last.name })}</strong> {last.error}
 			{:else}
-				<strong>{last.name} :</strong> rien à envoyer{last.conflicts
-					? `, ${last.conflicts} à revoir`
-					: ''}.
+				<strong>{t('net.station', { name: last.name })}</strong>
+				{t('net.nothing', { conflicts: last.conflicts ?? 0 })}
 			{/if}
-			{#if last.conflicts}<a href={resolve('/contributions')}>Voir les saisies à revoir</a>{/if}
+			{#if last.conflicts}<a href={resolve('/contributions')}>{t('net.review')}</a>{/if}
 		</p>
-		<button type="button" aria-label="Fermer le message" onclick={() => (queue.last = undefined)}
-			><Icon name="close" size={20} /></button
+		<button
+			type="button"
+			aria-label={t('common.closeMessage')}
+			onclick={() => (queue.last = undefined)}><Icon name="close" size={20} /></button
 		>
 	</div>
 {/if}

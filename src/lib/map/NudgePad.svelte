@@ -3,6 +3,7 @@
 	// faisant glisser la carte ; ces flèches sont l'alternative sans glisser (WCAG 2.2, 2.5.7) :
 	// repliées derrière un petit bouton, elles s'ouvrent dans un pavé flottant sur la carte.
 	import Icon from '#lib/Icon.svelte';
+	import { t } from '#lib/i18n/t.js';
 
 	let { onnudge }: { onnudge: (dx: number, dy: number) => void } = $props();
 	let open = $state(false);
@@ -17,39 +18,27 @@
 		type="button"
 		aria-expanded={open}
 		aria-controls={id}
-		aria-label="Ajuster au centimètre"
-		title="Ajuster au centimètre"
+		aria-label={t('mapA11y.nudge')}
+		title={t('mapA11y.nudge')}
 		onclick={() => (open = !open)}
 	>
 		<Icon name={open ? 'close' : 'nudge'} size={20} />
 	</button>
 
 	{#if open}
-		<div class="pad float" {id} role="group" aria-label="Déplacer la croix de 20 cm">
-			<button
-				class="u"
-				type="button"
-				aria-label="Déplacer la croix vers le haut"
-				onclick={() => onnudge(0, -1)}><Icon name="arrow-u" size={20} /></button
+		<div class="pad float" {id} role="group" aria-label={t('mapA11y.nudgePad')}>
+			<button class="u" type="button" aria-label={t('mapA11y.up')} onclick={() => onnudge(0, -1)}
+				><Icon name="arrow-u" size={20} /></button
 			>
-			<button
-				class="l"
-				type="button"
-				aria-label="Déplacer la croix vers la gauche"
-				onclick={() => onnudge(-1, 0)}><Icon name="arrow-l" size={20} /></button
+			<button class="l" type="button" aria-label={t('mapA11y.left')} onclick={() => onnudge(-1, 0)}
+				><Icon name="arrow-l" size={20} /></button
 			>
 			<span class="step" aria-hidden="true">20 cm</span>
-			<button
-				class="r"
-				type="button"
-				aria-label="Déplacer la croix vers la droite"
-				onclick={() => onnudge(1, 0)}><Icon name="arrow-r" size={20} /></button
+			<button class="r" type="button" aria-label={t('mapA11y.right')} onclick={() => onnudge(1, 0)}
+				><Icon name="arrow-r" size={20} /></button
 			>
-			<button
-				class="d"
-				type="button"
-				aria-label="Déplacer la croix vers le bas"
-				onclick={() => onnudge(0, 1)}><Icon name="arrow-d" size={20} /></button
+			<button class="d" type="button" aria-label={t('mapA11y.down')} onclick={() => onnudge(0, 1)}
+				><Icon name="arrow-d" size={20} /></button
 			>
 		</div>
 	{/if}

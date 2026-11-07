@@ -5,6 +5,7 @@
 import type { CountryCode } from './countries';
 import { LocalProjection, projectOnSegment, type Pt } from './geo';
 import type { OsmElement, OsmNode, OsmWay, Tags } from './osm';
+import { t as tr, tk } from '../i18n/t.ts';
 
 export type ElementKey = `${'node' | 'way' | 'relation'}/${number}`;
 
@@ -34,6 +35,12 @@ export interface TagEdit extends EditBase {
 	base?: Record<string, string | null>;
 	/** Résumé lisible pour la liste des contributions (« Voie 3 », « Quai A »…). */
 	summary: string;
+	/**
+	 * Famille de l'objet modifié (lot traduction) : le résumé est rédigé dans la langue de
+	 * l'interface, on ne peut plus la déduire de son texte. Absente des saisies plus anciennes
+	 * (résumés en français : « Quai… » ou « Voie… »).
+	 */
+	family?: 'quai' | 'voie';
 }
 
 /** Nouvelle pancarte : nœud inséré dans le way de la voie, entre deux nœuds existants. */
@@ -203,9 +210,13 @@ export const editFamily = (e: Edit): 'quai' | 'voie' | 'pancarte' =>
 	e.kind === 'signdelete' ||
 	(e.kind === 'tags' && e.target.startsWith('node/'))
 		? 'pancarte'
-		: e.kind !== 'tags' || e.summary.startsWith('Quai')
+		: e.kind !== 'tags' || isPlatformTagEdit(e)
 			? 'quai'
 			: 'voie';
+
+/** Saisie de tags sur un quai (et non sur une voie) ; saisies d'avant le lot traduction : résumé. */
+const isPlatformTagEdit = (e: TagEdit) =>
+	(e.family ?? (e.summary.startsWith('Quai') ? 'quai' : 'voie')) === 'quai';
 
 /** Icône d'une saisie : la famille, ou la nature du changement pour un quai existant. */
 export const editIcon = (e: Edit) =>
@@ -213,14 +224,14 @@ export const editIcon = (e: Edit) =>
 
 /** Nature d'une saisie, en clair (« Forme du quai », « Suppression »…). */
 export function editLabel(e: Edit) {
-	if (e.kind === 'node') return 'Nouvelle pancarte';
-	if (e.kind === 'way') return 'Nouveau quai';
-	if (e.kind === 'shape') return e.mode === 'area' ? 'Quai redessiné en surface' : 'Forme du quai';
+	if (e.kind === 'node') return tr('edit.label.newSign');
+	if (e.kind === 'way') return tr('edit.label.newPlatform');
+	if (e.kind === 'shape') return e.mode === 'area' ? tr('edit.label.area') : tr('edit.label.shape');
 	if (e.kind === 'delete')
-		return `Suppression · motif : ${e.reason === 'duplicate' ? 'en double avec un autre quai' : 'n’existe plus'}`;
+		return tr('edit.label.delete', { why: tk(`shape.reasonComment.${e.reason}`) });
 	if (e.kind === 'signdelete')
-		return `Suppression de pancarte · motif : ${e.reason === 'duplicate' ? 'en double' : e.reason === 'misplaced' ? 'mal placée' : 'n’existe plus'}`;
-	return 'Modification';
+		return tr('edit.label.signDelete', { why: tk(`sign.reasonInline.${e.reason}`) });
+	return tr('edit.label.tags');
 }
 
 export const newEditId = () =>
@@ -243,7 +254,9 @@ export function mergeEdit(list: Edit[], edit: Edit): { edit?: Edit; drop: string
 			(e) => (e.kind === 'node' || e.kind === 'way') && editKey(e) === target
 		);
 		if (!creator || (creator.kind !== 'node' && creator.kind !== 'way')) return { drop: [] };
-		const summary = edit.summary.startsWith('Quai') ? `${edit.summary} (dessiné)` : creator.summary;
+		const summary = isPlatformTagEdit(edit)
+			? tr('edit.drawnSummary', { summary: edit.summary })
+			: creator.summary;
 		return {
 			edit: {
 				...creator,
@@ -258,13 +271,13 @@ export function mergeEdit(list: Edit[], edit: Edit): { edit?: Edit; drop: string
 	const drop: string[] = [];
 	if (edit.kind === 'tags' && edit.target.startsWith('node/')) {
 		if (onTarget(edit.target).some((e) => e.kind === 'signdelete' && !e.conflict))
-			throw new Error('Cette pancarte est marquée à supprimer : retirez d’abord cette saisie.');
+			throw new Error(tr('edit.error.signDeleted'));
 	}
 	if (edit.kind === 'signdelete') return { edit, drop: onTarget(edit.target).map((e) => e.id) };
 	if (edit.kind === 'tags' && edit.target.startsWith('way/')) {
 		const others = onTarget(edit.target);
 		if (others.some((e) => e.kind === 'delete' && !e.conflict))
-			throw new Error('Ce quai est marqué à supprimer : retirez d’abord cette saisie.');
+			throw new Error(tr('edit.error.platformDeleted'));
 		const shape = others.find((e) => e.kind === 'shape' && !e.conflict);
 		if (shape?.kind === 'shape') return { edit: withTags(shape, edit), drop: [] };
 	}
@@ -458,19 +471,27 @@ export function snapToTracks(
 	return best;
 }
 
-/** Nom d'une direction à partir d'un cap (« vers le nord-est »). */
+const BEARINGS = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'] as const;
+
+/** Direction (8 points cardinaux) d'un cap : « n », « ne »… */
+export const bearingCode = (deg: number) =>
+	BEARINGS[Math.round((((deg % 360) + 360) % 360) / 45) % 8];
+
+/** Nom d'une direction à partir d'un cap (« nord-est »), dans la langue de l'interface. */
 export function bearingName(deg: number) {
-	const names = ['nord', 'nord-est', 'est', 'sud-est', 'sud', 'sud-ouest', 'ouest', 'nord-ouest'];
-	return names[Math.round((((deg % 360) + 360) % 360) / 45) % 8];
+	return tr(`bearing.${bearingCode(deg)}`);
 }
 
 // ---------- Numéros ----------
 
-/** Nettoie un numéro de voie saisi : « Voie 3 » → « 3 », « v 1bis » → « 1bis ». */
+/**
+ * Nettoie un numéro de voie saisi : « Voie 3 » → « 3 », « v 1bis » → « 1bis ». Le mot « voie »
+ * est reconnu dans chaque langue de l'interface (track, Gleis, binario, vía).
+ */
 export function cleanTrackRef(v: string) {
 	return v
 		.trim()
-		.replace(/^(voie|v)\.?\s*/i, '')
+		.replace(/^(voie|v|track|gleis|gl|binario|bin|v[ií]a)\.?\s*/i, '')
 		.replace(/\s+/g, ' ')
 		.slice(0, 12);
 }
@@ -478,6 +499,7 @@ export function cleanTrackRef(v: string) {
 /** Valeur OSM multiple à partir d'une liste (« 1;2 »), sans doublon, triée naturellement. */
 export function joinRefs(values: string[]) {
 	const clean = [...new Set(values.map(cleanTrackRef).filter(Boolean))];
+	// Ordre de la valeur OSM : le même quelle que soit la langue de l'interface.
 	clean.sort((a, b) => a.localeCompare(b, 'fr', { numeric: true }));
 	return clean.join(';');
 }

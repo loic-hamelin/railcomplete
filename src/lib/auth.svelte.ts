@@ -4,6 +4,7 @@
 import { osmAuth } from 'osm-auth';
 import { readPref, writePref } from './cache.js';
 import { server, srv } from './osmserver.svelte.js';
+import { t } from './i18n/t.js';
 
 // write_notes sera demandé le jour où l'appli créera des notes OSM (pas encore le cas).
 export const SCOPES = 'read_prefs write_api';
@@ -45,7 +46,7 @@ export function login(returnTo = location.pathname + location.search) {
 export function finishLogin(): Promise<string> {
 	return new Promise((resolve, reject) => {
 		auth().authenticate(async (err) => {
-			if (err) return reject(new Error('La connexion a été refusée ou a expiré.'));
+			if (err) return reject(new Error(t('error.loginRefused')));
 			try {
 				await refreshUser();
 				resolve(sessionStorage.getItem('rc:after-login') ?? '/');
@@ -60,7 +61,7 @@ export async function refreshUser() {
 	account.checking = true;
 	try {
 		const r = await osmFetch('/api/0.6/user/details.json');
-		if (!r.ok) throw new Error(`Profil indisponible (${r.status}).`);
+		if (!r.ok) throw new Error(t('error.profile', { status: r.status }));
 		const u = (await r.json()).user;
 		account.user = { name: u.display_name, id: u.id };
 		writePref(`user:${server.id}`, account.user);

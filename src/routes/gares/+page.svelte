@@ -3,8 +3,8 @@
 	import { resolve } from '$app/paths';
 	import BottomNav from '#lib/BottomNav.svelte';
 	import Icon from '#lib/Icon.svelte';
-	import { countryConfig } from '#lib/core/countries.js';
 	import { country } from '#lib/country.svelte.js';
+	import { fmtNumber, t, tk } from '#lib/i18n/t.js';
 	import { recentIds } from '#lib/current.svelte.js';
 	import {
 		formatDistance,
@@ -42,7 +42,7 @@
 	function locate() {
 		geoError = '';
 		if (!('geolocation' in navigator)) {
-			geoError = 'La localisation n’est pas disponible sur cet appareil.';
+			geoError = t('stations.geoUnavailable');
 			return;
 		}
 		locating = true;
@@ -54,30 +54,30 @@
 			},
 			() => {
 				locating = false;
-				geoError = 'Position indisponible. Autorisez la localisation ou cherchez par nom.';
+				geoError = t('stations.geoError');
 			},
 			{ enableHighAccuracy: false, maximumAge: 300_000, timeout: 15_000 }
 		);
 	}
 
 	const sub = (s: Station) =>
-		[s.commune && s.commune !== s.name ? s.commune : '', s.admin, s.halt ? 'halte' : '']
+		[s.commune && s.commune !== s.name ? s.commune : '', s.admin, s.halt ? t('stations.halt') : '']
 			.filter(Boolean)
 			.join(' · ');
 </script>
 
-<svelte:head><title>Choisir une gare — stationcomplete</title></svelte:head>
+<svelte:head><title>{t('stations.title')}</title></svelte:head>
 
 <div class="screen">
 	<main>
-		<h1>Choisir une gare</h1>
+		<h1>{t('home.chooseStation')}</h1>
 		<label class="search">
 			<Icon name="search" size={20} />
-			<span class="visually-hidden">Rechercher une gare</span>
+			<span class="visually-hidden">{t('stations.searchLabel')}</span>
 			<input
 				type="search"
 				bind:value={query}
-				placeholder="Nom de gare ou commune"
+				placeholder={t('stations.placeholder')}
 				autocomplete="off"
 				enterkeyhint="search"
 			/>
@@ -89,7 +89,7 @@
 			disabled={!stations.length || locating}
 		>
 			<Icon name="locate" size={20} />
-			{locating ? 'Localisation…' : 'Gares autour de moi'}
+			{locating ? t('stations.locating') : t('stations.nearby')}
 		</button>
 		{#if geoError}<p class="banner warn" role="status">
 				<Icon name="alert" size={18} />{geoError}
@@ -98,7 +98,7 @@
 		{#if error}
 			<p class="banner err" role="alert"><Icon name="alert" size={18} />{error}</p>
 		{:else if !stations.length}
-			<p class="note" role="status">Chargement de la liste des gares…</p>
+			<p class="note" role="status">{t('stations.loading')}</p>
 		{/if}
 
 		{#snippet list(title: string, items: { s: Station; d?: number }[])}
@@ -118,22 +118,24 @@
 		{#if query.trim().length >= 2}
 			{#if results.length}
 				{@render list(
-					'Résultats',
+					t('stations.results'),
 					results.map((s) => ({ s }))
 				)}
 			{:else if stations.length}
-				<p class="note" role="status">Aucune gare ne correspond à « {query} ».</p>
+				<p class="note" role="status">{t('stations.noMatch', { query })}</p>
 			{/if}
 		{:else}
-			{#if around.length}{@render list('Autour de moi', around)}{/if}
+			{#if around.length}{@render list(t('stations.around'), around)}{/if}
 			{#if recent.length}{@render list(
-					'Récentes',
+					t('stations.recent'),
 					recent.map((s) => ({ s }))
 				)}{/if}
 			{#if !around.length && !recent.length && stations.length}
 				<p class="note">
-					{stations.length.toLocaleString('fr-FR')} gares et haltes {countryConfig(country.code)
-						.ofName}. Tapez au moins deux lettres.
+					{t('stations.count', {
+						count: fmtNumber(stations.length),
+						of: tk(`country.${country.code}.of`)
+					})}
 				</p>
 			{/if}
 		{/if}

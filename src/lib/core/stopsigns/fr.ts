@@ -4,6 +4,7 @@
 
 import type { Tags } from '../osm.ts';
 import type { SignPlacement, StopSignSchema, SignTypeDef } from './types.ts';
+import { t as tr } from '../../i18n/t.ts';
 
 const K = 'railway:signal:stop';
 
@@ -19,7 +20,7 @@ export const isLegacyStopSign = (t: Tags = {}) => (t[K] ?? '').startsWith('FR:AR
 export function stopSignLabel(t: Record<string, string> = {}) {
 	const k = K;
 	const v = t[k] ?? '';
-	if (v === 'FR:ARRET') return 'Arrêt';
+	if (v === 'FR:ARRET') return tr('sign.label.stop');
 	if (v.startsWith('FR:ARRET_'))
 		return (t[`${k}:caption`] ?? v.slice('FR:ARRET_'.length).replace(/_/g, ' ')).slice(0, 8);
 	const conv = t[`${k}:conventional`];
@@ -35,14 +36,14 @@ export function stopSignLabel(t: Record<string, string> = {}) {
 	const sub = t[`${k}:suburban`];
 	if (sub === 'FR:long_train') return 'TL';
 	if (sub === 'FR:short_train') return 'TC';
-	if (sub === 'FR:all_trains') return 'Tous';
+	if (sub === 'FR:all_trains') return tr('sign.label.all');
 	if (t[`${k}:accessibility`] === 'FR:UFR') return 'UFR';
 	if (t[`${k}:highspeed`] === 'FR:TGV') {
 		const f = t[`${k}:highspeed:for`];
 		const d = t[`${k}:highspeed:type`] === 'duplex' ? 'D' : '';
 		return `TGV ${f === 'single_unit' ? '1' : f === 'multiple_unit' ? '2' : '1-2'}${d}`;
 	}
-	return 'Arrêt';
+	return tr('sign.label.stop');
 }
 
 export type SignType =
@@ -133,14 +134,12 @@ export function signTags(s: SignInput): Tags {
 
 /** Contrôle d'une saisie de pancarte : renvoie un message d'erreur ou undefined. */
 export function checkSign(s: Partial<SignInput>): string | undefined {
-	if (!s.type) return 'Choisissez le panneau que vous voyez.';
-	if (s.type === 'nV' && !/^\d{1,2}$/.test(s.number ?? ''))
-		return 'Indiquez le nombre de véhicules écrit sur le panneau.';
-	if (s.type === 'L' && !/^\d{2,3}$/.test(s.number ?? ''))
-		return 'Indiquez la longueur écrite sur le panneau (en mètres).';
-	if (s.type === 'other' && !(s.caption ?? '').trim()) return 'Recopiez le texte de la pancarte.';
-	if (!s.direction) return 'Indiquez le sens des trains qui lisent ce panneau.';
-	if (!s.position) return 'Indiquez de quel côté se trouve le panneau.';
+	if (!s.type) return tr('sign.check.type');
+	if (s.type === 'nV' && !/^\d{1,2}$/.test(s.number ?? '')) return tr('sign.check.vehicles');
+	if (s.type === 'L' && !/^\d{2,3}$/.test(s.number ?? '')) return tr('sign.check.length');
+	if (s.type === 'other' && !(s.caption ?? '').trim()) return tr('sign.check.caption');
+	if (!s.direction) return tr('sign.check.direction');
+	if (!s.position) return tr('sign.check.position');
 	return undefined;
 }
 
@@ -162,13 +161,13 @@ export function signSummary(s: SignInput) {
 		case 'UFR':
 			return 'UFR';
 		case 'long':
-			return 'Train long';
+			return tr('sign.type.long');
 		case 'short':
-			return 'Train court';
+			return tr('sign.type.short');
 		case 'all':
-			return 'Tous trains';
+			return tr('sign.type.all');
 		default:
-			return s.caption ?? 'Autre';
+			return s.caption ?? tr('sign.type.otherShort');
 	}
 }
 
@@ -181,12 +180,41 @@ export const SIGN_TYPES: SignTypeDef[] = [
 	{ t: 'Z50', label: 'Z50', plate: true },
 	{ t: 'TGV', label: 'TGV', plate: true },
 	{ t: 'UFR', label: 'UFR', plate: true },
-	{ t: 'long', label: 'Train long' },
-	{ t: 'short', label: 'Train court' },
-	{ t: 'all', label: 'Tous trains' },
-	{ t: 'other', label: 'Autre / illisible' },
+	// Libellés traduits lus à l'affichage (getters) : ils suivent la langue de l'interface.
+	{
+		t: 'long',
+		get label() {
+			return tr('sign.type.long');
+		}
+	},
+	{
+		t: 'short',
+		get label() {
+			return tr('sign.type.short');
+		}
+	},
+	{
+		t: 'all',
+		get label() {
+			return tr('sign.type.all');
+		}
+	},
+	{
+		t: 'other',
+		get label() {
+			return tr('sign.type.other');
+		}
+	},
 	// Pancartes US/UM : schéma OSM pas encore validé, bouton affiché mais inactif.
-	{ t: 'US/UM', label: 'US / UM (bientôt)', disabled: 'En attente de validation du schéma OSM' }
+	{
+		t: 'US/UM',
+		get label() {
+			return tr('sign.type.usum');
+		},
+		get disabled() {
+			return tr('sign.type.usumPending');
+		}
+	}
 ];
 
 export const frStopSigns: StopSignSchema<SignInput> = {

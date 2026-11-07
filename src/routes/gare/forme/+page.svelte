@@ -32,6 +32,7 @@
 		followersPhrase,
 		isFixed,
 		isLinked,
+		linkName,
 		listFr,
 		platformName,
 		platformShape,
@@ -41,6 +42,8 @@
 		shareNotice,
 		shapeSummary
 	} from '#lib/core/shape.js';
+	import Rich from '#lib/i18n/Rich.svelte';
+	import { fmtDecimal, fmtDistance, t } from '#lib/i18n/t.js';
 	import { current, openStation } from '#lib/current.svelte.js';
 	import { editsOf, loadEdits, nextTempId, pending, saveEdit } from '#lib/edits.svelte.js';
 	import DrawMap from '#lib/map/DrawMap.svelte';
@@ -178,15 +181,16 @@
 	);
 	// Partagé avec un bord de quai : déplaçable, jamais retiré.
 	const edge = $derived(pts.map((p) => mode === 'reshape' && !!orig.get(p.id)?.edge));
-	const linksOf = (i: number) => listFr(orig.get(pts[i]?.id)?.links ?? ['autre objet']);
+	const linksOf = (i: number) =>
+		listFr((orig.get(pts[i]?.id)?.links ?? ['autre objet']).map(linkName));
 	const notice = $derived(info && !noticeClosed ? shareNotice(info.nodes) : '');
 	/** Sommet lisible au lecteur d'écran : ce qu'il partage, ou la raison du verrou. */
 	const vertexLabel = (i: number) =>
 		locked[i]
-			? `Point ${i + 1} : relié à d’autres objets (${linksOf(i)}), non modifiable`
+			? t('shapePage.vertex.locked', { n: i + 1, links: linksOf(i) })
 			: shared[i]
-				? `Point ${i + 1} : ${sharedLabel(orig.get(pts[i].id)!)}, le sélectionner`
-				: `Point ${i + 1} : le sélectionner`;
+				? t('shapePage.vertex.shared', { n: i + 1, what: sharedLabel(orig.get(pts[i].id)!) })
+				: t('shapePage.vertex.plain', { n: i + 1 });
 	const ring = $derived(pts.map((p) => [p.lon, p.lat] as LonLat));
 	/**
 	 * Accrochage au bord de voie (lot 7d) : seulement si le point accroché est à moins de 12 px
@@ -217,7 +221,7 @@
 	const anchors = $derived(
 		anchorNodes.map((n) => ({
 			at: [n.lon, n.lat] as LonLat,
-			label: `Point relié ${info!.nodes.indexOf(n) + 1} de l’ancienne ligne : l’ajouter au contour`
+			label: t('shapePage.anchor', { n: info!.nodes.indexOf(n) + 1 })
 		}))
 	);
 	const guide = $derived(
@@ -234,7 +238,15 @@
 	);
 	/** Rayon de prise à la croix, à l'écran (px). */
 	const PICK_PX = 24;
-	const m = (v: number) => `${Math.round(v)} m`;
+	const m = fmtDistance;
+	/** « Point 3 déplacé, accroché au bord de la voie : gare ajustée aussi. » */
+	const movedText = (n: number, snappedHere: boolean, also: string) =>
+		t('shapePage.said.moved', {
+			n,
+			snapped: snappedHere ? 'yes' : 'no',
+			hasAlso: also ? 'yes' : 'no',
+			also
+		});
 
 	/** Avertissement non bloquant (lot 7d) : le quai ne longe plus une voie qu'il longeait. */
 	let lostWarn = $state('');
@@ -254,7 +266,7 @@
 		lastNote = '';
 		if (selected === i) {
 			selected = undefined;
-			said = `Point ${i + 1} désélectionné.`;
+			said = t('shapePage.said.deselected', { n: i + 1 });
 			return;
 		}
 		selected = i;
@@ -262,10 +274,10 @@
 		mapRef?.centerOn([pts[i].lon, pts[i].lat]);
 		const o = orig.get(pts[i].id);
 		said = locked[i]
-			? `Point ${i + 1} : relié à ${linksOf(i)}, il reste en place.`
+			? t('shapePage.said.locked', { n: i + 1, links: linksOf(i) })
 			: shared[i] && o
-				? `Point ${i + 1} sélectionné. ${pointInfo(o).move}`
-				: `Point ${i + 1} sélectionné : il est sous la croix.`;
+				? t('shapePage.said.selectedShared', { n: i + 1, info: pointInfo(o).move })
+				: t('shapePage.said.selected', { n: i + 1 });
 	}
 
 	const pxFromCross = (p: { lon: number; lat: number }) => {
@@ -286,9 +298,7 @@
 			.filter((c) => c.px <= PICK_PX)
 			.sort((x, y) => x.px - y.px);
 		if (a.length) return anchor(a[0].i);
-		errors = [
-			'Aucun point sous la croix : amenez la croix sur un point du quai (rond blanc), ou touchez directement le point.'
-		];
+		errors = [t('shapePage.error.noPoint')];
 		said = errors[0];
 	}
 
@@ -307,12 +317,12 @@
 			// Distance de la croix (0, 0) au segment AB, en pixels.
 			const ab = { x: b.x - a.x, y: b.y - a.y };
 			const l2 = ab.x ** 2 + ab.y ** 2 || 1;
-			const t = Math.max(0, Math.min(1, -(a.x * ab.x + a.y * ab.y) / l2));
-			const px = Math.hypot(a.x + t * ab.x, a.y + t * ab.y);
+			const u = Math.max(0, Math.min(1, -(a.x * ab.x + a.y * ab.y) / l2));
+			const px = Math.hypot(a.x + u * ab.x, a.y + u * ab.y);
 			if (px < bestPx) [best, bestPx] = [i, px];
 		}
 		if (best < 0 || bestPx > PICK_PX) {
-			errors = ['Placez la croix sur un côté du quai, puis « Ajouter un point ici ».'];
+			errors = [t('shapePage.error.noSide')];
 			said = errors[0];
 			return;
 		}
@@ -320,7 +330,12 @@
 		next.splice(best + 1, 0, { id: nextTempId(), lon: preview[0], lat: preview[1] });
 		commit(
 			next,
-			`Point ${best + 2} ajouté entre ${best + 1} et ${((best + 1) % pts.length) + 1}${snap ? ', accroché au bord de la voie' : ''}.`
+			t('shapePage.said.inserted', {
+				n: best + 2,
+				a: best + 1,
+				b: ((best + 1) % pts.length) + 1,
+				snapped: snap ? 'yes' : 'no'
+			})
 		);
 		selected = best + 1;
 	}
@@ -330,7 +345,15 @@
 		const [lon, lat] = snapped([(a.lon + b.lon) / 2, (a.lat + b.lat) / 2]);
 		const next = [...pts];
 		next.splice(i + 1, 0, { id: nextTempId(), lon, lat });
-		commit(next, `Point ${i + 2} ajouté entre ${i + 1} et ${((i + 1) % pts.length) + 1}.`);
+		commit(
+			next,
+			t('shapePage.said.inserted', {
+				n: i + 2,
+				a: i + 1,
+				b: ((i + 1) % pts.length) + 1,
+				snapped: 'no'
+			})
+		);
 		selected = i + 1;
 		mapRef?.centerOn([lon, lat]);
 	}
@@ -341,11 +364,8 @@
 		next[i] = { ...next[i], lon: preview[0], lat: preview[1] };
 		const o = orig.get(next[i].id);
 		const also = o && isLinked(o) ? followersPhrase(followers([o], [next[i]])) : '';
-		commit(
-			next,
-			`Point ${i + 1} déplacé${snap ? ', accroché au bord de la voie' : ''}${also ? ` : ${also}` : ''}.`
-		);
-		if (also) lastNote = `Point ${i + 1} déplacé : ${also}.`;
+		commit(next, movedText(i + 1, !!snap, also));
+		if (also) lastNote = movedText(i + 1, false, also);
 		selected = undefined;
 	}
 	/** Sommet glissé au doigt puis relâché (lot 7d) : même accrochage, même historique. */
@@ -358,11 +378,8 @@
 		next[i] = { ...next[i], lon, lat };
 		const o = orig.get(next[i].id);
 		const also = o && isLinked(o) ? followersPhrase(followers([o], [next[i]])) : '';
-		commit(
-			next,
-			`Point ${i + 1} déplacé${s ? ', accroché au bord de la voie' : ''}${also ? ` : ${also}` : ''}.`
-		);
-		if (also) lastNote = `Point ${i + 1} déplacé : ${also}.`;
+		commit(next, movedText(i + 1, !!s, also));
+		if (also) lastNote = movedText(i + 1, false, also);
 		selected = undefined;
 	}
 	function removePoint() {
@@ -371,16 +388,16 @@
 		const kept = shared[i] ? pointInfo(orig.get(pts[i].id)).remove : '';
 		commit(
 			pts.filter((_, k) => k !== i),
-			`Point ${i + 1} retiré du quai.${kept ? ` ${kept}` : ''}`
+			t('shapePage.said.removed', { n: i + 1 }) + (kept ? ` ${kept}` : '')
 		);
-		if (kept) lastNote = `Point ${i + 1} retiré du quai. ${kept}`;
+		if (kept) lastNote = `${t('shapePage.said.removed', { n: i + 1 })} ${kept}`;
 		selected = undefined;
 	}
 	function addPoint() {
 		if (!preview) return;
 		commit(
 			[...pts, { id: nextTempId(), lon: preview[0], lat: preview[1] }],
-			`Point ${pts.length + 1} ajouté.`
+			t('drawPage.said.added', { n: pts.length + 1 })
 		);
 	}
 	function anchor(i: number) {
@@ -388,7 +405,7 @@
 		if (!n) return;
 		commit(
 			[...pts, { id: n.id, lon: n.lon, lat: n.lat }],
-			`Point relié repris : point ${pts.length + 1} du contour.`
+			t('shapePage.said.anchored', { n: pts.length + 1 })
 		);
 	}
 	function undo() {
@@ -399,7 +416,7 @@
 		pts = prev;
 		selected = undefined;
 		errors = [];
-		said = 'Dernière action annulée.';
+		said = t('shapePage.said.undone');
 	}
 
 	async function finish() {
@@ -409,7 +426,7 @@
 			pts.length === info.nodes.length &&
 			pts.every((p, i) => p.id === info.nodes[i].id && samePlace(p, info.nodes[i]));
 		if (unchanged && !previous) {
-			errors = ['Aucun changement : déplacez, ajoutez ou retirez un point.'];
+			errors = [t('shapePage.error.unchanged')];
 			return;
 		}
 		const lockError = checkLocks(info.nodes, pts, mode);
@@ -462,7 +479,7 @@
 			});
 			await goto(back);
 		} catch {
-			errors = ["L'enregistrement sur ce téléphone a échoué. Réessayez."];
+			errors = [t('common.saveFailed')];
 		} finally {
 			saving = false;
 		}
@@ -470,7 +487,8 @@
 </script>
 
 <svelte:head
-	><title>{mode === 'area' ? 'Redessiner en surface' : 'Modifier la forme'} — stationcomplete</title
+	><title
+		>{t('shapePage.title', { name: mode === 'area' ? t('map.toArea') : t('map.reshape') })}</title
 	></svelte:head
 >
 
@@ -517,49 +535,46 @@
 	</div>
 
 	{#if !ready || !pending.loaded}
-		<p class="status float" role="status">Chargement…</p>
+		<p class="status float" role="status">{t('common.loading')}</p>
 	{:else if !info || !isQuai}
 		<div class="status float" role="alert">
-			<p>Ce quai n’a pas été trouvé dans les données de la gare.</p>
-			<a class="btn-quiet" href={back}>Retour à la carte</a>
+			<p>{t('shapePage.notFound')}</p>
+			<a class="btn-quiet" href={back}>{t('shapePage.backToMap')}</a>
 		</div>
 	{:else if info.refused}
 		<div class="status float" role="alert">
 			<p>{info.refused}</p>
 			<a class="btn-quiet" href={`${srv().web}/${osm}`} rel="external"
-				>Voir sur OpenStreetMap<Icon name="ext" size={16} /></a
+				>{t('common.seeOnOsm')}<Icon name="ext" size={16} /></a
 			>
-			<a class="btn-quiet" href={back}>Retour à la carte</a>
+			<a class="btn-quiet" href={back}>{t('shapePage.backToMap')}</a>
 		</div>
 	{/if}
 
 	<div class="stack">
 		<header class="top float" data-map-avoid>
 			<div class="row">
-				<a class="icon-btn" href={back} aria-label="Quitter sans enregistrer"
+				<a class="icon-btn" href={back} aria-label={t('shapePage.quit')}
 					><Icon name="close" size={22} /></a
 				>
-				<h1>{mode === 'area' ? 'Redessiner en surface' : 'Modifier la forme'}</h1>
-				<span class="count">{pts.length} point{pts.length > 1 ? 's' : ''}</span>
+				<h1>{mode === 'area' ? t('map.toArea') : t('map.reshape')}</h1>
+				<span class="count">{t('drawPage.points', { count: pts.length })}</span>
 			</div>
 			{#if info && !info.refused}
 				<p>
 					<strong>{name}</strong> ·
 					{#if sel && selLocked}
-						Le point {selected! + 1} est relié à : <strong>{linksOf(selected!)}</strong>. Il reste
-						en place ; corrigez-le avec JOSM ou iD, ou ajoutez des points autour.
+						<Rich
+							text={t('shapePage.help.locked', { n: selected! + 1, links: linksOf(selected!) })}
+						/>
 					{:else if sel}
-						Faites glisser la carte jusqu’au nouvel emplacement du <strong
-							>point {selected! + 1}</strong
-						>.
+						<Rich text={t('shapePage.help.move', { n: selected! + 1 })} />
 					{:else if mode === 'area'}
-						Faites le tour du quai, coin après coin ; l’ancienne ligne est en trait pâle.
-						{#if anchorNodes.length}Touchez ses points carrés pour les reprendre.{/if}
+						{t('shapePage.help.area')}
+						{#if anchorNodes.length}{t('shapePage.help.anchors')}{/if}
 					{:else}
-						Placez la croix sur un point (ou touchez-le, ou faites-le glisser), ou sur un côté pour
-						en ajouter un.
-						{#if info.nodes.some(isLinked)}Les points à cœur sombre sont partagés avec d’autres
-							objets.{/if}
+						{t('shapePage.help.reshape')}
+						{#if info.nodes.some(isLinked)}{t('shapePage.help.shared')}{/if}
 					{/if}
 				</p>
 				{#if sel && (selInfo.move || selInfo.remove)}
@@ -576,7 +591,7 @@
 					<div class="notice" role="note">
 						<Icon name="info" size={16} /><span>{notice}</span>
 						<button class="btn-quiet" type="button" onclick={() => (noticeClosed = true)}
-							>Compris</button
+							>{t('shapePage.understood')}</button
 						>
 					</div>
 				{/if}
@@ -585,10 +600,10 @@
 		{#if view && info && !info.refused}
 			<div class="tools" data-map-avoid>
 				<div class="zoom float">
-					<button type="button" aria-label="Zoomer" onclick={() => mapRef?.zoom(1)}
+					<button type="button" aria-label={t('common.zoomIn')} onclick={() => mapRef?.zoom(1)}
 						><Icon name="plus" size={20} /></button
 					>
-					<button type="button" aria-label="Dézoomer" onclick={() => mapRef?.zoom(-1)}
+					<button type="button" aria-label={t('common.zoomOut')} onclick={() => mapRef?.zoom(-1)}
 						><Icon name="minus" size={20} /></button
 					>
 				</div>
@@ -598,15 +613,16 @@
 	</div>
 
 	{#if view && info && isQuai && !info.refused}
-		<section class="panel float" aria-label="Forme du quai" data-map-avoid>
+		<section class="panel float" aria-label={t('edit.label.shape')} data-map-avoid>
 			<div class="inforow">
 				<div class="info" class:ok={!!snap} role="status">
 					<Icon name={snap ? 'check' : 'locate'} size={20} />
 					<span>
-						{#if snap}<strong>Accroché au bord de la voie</strong> (1,5 m de l’axe){:else}Point sous
-							la croix{/if}
+						{#if snap}<Rich text={t('shapePage.snapped', { offset: fmtDecimal(1.5) })} />{:else}{t(
+								'drawPage.underCross'
+							)}{/if}
 						{#if pts.length >= 2}
-							· longueur {m(check.lengthM)}{/if}
+							· {t('drawPage.length', { length: m(check.lengthM) })}{/if}
 					</span>
 				</div>
 				<label class="snapopt">
@@ -615,7 +631,7 @@
 						role="switch"
 						checked={snapPref.on}
 						onchange={(e) => setSnapPref(e.currentTarget.checked)}
-					/>Accrocher à la voie
+					/>{t('drawPage.snapOption')}
 				</label>
 			</div>
 			<p class="visually-hidden" aria-live="polite">{said}</p>
@@ -628,7 +644,9 @@
 				<div class="lost banner warn" role="alert">
 					<p><Icon name="alert" size={18} /><span>{lostWarn}</span></p>
 					<div class="two">
-						<button class="btn-sm" type="button" onclick={() => (lostWarn = '')}>Corriger</button>
+						<button class="btn-sm" type="button" onclick={() => (lostWarn = '')}
+							>{t('input.fix')}</button
+						>
 						<button
 							class="btn-sm"
 							type="button"
@@ -637,7 +655,7 @@
 								saveAnyway = true;
 								lostWarn = '';
 								finish();
-							}}>Enregistrer quand même</button
+							}}>{t('drawPage.saveAnyway')}</button
 						>
 					</div>
 				</div>
@@ -649,11 +667,11 @@
 						class="btn-sm"
 						type="button"
 						disabled={!pts.length && !anchorNodes.length}
-						onclick={pick}><Icon name="locate" size={18} />Prendre ce point</button
+						onclick={pick}><Icon name="locate" size={18} />{t('shapePage.pick')}</button
 					>
 					{#if mode === 'reshape' || pts.length >= 3}
 						<button class="btn-sm" type="button" disabled={!preview} onclick={addHere}
-							><Icon name="plus" size={18} />Ajouter un point ici</button
+							><Icon name="plus" size={18} />{t('shapePage.addHere')}</button
 						>
 					{/if}
 				</div>
@@ -664,25 +682,27 @@
 						class="btn btn-secondary"
 						type="button"
 						disabled={selLocked || selEdge || pts.length <= 3}
-						onclick={removePoint}><Icon name="trash" size={20} />Retirer ce point</button
+						onclick={removePoint}><Icon name="trash" size={20} />{t('shapePage.remove')}</button
 					>
 					<button class="btn" type="button" disabled={selLocked || !preview} onclick={moveHere}
-						>Déplacer le point ici</button
+						>{t('shapePage.moveHere')}</button
 					>
 				{:else}
 					<button
 						class="btn btn-secondary"
 						type="button"
 						disabled={!history.length}
-						aria-label="Annuler la dernière action"
-						onclick={undo}><Icon name="undo" size={20} />Annuler</button
+						aria-label={t('shapePage.undoLabel')}
+						onclick={undo}><Icon name="undo" size={20} />{t('common.cancel')}</button
 					>
 					{#if mode === 'area'}
 						<button class="btn" type="button" disabled={!preview} onclick={addPoint}
-							>Ajouter un point</button
+							>{t('drawPage.addPoint')}</button
 						>
 					{:else}
-						<button class="btn" type="button" disabled={saving} onclick={finish}>Terminer</button>
+						<button class="btn" type="button" disabled={saving} onclick={finish}
+							>{t('shapePage.finish')}</button
+						>
 					{/if}
 				{/if}
 			</div>
@@ -693,15 +713,15 @@
 							class="btn-quiet"
 							type="button"
 							disabled={!history.length}
-							aria-label="Annuler la dernière action"
-							onclick={undo}><Icon name="undo" size={18} />Annuler</button
+							aria-label={t('shapePage.undoLabel')}
+							onclick={undo}><Icon name="undo" size={18} />{t('common.cancel')}</button
 						>
 					{/if}
 					<button
 						class="btn-quiet"
 						type="button"
 						disabled={saving || pts.length < 3}
-						onclick={finish}>Terminer</button
+						onclick={finish}>{t('shapePage.finish')}</button
 					>
 				</div>
 			{/if}
@@ -769,7 +789,7 @@
 		line-height: 1.43;
 		color: var(--text-2);
 	}
-	.top p strong {
+	.top p :global(strong) {
 		color: var(--text);
 	}
 	.tools {

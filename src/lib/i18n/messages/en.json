@@ -1,0 +1,965 @@
+{
+	"common": {
+		"and": "and",
+		"closeMessage": "Close message",
+		"logoLabel": "stationcomplete, home",
+		"cancel": "Cancel",
+		"remove": "Remove",
+		"loading": "Loading…",
+		"confirm": "Confirm",
+		"retry": "Try again",
+		"osmAttribution": "© OpenStreetMap contributors, ODbL",
+		"close": "Close",
+		"saveFailed": "Saving on this phone failed. Please try again.",
+		"seeOnOsm": "View on OpenStreetMap",
+		"quoted": "“{text}”",
+		"no": "No",
+		"yes": "Yes",
+		"save": "Save",
+		"zoomIn": "Zoom in",
+		"zoomOut": "Zoom out"
+	},
+	"format": {
+		"mb": "{n} MB"
+	},
+	"platform": {
+		"named": "Platform {ref}",
+		"noRef": "Unnumbered platform",
+		"plain": "Platform",
+		"tracks": "Platform tracks {refs}"
+	},
+	"track": {
+		"named": "Track {ref}",
+		"noRef": "Unnumbered track"
+	},
+	"sign": {
+		"named": "Stop marker “{label}”",
+		"label": {
+			"stop": "Stop",
+			"all": "All"
+		},
+		"check": {
+			"type": "Choose the sign you can see.",
+			"vehicles": "Enter the number of vehicles written on the sign.",
+			"length": "Enter the length written on the sign (in metres).",
+			"caption": "Copy the text of the sign.",
+			"direction": "Indicate the direction of the trains that read this sign.",
+			"position": "Indicate which side the sign is on."
+		},
+		"type": {
+			"long": "Long train",
+			"short": "Short train",
+			"all": "All trains",
+			"other": "Other / unreadable",
+			"otherShort": "Other",
+			"usum": "US / UM (coming soon)",
+			"usumPending": "Waiting for the OSM tagging scheme to be approved"
+		},
+		"reason": {
+			"gone": "No longer exists",
+			"duplicate": "Duplicate",
+			"misplaced": "Misplaced"
+		},
+		"reasonInline": {
+			"gone": "no longer exists",
+			"duplicate": "duplicate",
+			"misplaced": "misplaced"
+		}
+	},
+	"feature": {
+		"platformLettered": "{length} · letter in “ref”: track numbers are expected",
+		"platformTracks": "Tracks {refs} · {length}",
+		"platformNoRef": "{length} · track numbers to be noted on site",
+		"trackRef": "Track number filled in",
+		"trackNoRef": "Number displayed in the station, to be noted on site",
+		"trackAway": "Not alongside any mapped platform",
+		"signLegacy": "Old tagging format, to be confirmed on site",
+		"signDirection": "Direction filled in",
+		"signNoDirection": "Train direction to be noted on site"
+	},
+	"quest": {
+		"q0": {
+			"title": "No platform mapped",
+			"subtitle": "You can draw it on the aerial photo"
+		},
+		"q1": {
+			"title": "{count, plural, one {# unnumbered platform} other {# unnumbered platforms}}"
+		},
+		"q2": {
+			"title": "{count, plural, one {# platform track without a number} other {# platform tracks without a number}}"
+		},
+		"q3": {
+			"title": "{count, plural, one {# platform whose numbers need checking} other {# platforms whose numbers need checking}}",
+			"subtitle": "The platform numbers and the track numbers do not match"
+		},
+		"q4": {
+			"title": "{count, plural, one {# platform side without a stop marker} other {# platform sides without a stop marker}}"
+		},
+		"q5": {
+			"title": "{count, plural, one {# stop marker to complete} other {# stop markers to complete}}"
+		},
+		"q6": {
+			"title": "{count, plural, one {# object to check} other {# objects to check}}",
+			"subtitle": "Can also be done remotely"
+		},
+		"q7": {
+			"title": "{count, plural, one {# misplaced track number} other {# misplaced track numbers}}",
+			"duplicate": "Two tracks have the number {ref}",
+			"subtitle": "Check first"
+		}
+	},
+	"signRemoval": {
+		"why": {
+			"shared": "point shared with another object (another track, a switch…)",
+			"repeated": "point repeated in the track",
+			"extra": "carries other information ({keys})",
+			"relation": "member of a relation",
+			"shift": "removing it would move the track by {shift} m",
+			"end": "end of the track"
+		},
+		"summary": "Stop marker “{label}” deleted ({reason}) — {mode, select, remove {point removed from the track} other {point kept in the track, tags removed}}",
+		"phraseNoWay": "The point of the stop marker will be deleted.",
+		"phraseRemove": "The point will be removed from the track and then deleted: the shape of the track does not change.",
+		"phraseUntag": "The point stays in the track ({why}): only the tags of the stop marker are removed. The shape of the track never changes."
+	},
+	"shape": {
+		"complex": "Complex platform: edit it with an editor such as iD or JOSM.",
+		"reason": {
+			"duplicate": "Duplicate of another platform",
+			"gone": "No longer exists"
+		},
+		"reasonInline": {
+			"duplicate": "duplicate",
+			"gone": "no longer exists"
+		},
+		"reasonComment": {
+			"duplicate": "duplicate of another platform",
+			"gone": "no longer exists"
+		},
+		"relationNo": "no. {id}",
+		"rel": {
+			"stopArea": "from the stop area {name}",
+			"route": "from the route {name}",
+			"routes": "from {count} routes",
+			"other": "from the relation {name}",
+			"others": "from {count} other relations",
+			"removed": "removed {list}"
+		},
+		"summary": {
+			"area": "{name} redrawn as an area",
+			"reshape": "{name}: shape changed ({before} → {after} points)",
+			"delete": "{name} deleted ({why})"
+		},
+		"link": {
+			"relation": "member of a relation",
+			"repeated": "point repeated in the outline",
+			"infoWhat": "point with information ({what})"
+		},
+		"tags": "tags",
+		"notice": {
+			"shared": "{count, plural, one {# point out of {total} is shared with other objects ({objects}): it will follow your changes.} other {# points out of {total} are shared with other objects ({objects}): they will follow your changes.}}",
+			"taggedInfo": "Point {point} is a point with information: moving it moves the object it describes.",
+			"tagged": "Point {point} is {a}: moving it moves {the}.",
+			"taggedMany": "Points {points} carry information ({what}): moving them moves these objects."
+		},
+		"point": {
+			"alsoOf": "This point is also a point of: {list} — {count, plural, one {it will follow} other {they will follow}} the move.",
+			"info": "This point carries information: it will be moved with it.",
+			"is": "This point is {a}: it will be moved.",
+			"removeEdge": "It cannot be removed from the outline: the platform edge needs it.",
+			"removeWays": "If removed, it stays in {list}; only the platform changes.",
+			"removeMap": "If removed, it stays on the map; only the platform changes."
+		},
+		"shared": {
+			"info": "carries information",
+			"alsoOf": "also a point {list}",
+			"linked": "linked to {list}",
+			"plain": "shared"
+		},
+		"followers": {
+			"ways": "{list} also adjusted",
+			"tags": "{list} moved"
+		},
+		"deleteRefused": "This platform is the only member of the relation {name}: delete it with an editor such as iD or JOSM.",
+		"lock": {
+			"foreign": "A point comes from another object: shape refused.",
+			"twice": "A point appears twice in the outline.",
+			"movedLinked": "A point linked to another object has been moved: shape refused.",
+			"movedRepeated": "A point repeated in the outline has been moved: shape refused.",
+			"areaLinked": "{count, plural, one {Point {points} of the old line is linked to other objects: it must be part of the outline. Tap this point (square) to add it, or use an editor such as iD or JOSM.} other {Points {points} of the old line are linked to other objects: they must be part of the outline. Tap these points (squares) to add them, or use an editor such as iD or JOSM.}}",
+			"edge": "{count, plural, one {Point {points} is also a point of the platform edge: removing it from the outline would leave it in the edge. Move it instead, or use JOSM or iD.} other {Points {points} are also points of the platform edge: removing them from the outline would leave them in the edge. Move them instead, or use JOSM or iD.}}",
+			"repeated": "{count, plural, one {Point {points} appears several times in the outline: it cannot be removed.} other {Points {points} appear several times in the outline: they cannot be removed.}}"
+		}
+	},
+	"obj": {
+		"platformEdge": {
+			"name": "platform edge",
+			"a": "the platform edge",
+			"of": "of the platform edge",
+			"the": "the platform edge",
+			"g": "n"
+		},
+		"roof": {
+			"name": "roof",
+			"a": "the roof",
+			"of": "of the roof",
+			"the": "the roof",
+			"g": "n"
+		},
+		"indoor": {
+			"name": "indoor space",
+			"a": "an indoor space",
+			"of": "of an indoor space",
+			"the": "the indoor space",
+			"g": "n"
+		},
+		"steps": {
+			"name": "steps",
+			"a": "a flight of steps",
+			"of": "of a flight of steps",
+			"the": "the steps",
+			"g": "n"
+		},
+		"footway": {
+			"name": "footpath",
+			"a": "a footpath",
+			"of": "of a footpath",
+			"the": "the footpath",
+			"g": "n"
+		},
+		"elevator": {
+			"name": "lift",
+			"a": "a lift",
+			"of": "of a lift",
+			"the": "the lift",
+			"g": "n"
+		},
+		"road": {
+			"name": "road",
+			"a": "a road",
+			"of": "of a road",
+			"the": "the road",
+			"g": "n"
+		},
+		"station": {
+			"name": "station",
+			"a": "the station",
+			"of": "of the station",
+			"the": "the station",
+			"g": "n"
+		},
+		"building": {
+			"name": "building",
+			"a": "a building",
+			"of": "of a building",
+			"the": "the building",
+			"g": "n"
+		},
+		"otherPlatform": {
+			"name": "other platform",
+			"a": "another platform",
+			"of": "of another platform",
+			"the": "the other platform",
+			"g": "n"
+		},
+		"railway": {
+			"name": "track or railway facility",
+			"a": "a track or railway facility",
+			"of": "of a track or railway facility",
+			"the": "the track or railway facility",
+			"g": "n"
+		},
+		"barrierLine": {
+			"name": "fence or wall",
+			"a": "a fence or wall",
+			"of": "of a fence or wall",
+			"the": "the fence or wall",
+			"g": "n"
+		},
+		"area": {
+			"name": "area",
+			"a": "an area",
+			"of": "of an area",
+			"the": "the area",
+			"g": "n"
+		},
+		"other": {
+			"name": "other object",
+			"a": "another object",
+			"of": "of another object",
+			"the": "the other object",
+			"g": "n"
+		},
+		"entrance": {
+			"name": "entrance",
+			"a": "an entrance",
+			"of": "of an entrance",
+			"the": "the entrance",
+			"g": "n"
+		},
+		"busStop": {
+			"name": "bus stop",
+			"a": "a bus stop",
+			"of": "of a bus stop",
+			"the": "the bus stop",
+			"g": "n"
+		},
+		"barrier": {
+			"name": "barrier",
+			"a": "a barrier",
+			"of": "of a barrier",
+			"the": "the barrier",
+			"g": "n"
+		},
+		"railwayNode": {
+			"name": "railway feature",
+			"a": "a railway feature",
+			"of": "of a railway feature",
+			"the": "the railway feature",
+			"g": "n"
+		},
+		"info": {
+			"name": "point with information",
+			"a": "a point with information",
+			"of": "of a point with information",
+			"the": "the point with information",
+			"g": "n"
+		}
+	},
+	"draw": {
+		"check": {
+			"points": "Place at least 3 points.",
+			"crossing": "Sides of the platform cross each other: move or remove a point.",
+			"short": "Platform too short ({length}, minimum {min}).",
+			"long": "Platform too long ({length}, maximum {max}).",
+			"track": "The platform crosses a track: its edge must stay alongside the track.",
+			"overlap": "The platform overlaps a platform that is already mapped."
+		},
+		"lost": {
+			"track": "{track} ({gap})",
+			"theTrack": "track {ref}",
+			"aTrack": "an unnumbered track",
+			"gap": "edge at {gap}",
+			"notParallel": "edge no longer parallel to the track",
+			"message": "The platform no longer runs alongside {list}. Check the shape: the platform edge must follow the track."
+		}
+	},
+	"upload": {
+		"conflict": {
+			"changed": "The platform was changed on OpenStreetMap in the meantime: nothing was uploaded for it. Redo the change on the up-to-date map.",
+			"signChanged": "The stop marker or its track was changed on OpenStreetMap in the meantime: nothing was uploaded for it. Redo the deletion on the up-to-date map.",
+			"signLinked": "The stop marker was linked to another object on OpenStreetMap in the meantime: nothing was uploaded for it. Redo the deletion on the up-to-date map.",
+			"nodeChanged": "A point of the platform was changed or linked to another object on OpenStreetMap in the meantime: nothing was uploaded for it. Redo the change on the up-to-date map.",
+			"gone": "Object deleted on OpenStreetMap in the meantime.",
+			"clash": "Changed by someone else in the meantime ({key}).",
+			"trackGone": "The track was deleted in the meantime.",
+			"trackRedrawn": "The track was redrawn in the meantime.",
+			"platformGone": "Platform deleted on OpenStreetMap in the meantime.",
+			"ringInvalid": "Invalid platform outline.",
+			"ringLocks": "Invalid platform outline (platform edge point removed or fixed point moved).",
+			"platformDeleted": "Platform already deleted on OpenStreetMap.",
+			"relationEmpty": "The relation {name} would no longer contain anything: delete it with an editor such as iD or JOSM.",
+			"signDeleted": "Stop marker already deleted on OpenStreetMap.",
+			"signTrack": "The track of the stop marker was deleted or redrawn in the meantime.",
+			"ringIncomplete": "Incomplete platform outline."
+		},
+		"comment": {
+			"numbers": "platform and track numbers, stop markers",
+			"drawn": "platform drawn",
+			"shape": "platform shape corrected",
+			"deleted": "{name} deleted ({why})",
+			"signDeleted": "stop marker “{label}” deleted ({why}{mode, select, untag {, point kept in the track} other {}})",
+			"station": "{name} station: {parts}"
+		}
+	},
+	"bearing": {
+		"n": "north",
+		"ne": "north-east",
+		"e": "east",
+		"se": "south-east",
+		"s": "south",
+		"sw": "south-west",
+		"w": "west",
+		"nw": "north-west"
+	},
+	"edit": {
+		"label": {
+			"newSign": "New stop marker",
+			"newPlatform": "New platform",
+			"area": "Platform redrawn as an area",
+			"shape": "Platform shape",
+			"delete": "Deletion · reason: {why}",
+			"signDelete": "Stop marker deletion · reason: {why}",
+			"tags": "Change"
+		},
+		"drawnSummary": "{summary} (drawn)",
+		"error": {
+			"signDeleted": "This stop marker is marked for deletion: remove that edit first.",
+			"platformDeleted": "This platform is marked for deletion: remove that edit first."
+		}
+	},
+	"remote": {
+		"suspended": "Uploads are suspended for now. Your edits stay on this phone.",
+		"update": "A new version of the app is required: close it and open it again to update it. Your edits are kept.",
+		"pilot": "stationcomplete is in a pilot phase: uploading to the real map is limited to a few testers. Your edits stay on this phone."
+	},
+	"error": {
+		"loginRefused": "The login was refused or has expired.",
+		"profile": "Profile unavailable ({status}).",
+		"stationNotFound": "Station not found in the index.",
+		"osmUnreachable": "Cannot reach OpenStreetMap. Check your connection.",
+		"tilesFailed": "Too many photos could not be downloaded.",
+		"downloadInterrupted": "Download interrupted.",
+		"osmBusy": "The OpenStreetMap server is very busy. Try again in a minute.",
+		"osmServer": "OpenStreetMap server error ({status}).",
+		"index": "Station index unavailable ({status})"
+	},
+	"server": {
+		"dev": "OSM test server"
+	},
+	"seed": {
+		"limit": "The test server limits the number of changes per hour for new accounts. Try again in an hour: the limit increases as the account gets older.",
+		"devOnly": "Test server only.",
+		"readFailed": "Could not read the real station ({status}).",
+		"empty": "No platform or track to copy for this station.",
+		"tooBig": "Station too large for a test copy.",
+		"comment": "Test copy of {name} station (platforms, tracks, stop markers) to try out stationcomplete",
+		"openRefused": "Opening refused by the test server ({status}).",
+		"copyRefused": "Copy refused by the test server ({status})."
+	},
+	"send": {
+		"demoRefused": "Some edits were made in demo mode, away from the station: they cannot go to the real map. Remove them below.",
+		"interrupted": "A previous upload was interrupted. To be safe, try again in {min} min.",
+		"unavailable": "Upload not available on this server.",
+		"offline": "No network: try again when you are connected.",
+		"busy": "An upload is already in progress.",
+		"conflict412": "Refused by OpenStreetMap during the upload: an object is still in use or has disappeared. Nothing was uploaded.",
+		"conflict409": "Changed on OpenStreetMap during the upload.",
+		"rateLimit": "OpenStreetMap limits the number of changes per hour (especially for new accounts). Your edits are kept: try again in an hour.",
+		"expired": "Your login has expired: please log in again.",
+		"refused": "The server refused the upload ({status}).",
+		"lost": "The connection was lost. Your edits are kept; try again later."
+	},
+	"nav": {
+		"label": "Main navigation",
+		"station": "Station",
+		"contributions": "Contributions",
+		"pending": ", {count} pending",
+		"settings": "Settings"
+	},
+	"net": {
+		"offline": "Offline — your edits stay on this phone{count, plural, =0 {} one {; # upload will go when the network is back} other {; # uploads will go when the network is back}}.",
+		"station": "{name}:",
+		"sentAuto": "{count, plural, one {# change uploaded automatically.} other {# changes uploaded automatically.}}",
+		"nothing": "nothing to upload{conflicts, plural, =0 {} other {, {conflicts} to review}}.",
+		"review": "See the edits to review"
+	},
+	"meta": {
+		"description": "stationcomplete: complete railway station data in OpenStreetMap."
+	},
+	"home": {
+		"title": "stationcomplete — complete stations in OpenStreetMap",
+		"skip": "Skip",
+		"step": "Step {step} of {total}",
+		"intro": {
+			"title": "Complete the data of your station",
+			"text": "Platform numbers, track numbers, stop markers: in a few minutes on the platform, you make this information useful to everyone, from travel apps to railway tools such as OSRD."
+		},
+		"safety": {
+			"kicker": "Safety",
+			"title": "Stay behind the safety line.",
+			"text": "Everything is done from the platform, or from home thanks to the aerial photo. Never step down onto the tracks and never go beyond the end of the platform."
+		},
+		"osm": {
+			"title": "Your contributions go to OpenStreetMap",
+			"text": "The free, collaborative map. They are published under your OSM username, under the ODbL licence, and nothing is uploaded until you have reviewed it."
+		},
+		"understood": "Got it",
+		"start": "Start",
+		"next": "Next",
+		"explore": {
+			"title": "Explore stations in France",
+			"text": "See right now what is missing in each station: platform numbers, track numbers, stop markers. Editing and uploading to OpenStreetMap are coming soon."
+		},
+		"chooseStation": "Choose a station",
+		"more": "Learn more about the project",
+		"replay": "Watch the introduction again"
+	},
+	"about": {
+		"title": "About — stationcomplete",
+		"heading": "About stationcomplete",
+		"project": {
+			"title": "The project",
+			"text": "stationcomplete helps everyone complete the data of French railway stations in <osm>OpenStreetMap</osm>: platform numbers, track numbers and train stop markers. This open data serves everyone, in particular railway design tools such as <osrd>OSRD</osrd>."
+		},
+		"safety": {
+			"title": "Safety",
+			"text": "Always stay behind the safety line. Everything is done from the platform or remotely, on the aerial photo. Never step down onto the tracks."
+		},
+		"data": {
+			"title": "Data and licences",
+			"osm": "Contributions are published in OpenStreetMap under your username, under the <odbl>ODbL</odbl> licence. © OpenStreetMap contributors.",
+			"photos": "Aerial photos: {product}, under {licence}.",
+			"code": "The stationcomplete code is free software, under the GPL-3.0-or-later licence: <code>see the source code</code>."
+		},
+		"privacy": {
+			"title": "Privacy",
+			"text": "This site sets no cookies and uses no audience measurement tool. Your edits stay on your phone until they are uploaded to OpenStreetMap."
+		},
+		"contact": {
+			"title": "Contact",
+			"text": "A mistake, an idea, a station that causes problems? Write to <mail>{email}</mail> or open an issue on <issues>GitHub</issues>."
+		},
+		"back": "← Back to home"
+	},
+	"legal": {
+		"title": "Legal notice — stationcomplete",
+		"noticeLink": "Legal notice",
+		"dataLink": "Personal data",
+		"aboutLink": "About",
+		"publisher": {
+			"title": "Publisher",
+			"text": "stationcomplete.org is a volunteer, non-commercial project published by Loïc Hamelin, a private individual, who is also the director of publication.",
+			"contact": "Contact:"
+		},
+		"host": {
+			"title": "Hosting",
+			"text": "GitHub Pages — GitHub, Inc., 88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, United States."
+		},
+		"content": {
+			"title": "Content and licences",
+			"osm": "Map data: © OpenStreetMap contributors, under the <odbl>ODbL</odbl> licence.",
+			"photos": "Aerial photos: {product}, under <licence>{licence}</licence>.",
+			"code": "App code: GPL-3.0-or-later licence, <code>source code on GitHub</code>.",
+			"independent": "stationcomplete is a personal project: it is not a service of SNCF or of the OpenStreetMap Foundation."
+		}
+	},
+	"country": {
+		"fr": {
+			"name": "France",
+			"of": "in France"
+		},
+		"ch": {
+			"name": "Switzerland",
+			"of": "in Switzerland"
+		}
+	},
+	"data": {
+		"title": "Personal data — stationcomplete",
+		"lead": "stationcomplete has no server of its own: it receives, stores and sells no data about you. This page explains what happens on your phone and with the services the app contacts.",
+		"phone": {
+			"title": "On your phone",
+			"storage": "The stations you have viewed, your edits not yet uploaded, your settings and the downloaded aerial photos stay in your phone's browser storage.",
+			"position": "Your location is only used to check, on the phone, that you really are at the station. It is sent to no one.",
+			"login": "If you log in, the OpenStreetMap login key and your username are kept on the phone. Your password is never seen by stationcomplete: you enter it on the OpenStreetMap website.",
+			"nothing": "No cookies, no advertising, no audience measurement."
+		},
+		"publish": {
+			"title": "What you publish on OpenStreetMap",
+			"text": "When you upload your edits, they are published on OpenStreetMap under your username, with the date and the description of the upload. Like any contribution to OpenStreetMap, they are public and remain in the map history. This data is managed by the OpenStreetMap Foundation, according to its <policy>privacy policy</policy>."
+		},
+		"services": {
+			"title": "Services contacted by your phone",
+			"lead": "As with any website, these services see the IP address of your connection:",
+			"github": "<b>GitHub Pages</b> (GitHub, Inc., United States): hosting of the app. <gh>GitHub privacy statement</gh>.",
+			"osm": "<b>OpenStreetMap</b> (OpenStreetMap Foundation, United Kingdom): reading station data, logging in and uploading contributions.",
+			"photos": "<b>{operator}</b> ({seat}): aerial photos."
+		},
+		"rights": {
+			"title": "Your rights",
+			"text": "You can delete at any time everything stationcomplete keeps on this phone. For your published contributions and your OpenStreetMap account, contact the OpenStreetMap Foundation. For any question: <mail>{email}</mail>. You can also lodge a complaint with the <cnil>CNIL</cnil> (French data protection authority)."
+		},
+		"wipe": {
+			"done": "<b>Done:</b> nothing from stationcomplete is left on this phone.",
+			"lost": "{count, plural, one {# edit not yet uploaded will be lost.} other {# edits not yet uploaded will be lost.}}",
+			"confirm": "Delete everything from this phone? Your contributions already published are not affected.",
+			"all": "Delete everything",
+			"button": "Delete my data from this phone"
+		}
+	},
+	"login": {
+		"title": "Log in — stationcomplete",
+		"denied": "You refused access.",
+		"failed": "The login failed.",
+		"finishing": "Logging in…",
+		"pseudo": "Published under your username, under the open ODbL licence.",
+		"review": "Nothing is uploaded until you have reviewed it.",
+		"password": "No password is requested or kept by stationcomplete.",
+		"server": "Server:",
+		"signedIn": "Logged in as <b>{name}</b>.",
+		"myContributions": "My contributions",
+		"notConfigured": "Login to this server is not configured yet. Choose the test server in the settings.",
+		"button": "Log in with OpenStreetMap",
+		"create": "Create an OpenStreetMap account"
+	},
+	"stations": {
+		"title": "Choose a station — stationcomplete",
+		"geoUnavailable": "Location is not available on this device.",
+		"geoError": "Location unavailable. Allow location access or search by name.",
+		"halt": "halt",
+		"searchLabel": "Search for a station",
+		"placeholder": "Station or town name",
+		"locating": "Locating…",
+		"nearby": "Stations near me",
+		"loading": "Loading the list of stations…",
+		"results": "Results",
+		"noMatch": "No station matches “{query}”.",
+		"around": "Near me",
+		"recent": "Recent",
+		"count": "{count} stations and halts {of}. Type at least two letters."
+	},
+	"settings": {
+		"title": "Settings — stationcomplete",
+		"account": "OpenStreetMap account",
+		"logout": "Log out",
+		"signedOut": "Not logged in",
+		"login": "Log in",
+		"loginUnavailable": "Login unavailable",
+		"notConfigured": "Not configured yet for {server}.",
+		"appearance": "Appearance",
+		"language": "Language",
+		"languageHint": "Language of the app and of the comment of your uploads.",
+		"theme": {
+			"label": "Theme",
+			"hint": "“System” follows your phone's setting.",
+			"system": "System",
+			"light": "Light",
+			"dark": "Dark"
+		},
+		"server": "Server",
+		"serverLegend": "OpenStreetMap server",
+		"prodHint": "The real map: your uploads are published, visible to everyone.",
+		"devHint": "To try uploading: nothing appears on the real map.",
+		"input": "Editing",
+		"demo": "Demo mode",
+		"demoHint": "Lets you try editing without being at the station. These edits will never go to the real map (only to the test server).",
+		"downloads": "Downloaded stations",
+		"removeDownload": "Remove {name} from the phone",
+		"noDownloads": "None",
+		"noDownloadsHint": "Download a station from its dashboard to use it without a network.",
+		"aboutLink": "Safety, licences, contact"
+	},
+	"contributions": {
+		"title": "My contributions — stationcomplete",
+		"intro": "Your edits stay on this phone, even without a network, until you upload them station by station. Server: <b>{server}</b>.",
+		"empty": "No pending edits.",
+		"count": "{count, plural, one {# edit} other {# edits}}",
+		"review": "To review",
+		"waiting": "Pending",
+		"removeLabel": "Remove: {summary}",
+		"remove": "Remove",
+		"send": "Review and upload",
+		"toReview": "{count} to review"
+	},
+	"sendPage": {
+		"title": "Review and upload — stationcomplete",
+		"back": "Back to contributions",
+		"step": {
+			"checking": "Checking a previous upload…",
+			"reading": "Reading the up-to-date data…",
+			"opening": "Opening the changeset…",
+			"uploading": "Uploading the changes…",
+			"closing": "Closing…",
+			"sending": "Uploading…"
+		},
+		"offline": "Offline. Your edits are kept. After reviewing, you can schedule the upload: it will go by itself when the network is back, with the app open.",
+		"cannotUpload": "Uploading to {server} is not possible yet. To try, choose another server in the <settings>settings</settings>.",
+		"prod": "Your changes will be published on the <b>OpenStreetMap</b> map, visible to everyone.",
+		"dev": "Server: <b>{server}</b> — no effect on the real map.",
+		"sent": "{count, plural, one {# change uploaded.} other {# changes uploaded.}}",
+		"thanks": "Thank you!",
+		"changeset": "View changeset no. {id}",
+		"conflicts": "{count, plural, one {# edit needs review: the object changed on OpenStreetMap in the meantime.} other {# edits need review: the object changed on OpenStreetMap in the meantime.}}",
+		"empty": "No pending edits for this station.",
+		"ready": "Ready to go ({count})",
+		"demo": "demo mode",
+		"review": "To review ({count})",
+		"redo": "Redo",
+		"open": "Open",
+		"keep": "Keep",
+		"keepHint": "“Keep” uploads your edit as it is: first check on site that it is correct. A platform shape or a deletion is redone on the up-to-date map.",
+		"comment": "Public description of the upload",
+		"commentHint": "Visible to everyone on OpenStreetMap, with your username and the #stationcomplete hashtag.",
+		"notConfigured": "Login to this server is not configured yet.",
+		"login": "Log in to upload",
+		"by": "Uploaded by <b>{name}</b>",
+		"you": "you",
+		"blocked": "Upload impossible for the moment (see the message at the top).",
+		"queued": "Waiting for the network: the upload will go by itself.",
+		"cancelQueue": "Cancel the automatic upload",
+		"send": "{count, plural, one {Upload # change} other {Upload # changes}}",
+		"sendLater": "Upload when the network is back"
+	},
+	"station": {
+		"title": "{name} — stationcomplete",
+		"change": "Change station",
+		"cached": "Data saved on this phone on {date}",
+		"fresh": "Up-to-date OpenStreetMap data",
+		"reload": "Reload the data from OpenStreetMap",
+		"demo": "Demo mode: editing is possible away from the station, but these edits will not go to the real map.",
+		"pending": "{count, plural, one {# edit waiting to be uploaded in this station} other {# edits waiting to be uploaded in this station}}",
+		"none": "No station chosen.",
+		"loading": "Loading the station data from OpenStreetMap…",
+		"seed": {
+			"done": "{count} objects copied to the test server.",
+			"missing": "<b>This station does not exist on the test server yet.</b> Copy its platforms, tracks and stop markers there from the real map to try editing and uploading.",
+			"notConfigured": "Login to the test server is not configured yet.",
+			"login": "Log in to the test server",
+			"busy": "Copying…",
+			"button": "Copy the real station here"
+		},
+		"gauges": "Station completeness",
+		"gauge": {
+			"platforms": "Platforms",
+			"platformsUnit": "numbered",
+			"tracks": "Tracks",
+			"tracksUnit": "numbered",
+			"signs": "Stop markers",
+			"signsUnit": "sides noted",
+			"none": "nothing to note"
+		},
+		"offline": {
+			"label": "Offline",
+			"progress": "Downloading aerial photos… {done} / {total}",
+			"available": "<b>Available offline</b> · {size} · {date}",
+			"update": "Update",
+			"take": "Take the station offline"
+		},
+		"todo": "To do here",
+		"view": {
+			"label": "View",
+			"list": "List",
+			"map": "Map"
+		},
+		"allDone": "Everything is filled in at this station. Well done!",
+		"onSite": "To do at the station",
+		"drawMissing": "A platform is missing from the map? Draw it"
+	},
+	"map": {
+		"title": "Map — {name} — stationcomplete",
+		"back": "Back to the dashboard",
+		"onSite": "On site",
+		"remote": "Remote",
+		"checkPosition": ", check my location",
+		"filters": "Objects shown",
+		"legend": {
+			"open": "Map legend",
+			"title": "Legend",
+			"close": "Close the legend",
+			"quai": "Platform",
+			"voie": "Track",
+			"pancarte": "Stop marker",
+			"sel": "Selected object",
+			"edited": "Changed by you, waiting to be uploaded",
+			"under": "Underground (tunnel, lower level)",
+			"todo": "To complete",
+			"alert": "Check first"
+		},
+		"loading": "Loading the station…",
+		"locate": "Show my location",
+		"addSign": "Add a stop marker",
+		"quest": {
+			"Q1": "Platform number to note",
+			"Q2": "Track number to note",
+			"Q3": "Platform and track numbers to check",
+			"Q4": "Stop markers to note along this platform",
+			"Q5": "Stop marker to complete",
+			"Q6": "To check (no recent check date)",
+			"Q7": "Duplicate or inconsistent track number"
+		},
+		"editedHere": "Changed on this phone, waiting to be uploaded.",
+		"del": {
+			"chooseReason": "Choose the reason for the deletion.",
+			"goneOnSite": "“No longer exists” can only be observed on site.",
+			"pending": "{name}: deletion waiting to be uploaded. To cancel it, remove it in your contributions.",
+			"signTitle": "Delete this stop marker?",
+			"reason": "Reason (visible in the public description of the upload)",
+			"seenOnSite": "Observed on site.",
+			"onSiteOnly": "On site only: the aerial photo may be old.",
+			"signReplaced": "Your edits on this stop marker will be removed: {list}.",
+			"signButton": "Delete the stop marker",
+			"platformTitle": "Delete this platform?",
+			"relations": "It will also be {phrase}.",
+			"points": "{lost, plural, one {# point deleted} other {# points deleted}}{kept, plural, =0 {} one {; # linked to other objects, kept} other {; # linked to other objects, kept}}.",
+			"platformReplaced": "Your edits on this platform will be removed: {list}.",
+			"platformButton": "Delete the platform"
+		},
+		"seeContributions": "See my contributions",
+		"fill": "Fill in",
+		"signHere": "Stop marker here",
+		"reshape": "Edit the shape",
+		"toArea": "Redraw as an area",
+		"more": "More actions",
+		"deleteSign": "Delete this stop marker…",
+		"drawnHere": "Platform drawn on this phone: to change its shape, remove it in your contributions and draw it again.",
+		"deletePlatform": "Delete this platform…",
+		"osmAttribution": "© OpenStreetMap contributors",
+		"toggleAttribution": "Show or hide credits"
+	},
+	"input": {
+		"title": "Details — stationcomplete",
+		"sheet": "Details",
+		"close": "Close without saving",
+		"gone": "This object no longer exists in the station data.",
+		"optional": "(optional)",
+		"dir": {
+			"backward": "Opposite direction of the track",
+			"forward": "Direction of the track",
+			"towards": "Towards the {name}"
+		},
+		"verified": "{kind, select, pancarte {Stop marker checked} other {{what} checked}}",
+		"onSite": {
+			"text": "Numbers and stop markers are noted <b>on site</b>, while staying behind the safety line.",
+			"button": "I am at the station",
+			"try": "To try from home: <settings>demo mode or test server</settings>.",
+			"away": "Your location is outside the station. You can only check.",
+			"denied": "Location unavailable: allow location access."
+		},
+		"platform": {
+			"needRef": "Enter at least one track number along the platform.",
+			"summaryNamed": "Platform {name}: tracks {refs}",
+			"summary": "Platform: tracks {refs}",
+			"refs": "Numbers of the tracks along this platform",
+			"removeRef": "Remove track {ref}",
+			"addRefLabel": "Add a track number",
+			"add": "Add",
+			"refsHint": "The numbers displayed above the tracks, not the platform letter.",
+			"letter": "Does this platform have a letter or a name?",
+			"letterLabel": "Letter or name of the platform",
+			"letterPlaceholder": "E.g. A"
+		},
+		"track": {
+			"split": "This section will have to be split by a mapper. Reporting it (OSM Note) will come with uploading, in batch 3.",
+			"needRef": "Enter the number or letter displayed in the station.",
+			"ref": "Number or letter displayed in the station",
+			"refLabel": "Track number",
+			"refPlaceholder": "E.g. 3",
+			"refHint": "“Track” or “V” are removed automatically.",
+			"changes": "Does the number change along this section?"
+		},
+		"sign": {
+			"existing": "Existing stop marker",
+			"check": "Check on site that it exists and matches, or correct it.",
+			"which": "Which sign can you see?",
+			"vehicles": "Number of vehicles written on the sign",
+			"otherNumber": "Other number",
+			"length": "Length written on the sign (m)",
+			"under": "Text under “{type}”",
+			"caption": "Text of the sign",
+			"captionLabel": "Text read on the sign",
+			"captionPlaceholder": "Copy the text",
+			"direction": "The trains that read this sign are heading…",
+			"position": "Seen from the driver, the sign is…",
+			"left": "On the left",
+			"right": "On the right",
+			"inTrack": "Between the rails",
+			"ground": "On the ground",
+			"letterHint": "A plate with a single letter (A, B…) is not a stop marker: it is a platform sector marker."
+		},
+		"correct": "It is correct",
+		"fix": "Correct"
+	},
+	"place": {
+		"title": "Place a stop marker — stationcomplete",
+		"heading": "Place the stop marker",
+		"help": "Place the crosshair <b>on the track</b>, level with the sign. Drag the map.",
+		"panel": "Position of the stop marker",
+		"snapped": "<b>Snapped to the track</b> · offset {gap} m",
+		"closer": "Move the crosshair closer to a track (less than 3 m).",
+		"near": "A stop marker already exists less than 10 m away on this track.",
+		"editThis": "Edit that one",
+		"another": "It is a different one",
+		"validate": "Confirm the position"
+	},
+	"drawPage": {
+		"title": "Draw a platform — stationcomplete",
+		"heading": "Draw a platform",
+		"cancel": "Cancel the drawing",
+		"points": "{count, plural, one {# point} other {# points}}",
+		"said": {
+			"moved": "Point {n} moved.",
+			"movedSnapped": "Point {n} moved, snapped to the track edge.",
+			"added": "Point {n} added.",
+			"moveUndone": "Move undone.",
+			"removed": "Last point removed."
+		},
+		"summary": "Platform drawn ({length})",
+		"help": {
+			"move": "Place the crosshair at the new position of <b>point {n}</b>.",
+			"start": "Go round the platform, corner after corner, staying on its edge. A placed point can be dragged with your finger.",
+			"close": "Carry on, or tap <b>point 1</b> (the biggest) to close the platform."
+		},
+		"panel": "Platform outline",
+		"snapped": "<b>Snapped to the track edge</b> ({offset} m from its centre line)",
+		"underCross": "Point under the crosshair",
+		"length": "length {length}",
+		"snapOption": "Snap to the track",
+		"saveAnyway": "Save anyway",
+		"undoMove": "Undo the move",
+		"undoPoint": "Undo the point",
+		"moveHere": "Move point {n} here",
+		"addPoint": "Add a point",
+		"close": "Close the platform"
+	},
+	"shapePage": {
+		"title": "{name} — stationcomplete",
+		"vertex": {
+			"locked": "Point {n}: linked to other objects ({links}), cannot be changed",
+			"shared": "Point {n}: {what}, select it",
+			"plain": "Point {n}: select it"
+		},
+		"anchor": "Linked point {n} of the old line: add it to the outline",
+		"said": {
+			"moved": "Point {n} moved{snapped, select, yes {, snapped to the track edge} other {}}{hasAlso, select, yes {: {also}} other {}}.",
+			"deselected": "Point {n} deselected.",
+			"locked": "Point {n}: linked to {links}, it stays in place.",
+			"selectedShared": "Point {n} selected. {info}",
+			"selected": "Point {n} selected: it is under the crosshair.",
+			"inserted": "Point {n} added between {a} and {b}{snapped, select, yes {, snapped to the track edge} other {}}.",
+			"removed": "Point {n} removed from the platform.",
+			"anchored": "Linked point taken back: point {n} of the outline.",
+			"undone": "Last action undone."
+		},
+		"error": {
+			"noPoint": "No point under the crosshair: bring the crosshair onto a point of the platform (white circle), or tap the point directly.",
+			"noSide": "Place the crosshair on a side of the platform, then “Add a point here”.",
+			"unchanged": "No change: move, add or remove a point."
+		},
+		"notFound": "This platform was not found in the station data.",
+		"backToMap": "Back to the map",
+		"quit": "Leave without saving",
+		"help": {
+			"locked": "Point {n} is linked to: <b>{links}</b>. It stays in place; correct it with JOSM or iD, or add points around it.",
+			"move": "Drag the map to the new position of <b>point {n}</b>.",
+			"area": "Go round the platform, corner after corner; the old line is shown faded.",
+			"anchors": "Tap its square points to take them back.",
+			"reshape": "Place the crosshair on a point (or tap it, or drag it), or on a side to add one.",
+			"shared": "Points with a dark centre are shared with other objects."
+		},
+		"understood": "Got it",
+		"snapped": "<b>Snapped to the track edge</b> ({offset} m from the centre line)",
+		"pick": "Take this point",
+		"addHere": "Add a point here",
+		"remove": "Remove this point",
+		"moveHere": "Move the point here",
+		"undoLabel": "Undo the last action",
+		"finish": "Finish"
+	},
+	"mapA11y": {
+		"closeRing": "Point 1: close the platform",
+		"movePoint": "Point {n}: move it",
+		"midpoint": "Add a point between {a} and {b}",
+		"noWebgl": "The map cannot be displayed on this device (WebGL unavailable).",
+		"noWebglList": "The map cannot be displayed on this device (WebGL unavailable). Use the list.",
+		"drawMap": "Aerial photo, the crosshair marks the next point of the platform",
+		"placeMap": "Aerial photo, the crosshair marks the target position",
+		"myPosition": "My location",
+		"stationMap": "Map of the station on the aerial photo",
+		"nudge": "Fine-tune to the centimetre",
+		"nudgePad": "Move the crosshair by 20 cm",
+		"up": "Move the crosshair up",
+		"left": "Move the crosshair left",
+		"right": "Move the crosshair right",
+		"down": "Move the crosshair down"
+	}
+}

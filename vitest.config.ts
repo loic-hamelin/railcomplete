@@ -7,6 +7,8 @@ export default defineConfig({
 	plugins: [sveltekit()],
 	test: {
 		include: ['src/**/*.test.ts', 'scripts/**/*.test.ts'],
-		environment: 'node'
+		environment: 'node',
+		// Messages de l'interface en français (langue source), comme au build.
+		setupFiles: ['src/lib/i18n/test-setup.ts']
 	}
 });

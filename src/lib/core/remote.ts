@@ -1,6 +1,8 @@
 // Interrupteur d'arrêt d'urgence (architecture § 8.4) : le fichier public /config.json,
 // modifié à la main sur GitHub, peut couper les envois pour tous sans republier l'appli.
 
+import { t as tr } from '../i18n/t.ts';
+
 export interface RemoteConfig {
 	/** false : plus aucun envoi, sur aucun serveur. */
 	uploadsEnabled: boolean;
@@ -56,14 +58,8 @@ export function uploadBlock(
 	real: boolean,
 	user?: string
 ): string | undefined {
-	if (!cfg.uploadsEnabled)
-		return (
-			cfg.message ??
-			'Les envois sont suspendus pour le moment. Vos saisies restent sur ce téléphone.'
-		);
-	if (compareVersions(version, cfg.minVersion) < 0)
-		return 'Une nouvelle version de l’appli est nécessaire : fermez-la puis rouvrez-la pour la mettre à jour. Vos saisies sont conservées.';
-	if (real && cfg.pilotUsers && !(user && cfg.pilotUsers.includes(user)))
-		return 'stationcomplete est en phase pilote : l’envoi vers la vraie carte est réservé à quelques testeurs. Vos saisies restent sur ce téléphone.';
+	if (!cfg.uploadsEnabled) return cfg.message ?? tr('remote.suspended');
+	if (compareVersions(version, cfg.minVersion) < 0) return tr('remote.update');
+	if (real && cfg.pilotUsers && !(user && cfg.pilotUsers.includes(user))) return tr('remote.pilot');
 	return undefined;
 }

@@ -5,6 +5,7 @@
 
 import type { ExpressionSpecification, RasterSourceSpecification } from 'maplibre-gl';
 import type { Imagery } from '#lib/core/countries.js';
+import { t } from '../i18n/t.js';
 
 export const MAP = {
 	voie: '#E4E0FF', // lavande très pâle (famille voie)
@@ -58,7 +59,12 @@ export const photoSource = (im: Imagery): RasterSourceSpecification => ({
 	maxzoom: im.maxZoom,
 	attribution: im.attribution
 });
-export const OSM_ATTRIBUTION = '© contributeurs OpenStreetMap';
+/** Attribution des données OSM sur la carte, dans la langue de l'interface. */
+export const osmAttribution = () => t('map.osmAttribution');
+/** Textes de l'interface de MapLibre (bouton d'attribution), dans la langue de l'interface. */
+export const mapLocale = () => ({
+	'AttributionControl.ToggleAttribution': t('map.toggleAttribution')
+});
 
 /** Rectangle à l'écran, en px relatifs au conteneur de la carte. */
 export interface Box {

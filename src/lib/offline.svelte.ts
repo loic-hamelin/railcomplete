@@ -8,6 +8,7 @@ import { stationTiles, tileUrl } from './core/tiles.js';
 import { current, openStation } from './current.svelte.js';
 import { server } from './osmserver.svelte.js';
 import type { Station } from './stations.js';
+import { t } from './i18n/t.js';
 
 const TILES = 'rc-tiles';
 
@@ -80,15 +81,14 @@ export async function downloadStation(s: Station) {
 			}
 		};
 		await Promise.all(Array.from({ length: imagery.maxParallel }, worker));
-		if (failed > tiles.length / 4)
-			throw new Error('Trop de photos n’ont pas pu être téléchargées.');
+		if (failed > tiles.length / 4) throw new Error(t('error.tilesFailed'));
 		downloads.list = [
 			...downloads.list.filter((d) => d.id !== s.id),
 			{ id: s.id, name: s.name, at: Date.now(), tiles: tiles.length, bytes, country: s.country }
 		];
 		save();
 	} catch (e) {
-		progress.error = (e as Error).message || 'Téléchargement interrompu.';
+		progress.error = (e as Error).message || t('error.downloadInterrupted');
 	} finally {
 		progress.station = undefined;
 	}
