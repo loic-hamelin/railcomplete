@@ -16,7 +16,10 @@ import {
 	COMPLEX,
 	checkLocks,
 	deleteSummary,
-	lockNotice,
+	followers,
+	followersPhrase,
+	pointInfo,
+	shareNotice,
 	wayLabel,
 	platformShape,
 	relationsPhrase,
@@ -74,8 +77,8 @@ const keep = (els: OsmElement[], id: number) => {
 	return { id, lon: n.lon, lat: n.lat };
 };
 
-describe('verrouillage des nœuds', () => {
-	it('verrouille un nœud partagé, tagué ou membre d’une relation', () => {
+describe('nœuds partagés (lot 7c : déplaçables, les objets voisins suivent)', () => {
+	it('marque partagé un nœud partagé, tagué ou membre d’une relation, sans le verrouiller', () => {
 		const els = base();
 		(els[1] as OsmNode).tags = { entrance: 'yes' };
 		els.push({
@@ -85,12 +88,23 @@ describe('verrouillage des nœuds', () => {
 			members: [{ type: 'node', ref: 3, role: '' }],
 			tags: { type: 'site' }
 		});
-		expect(orig(els).map((n) => [n.id, n.locked])).toEqual([
-			[1, false],
-			[2, true],
-			[3, true],
-			[4, true]
+		expect(orig(els).map((n) => [n.id, n.locked, !!n.shared])).toEqual([
+			[1, false, false],
+			[2, false, true],
+			[3, false, true],
+			[4, false, true]
 		]);
+		const n = orig(els);
+		expect(n[1].tag).toBe('entrée');
+		expect(n[3].ways).toEqual(['chemin piéton']);
+		expect(n[2].ways).toBeUndefined();
+	});
+
+	it('verrouille seulement un point répété dans le contour', () => {
+		const els = base();
+		(els[5] as OsmWay).nodes = [1, 2, 3, 2, 4, 1];
+		const n = orig(els);
+		expect(n.map((x) => x.locked)).toEqual([false, true, false, true, false]);
 	});
 
 	it('refuse un quai en multipolygone et une relation qui deviendrait vide', () => {
@@ -106,14 +120,16 @@ describe('verrouillage des nœuds', () => {
 		expect(s.deleteRefused).toMatch(/seul membre/);
 	});
 
-	it('contrôle les nœuds verrouillés d’un nouveau contour', () => {
+	it('contrôle d’un nouveau contour : point partagé déplacé ou retiré permis', () => {
 		const els = base();
 		const before = orig(els);
 		const moved4 = [keep(els, 1), keep(els, 2), keep(els, 3), at(4, 0, 9)];
-		expect(checkLocks(before, moved4, 'reshape')).toMatch(/déplacé/);
-		expect(checkLocks(before, [keep(els, 1), keep(els, 2), keep(els, 3)], 'reshape')).toMatch(
-			/Le point 4 est relié/
-		);
+		expect(checkLocks(before, moved4, 'reshape')).toBeUndefined();
+		expect(
+			checkLocks(before, [keep(els, 1), keep(els, 2), keep(els, 3)], 'reshape')
+		).toBeUndefined();
+		// Redessiner en surface : les points reliés de l'ancienne ligne restent fixes
+		expect(checkLocks(before, moved4, 'area')).toMatch(/déplacé/);
 		expect(checkLocks(before, [at(-1, 0, 0), keep(els, 2), keep(els, 3)], 'area')).toMatch(
 			/doit faire partie du contour/
 		);
@@ -287,14 +303,16 @@ describe('envoi d’une forme modifiée', () => {
 		expect(plan.conflicts[0].reason).toMatch(/modifié entre-temps/);
 	});
 
-	it('à revoir si un nœud déplacé est devenu partagé ou a changé de version', () => {
+	it('relecture d’un nœud déplacé : devenu partagé, il part (l’objet suit) ; version changée, à revoir', () => {
 		const els = base();
 		const ed = shape(els, [at(1, 0, 1.5), keep(els, 2), keep(els, 3), keep(els, 4)]);
 		const shared = [...els, { type: 'way', id: 301, nodes: [9, 1], tags: { highway: 'footway' } }];
-		expect(planUpload([ed], shared as OsmElement[]).conflicts[0].reason).toMatch(/relié/);
+		const p = planUpload([ed], shared as OsmElement[]);
+		expect(p.conflicts).toEqual([]);
+		expect(p.modify.map((e) => `${e.type}/${e.id}`)).toEqual(['node/1']);
 		const bumped = base();
 		(bumped[0] as OsmNode).version = 2;
-		expect(planUpload([ed], bumped).conflicts).toHaveLength(1);
+		expect(planUpload([ed], bumped).conflicts[0].reason).toMatch(/modifié/);
 		// Nœud absent des données relues : on ne décide pas à l'aveugle
 		expect(
 			planUpload(
@@ -304,11 +322,85 @@ describe('envoi d’une forme modifiée', () => {
 		).toEqual([]);
 	});
 
-	it('à revoir si un nœud retiré est devenu tagué', () => {
+	it('un orphelin attendu devenu tagué, relié ou modifié est gardé (pas supprimé), sans « à revoir »', () => {
 		const els = base();
 		const ed = shape(els, [keep(els, 1), keep(els, 3), keep(els, 4)]);
-		(els[1] as OsmNode).tags = { barrier: 'gate' };
-		expect(planUpload([ed], els).conflicts).toHaveLength(1);
+		const tagged = base();
+		(tagged[1] as OsmNode).tags = { barrier: 'gate' };
+		(tagged[1] as OsmNode).version = 2;
+		const used = [...base(), { type: 'way', id: 303, nodes: [9, 2], tags: { highway: 'footway' } }];
+		const bumped = base();
+		(bumped[1] as OsmNode).version = 3;
+		for (const fresh of [tagged, used as OsmElement[], bumped]) {
+			const plan = planUpload([ed], fresh);
+			expect(plan.conflicts).toEqual([]);
+			expect(plan.delete).toEqual([]);
+			expect((plan.modify.find((e) => e.id === 100) as OsmWay).nodes).toEqual([1, 3, 4, 1]);
+		}
+		// Toujours orphelin et sans tag : supprimé
+		expect(planUpload([ed], base()).delete.map((e) => e.id)).toEqual([2]);
+	});
+
+	it('déplace un nœud partagé avec un way quelconque : un seul <node>, ways inchangés', () => {
+		const els = base();
+		const ed = shape(els, [keep(els, 1), keep(els, 2), keep(els, 3), at(4, 0, 9)]);
+		const f = followers(ed.before, ed.nodes);
+		expect(f).toEqual({ ways: ['chemin piéton'], tags: [] });
+		expect(shapeSummary('Quai A', 'reshape', 4, 4, followersPhrase(f))).toBe(
+			'Quai A : forme modifiée (4 → 4 points) — chemin piéton ajusté aussi'
+		);
+		const plan = planUpload([ed], els);
+		expect(plan.conflicts).toEqual([]);
+		expect(plan.modify.map((e) => `${e.type}/${e.id}`)).toEqual(['node/4']);
+		expect(plan.create).toEqual([]);
+		expect(plan.delete).toEqual([]);
+		const xml = osmChangeXml(8, plan);
+		expect([...xml.matchAll(/<node /g)]).toHaveLength(1);
+		expect(xml).toContain(`<node id="4" version="1" changeset="8" lat="${ll(0, 9)[1].toFixed(7)}"`);
+		expect(xml).not.toContain('<way');
+		expect(proposedComment('X', [ed])).toBe(
+			'Gare de X : forme de quai corrigée (chemin piéton ajusté aussi)'
+		);
+	});
+
+	it('résumé : objets voisins accordés (« gare et bâtiment ajustés aussi »)', () => {
+		expect(followersPhrase({ ways: ['gare', 'bâtiment'], tags: [] })).toBe(
+			'gare et bâtiment ajustés aussi'
+		);
+		expect(followersPhrase({ ways: ['gare'], tags: [] })).toBe('gare ajustée aussi');
+		expect(followersPhrase({ ways: ['toit'], tags: ['ascenseur'] })).toBe(
+			'toit ajusté aussi, ascenseur déplacé'
+		);
+		expect(followersPhrase({ ways: [], tags: [] })).toBe('');
+	});
+
+	it('retire un nœud partagé du quai seulement : jamais supprimé', () => {
+		const els = base();
+		const ed = shape(els, [keep(els, 1), keep(els, 2), keep(els, 3)]);
+		expect(checkLocks(ed.before, ed.nodes, 'reshape')).toBeUndefined();
+		const plan = planUpload([ed], els);
+		expect(plan.conflicts).toEqual([]);
+		expect(plan.delete).toEqual([]);
+		expect(plan.modify.map((e) => `${e.type}/${e.id}`)).toEqual(['way/100']);
+		expect((plan.modify[0] as OsmWay).nodes).toEqual([1, 2, 3, 1]);
+		expect(pointInfo(ed.before[3]).remove).toBe(
+			'Retiré, il reste dans un chemin piéton ; seul le quai change.'
+		);
+	});
+
+	it('déplace un nœud tagué (ascenseur) avec information ; ses tags restent', () => {
+		const els = base();
+		(els[1] as OsmNode).tags = { highway: 'elevator' };
+		const ed = shape(els, [keep(els, 1), at(2, 81, 2), keep(els, 3), keep(els, 4)]);
+		expect(pointInfo(ed.before[1]).move).toBe('Ce point est un ascenseur : il sera déplacé.');
+		expect(followersPhrase(followers(ed.before, ed.nodes))).toBe('ascenseur déplacé');
+		const plan = planUpload([ed], els);
+		expect(plan.conflicts).toEqual([]);
+		expect(plan.modify).toHaveLength(1);
+		expect(plan.modify[0]).toMatchObject({ id: 2, tags: { highway: 'elevator' } });
+		expect(shareNotice(ed.before)).toMatch(
+			/ Le point 2 est un ascenseur : le déplacer déplace l’ascenseur\.$/
+		);
 	});
 
 	it('refuse un quai devenu multipolygone', () => {
@@ -458,14 +550,18 @@ describe('points partagés avec le bord du quai (lot 7 suite)', () => {
 		{ type: 'way', id: 500, version: 1, nodes: [2, 3], tags: { building: 'roof' } }
 	];
 
-	it('rend déplaçable un point partagé seulement avec un bord de quai ; explique les autres', () => {
+	it('marque les points du bord du quai (même partagés avec autre chose) ; aucun verrou', () => {
 		const n = orig(els());
 		expect(n.map((x) => [x.id, x.locked, !!x.edge])).toEqual([
 			[1, false, true],
-			[2, true, false],
-			[3, true, false],
-			[4, true, false]
+			[2, false, true],
+			[3, false, false],
+			[4, false, false]
 		]);
+		expect(pointInfo(n[1])).toEqual({
+			move: 'Ce point est aussi un point de : le bord du quai et le toit — ils suivront le déplacement.',
+			remove: 'Il ne peut pas être retiré du contour : le bord du quai en a besoin.'
+		});
 		expect(n[0].links).toEqual(['bord du quai']);
 		expect(n[1].links).toEqual(['bord du quai', 'toit']);
 		expect(n[3].links).toEqual(['chemin piéton']);
@@ -491,11 +587,11 @@ describe('points partagés avec le bord du quai (lot 7 suite)', () => {
 		expect(n[1].links).toEqual(['membre d’une relation']);
 	});
 
-	it('bandeau quand une part notable des points est verrouillée', () => {
-		expect(lockNotice(orig(els()))).toBe(
-			'3 points sur 4 sont reliés à d’autres objets (toit, chemin piéton) : ceux-là se corrigent avec JOSM ou iD. 1 point du bord du quai suit vos déplacements.'
+	it('bandeau quand une part notable des points est partagée', () => {
+		expect(shareNotice(orig(els()))).toBe(
+			'4 points sur 4 sont partagés avec d’autres objets (bord du quai, toit…) : ils suivront vos modifications.'
 		);
-		expect(lockNotice(orig(base().filter((e) => e.id !== 300)))).toBe('');
+		expect(shareNotice(orig(base().filter((e) => e.id !== 300)))).toBe('');
 	});
 
 	it('refuse de retirer un point du bord du quai, accepte de le déplacer', () => {
@@ -511,6 +607,10 @@ describe('points partagés avec le bord du quai (lot 7 suite)', () => {
 		expect(checkLocks(before, [at(1, 0, 1.5), keep(e, 2), keep(e, 3), keep(e, 4)], 'area')).toMatch(
 			/déplacé/
 		);
+		// Envoi : refusé aussi (contrôle répété au moment du plan)
+		expect(
+			planUpload([shape(e, [keep(e, 2), keep(e, 3), keep(e, 4)])], e).conflicts[0].reason
+		).toMatch(/bord du quai/);
 	});
 
 	it('envoi : un seul nœud modifié, ni le quai ni le bord de quai', () => {
@@ -526,23 +626,20 @@ describe('points partagés avec le bord du quai (lot 7 suite)', () => {
 		expect(plan.touched.s1).toEqual(['way/100', 'node/1']);
 	});
 
-	it('à revoir si le point est devenu partagé avec autre chose qu’un bord de quai', () => {
+	it('relecture : seule la version du nœud déplacé compte ; un point retiré devenu bord de quai, à revoir', () => {
 		const e = els();
 		const ed = shape(e, [at(1, 0, 1.5), keep(e, 2), keep(e, 3), keep(e, 4)]);
 		const fresh = [...e, { type: 'way', id: 600, nodes: [9, 1], tags: { highway: 'steps' } }];
-		expect(planUpload([ed], fresh as OsmElement[]).conflicts[0].reason).toMatch(/relié/);
-		// Bord de quai devenu autre chose (tags changés) : à revoir aussi
-		const retagged = els().map((x) =>
-			x.id === 400 && x.type === 'way' ? { ...x, tags: { highway: 'footway' } } : x
-		);
-		expect(planUpload([ed], retagged).conflicts).toHaveLength(1);
-		// Un point libre à la saisie, devenu bord de quai : à revoir (règle stricte)
+		expect(planUpload([ed], fresh as OsmElement[]).conflicts).toEqual([]);
+		const bumped = els().map((x) => (x.type === 'node' && x.id === 1 ? { ...x, version: 4 } : x));
+		expect(planUpload([ed], bumped).conflicts[0].reason).toMatch(/modifié/);
+		// Un point libre à la saisie, retiré, devenu entre-temps un point de bord de quai
 		const e2 = base();
-		const ed2 = shape(e2, [at(1, 0, 1.5), keep(e2, 2), keep(e2, 3), keep(e2, 4)]);
+		const ed2 = shape(e2, [keep(e2, 1), keep(e2, 3), keep(e2, 4)]);
 		expect(
 			planUpload(
 				[ed2],
-				[...e2, { type: 'way', id: 401, nodes: [1, 9], tags: { railway: 'platform_edge' } }]
+				[...e2, { type: 'way', id: 401, nodes: [2, 9], tags: { railway: 'platform_edge' } }]
 			).conflicts
 		).toHaveLength(1);
 	});
@@ -578,13 +675,14 @@ describe('Ambérieu-en-Bugey (données réelles)', () => {
 		.elements as OsmElement[];
 	const data = new OsmData(els);
 
-	it('quai A : contour accepté, nœuds reliés au bâtiment verrouillés, 3 relations', () => {
+	it('quai A : contour accepté, nœuds partagés avec le bâtiment déplaçables, 3 relations', () => {
 		const s = platformShape(data, 1357219270)!;
 		expect(s.closed).toBe(true);
 		expect(s.nodes).toHaveLength(26);
-		expect(s.nodes.filter((n) => !n.locked).map((n) => s.nodes.indexOf(n) + 1)).toEqual([
+		expect(s.nodes.filter((n) => !n.shared).map((n) => s.nodes.indexOf(n) + 1)).toEqual([
 			1, 2, 3, 4, 5, 6, 21, 23, 24, 25, 26
 		]);
+		expect(s.nodes.some((n) => n.locked)).toBe(false);
 		expect(s.relations.map((r) => r.kind).sort()).toEqual(['route', 'route', 'stop_area']);
 		expect(s.refused).toBeUndefined();
 		const rails = [...data.ways.values()].filter((w) => isRail(w.tags)).map((w) => data.coords(w));
@@ -600,20 +698,34 @@ describe('Ambérieu-en-Bugey (données réelles)', () => {
 		).toEqual([]);
 	});
 
-	it('quai B-C : points du bord du quai déplaçables, points sous le toit verrouillés', () => {
+	it('quai B-C : points du bord du quai et du toit déplaçables', () => {
 		const s = platformShape(data, 1420417938)!;
 		const edge = s.nodes.filter((n) => n.edge).length;
-		const locked = s.nodes.filter((n) => n.locked);
+		const roof = s.nodes.filter((n) => n.ways?.includes('toit'));
 		expect(s.nodes).toHaveLength(20);
 		expect(edge).toBeGreaterThan(10);
-		expect(locked.length).toBeGreaterThan(0);
-		expect(locked.every((n) => n.links!.includes('toit'))).toBe(true);
-		expect(lockNotice(s.nodes)).toMatch(
-			/sont reliés à d’autres objets \(toit\) : ceux-là se corrigent avec JOSM ou iD/
+		expect(roof.length).toBeGreaterThan(0);
+		expect(s.nodes.some((n) => n.locked)).toBe(false);
+		expect(shareNotice(s.nodes)).toMatch(
+			/^19 points sur 20 sont partagés avec d’autres objets \(bord du quai, toit\) : ils suivront vos modifications\.$/
 		);
 	});
 
 	it('quai D-E-F (multipolygone) : refusé', () => {
 		expect(platformShape(data, 1429001835)!.refused).toBe(COMPLEX);
+	});
+});
+
+describe('point partagé avec une voie ferrée', () => {
+	it('reste verrouillé (la géométrie des voies ne bouge jamais)', () => {
+		const els: OsmElement[] = [
+			...base(),
+			node(8, 120, 2),
+			{ type: 'way', id: 400, version: 3, nodes: [2, 8], tags: { railway: 'rail' } }
+		];
+		const n2 = orig(els).find((n) => n.id === 2)!;
+		expect(n2.locked).toBe(true);
+		const n4 = orig(els).find((n) => n.id === 4)!;
+		expect(n4.locked).toBe(false); // partagé avec un chemin : déplaçable
 	});
 });

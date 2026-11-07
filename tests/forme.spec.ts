@@ -234,19 +234,19 @@ test('modifier la forme d’un quai (déplacer, ajouter, retirer un point), puis
 	await expect(page).toHaveURL(/\/gare\/forme\/?\?id=.*&osm=way\/1357219270/);
 	await expect(page.locator('.maplibregl-canvas')).toBeVisible();
 	await expect(page.getByText('26 points')).toBeVisible();
-	// Bandeau d'ouverture : part des points reliés à d'autres objets
+	// Bandeau d'ouverture : part des points partagés avec d'autres objets (ils suivront)
 	await expect(page.getByRole('note')).toContainText(
-		'15 points sur 26 sont reliés à d’autres objets (espace intérieur, bâtiment…) : ceux-là se corrigent avec JOSM ou iD.'
+		'15 points sur 26 sont partagés avec d’autres objets (espace intérieur, bâtiment…) : ils suivront vos modifications. Les points 15 et 16 portent des informations (entrée)'
 	);
 	await page.getByRole('button', { name: 'Compris' }).click();
 	await expect(page.getByRole('note')).toHaveCount(0);
 	// Au zoom d'ouverture, les sommets serrés ne sont pas des cibles : on zoome pour les toucher
 	await page.getByRole('button', { name: 'Zoomer', exact: true }).click();
 	await page.getByRole('button', { name: 'Zoomer', exact: true }).click();
-	// Point relié au bâtiment de la gare : verrouillé, annoncé avec la raison
+	// Point partagé avec le bâtiment et la gare : annoncé comme tel, sélectionnable
 	await expect(
 		page.getByRole('button', {
-			name: 'Point 9 : relié à d’autres objets (bâtiment et gare), non modifiable'
+			name: 'Point 9 : aussi un point d’un bâtiment et de la gare, le sélectionner'
 		})
 	).toBeVisible();
 
@@ -269,13 +269,15 @@ test('modifier la forme d’un quai (déplacer, ajouter, retirer un point), puis
 	await expect(page.getByText(/Point 4 ajouté entre 3 et 4/)).toBeAttached();
 	await expect(page.getByRole('button', { name: 'Retirer ce point' })).toBeEnabled();
 
-	// Un point verrouillé ne peut être ni déplacé ni retiré
-	await moved(page, () =>
-		tap(page, 'Point 10 : relié à d’autres objets (bâtiment et gare), non modifiable')
+	// Un point partagé se déplace ou se retire : l'appli dit avant ce qui suivra
+	const shared10 = 'Point 10 : aussi un point d’un bâtiment et de la gare, le sélectionner';
+	await moved(page, () => tap(page, shared10));
+	await expect(page.locator('header .share')).toHaveText(
+		'Ce point est aussi un point de : un bâtiment et la gare — ils suivront le déplacement. Retiré, il reste dans un bâtiment et la gare ; seul le quai change.'
 	);
-	await expect(page.locator('header')).toContainText('Le point 10 est relié à : bâtiment et gare.');
-	await expect(page.getByRole('button', { name: 'Retirer ce point' })).toBeDisabled();
-	await expect(page.getByRole('button', { name: 'Déplacer le point ici' })).toBeDisabled();
+	await expect(page.getByRole('button', { name: 'Retirer ce point' })).toBeEnabled();
+	await expect(page.getByRole('button', { name: 'Déplacer le point ici' })).toBeEnabled();
+	await tap(page, shared10); // désélection, sans rien changer
 
 	// Retirer l'ancien point 25 (devenu 26 après l'ajout)
 	await moved(page, () => tap(page, 'Point 26 : le sélectionner'));
@@ -391,7 +393,7 @@ test('redessiner en surface un quai tracé en ligne, en gardant son point relié
 	expect(xml).not.toMatch(/<delete><way/);
 });
 
-test('quai B-C réel : point partagé avec le bord du quai déplacé à la croix, point sous le toit expliqué', async ({
+test('quai B-C réel : point partagé avec le toit et le bord du quai déplacé à la croix, puis envoyé', async ({
 	page
 }) => {
 	test.setTimeout(60_000);
@@ -400,35 +402,26 @@ test('quai B-C réel : point partagé avec le bord du quai déplacé à la croix
 	await expect(page.locator('.maplibregl-canvas')).toBeVisible();
 	await expect(page.getByText('20 points')).toBeVisible();
 	await expect(page.getByRole('note')).toHaveText(
-		/4 points sur 20 sont reliés à d’autres objets \(toit\) : ceux-là se corrigent avec JOSM ou iD\. 15 points du bord du quai suivent vos déplacements\./
+		'19 points sur 20 sont partagés avec d’autres objets (bord du quai, toit) : ils suivront vos modifications. Compris'
 	);
-	const roof = 'Point 4 : relié à d’autres objets (toit et bord du quai), non modifiable';
+	// Aucun point fixe : plus de carrés « verrouillés »
+	await expect(page.locator('.rc-vertex.locked')).toHaveCount(0);
+	await expect.poll(() => page.locator('.rc-vertex.shared').count()).toBeGreaterThan(10);
 
-	// Croix loin de tout point : message
+	// Croix loin de tout point : message clair
 	await pan(page, 0, -2);
 	await page.getByRole('button', { name: 'Prendre ce point' }).click();
-	await expect(page.getByRole('alert')).toContainText('Placez la croix sur un point');
+	await expect(page.getByRole('alert')).toContainText(
+		'Aucun point sous la croix : amenez la croix sur un point du quai'
+	);
 
-	// Point sous le toit, pris à la croix : la raison s'affiche en clair
+	// Point 4, sous le toit et sur le bord du quai, pris à la croix : ce qui suivra est dit
 	await toCross(page, await spot(page, 4));
 	await page.getByRole('button', { name: 'Zoomer', exact: true }).click();
 	await page.getByRole('button', { name: 'Zoomer', exact: true }).click();
 	await page.getByRole('button', { name: 'Prendre ce point' }).click();
-	await expect(page.locator('header')).toContainText(
-		'Le point 4 est relié à : toit et bord du quai. Il reste en place ; corrigez-le avec JOSM ou iD'
-	);
-	await expect(page.getByRole('button', { name: 'Déplacer le point ici' })).toBeDisabled();
-	await tap(page, roof); // désélection
-
-	// Point du bord du quai, pris à la croix : déplaçable, pas retirable
-	await page.getByRole('button', { name: 'Dézoomer' }).click();
-	await page.getByRole('button', { name: 'Dézoomer' }).click();
-	await toCross(page, await spot(page, 6));
-	await page.getByRole('button', { name: 'Zoomer', exact: true }).click();
-	await page.getByRole('button', { name: 'Zoomer', exact: true }).click();
-	await page.getByRole('button', { name: 'Prendre ce point' }).click();
-	await expect(page.locator('header')).toContainText(
-		'point 6 est aussi un point du bord du quai : le déplacer déplace aussi le bord'
+	await expect(page.locator('header .share')).toHaveText(
+		'Ce point est aussi un point de : le toit et le bord du quai — ils suivront le déplacement. Il ne peut pas être retiré du contour : le bord du quai en a besoin.'
 	);
 	await expect(page.getByRole('button', { name: 'Retirer ce point' })).toBeDisabled();
 	await page.getByRole('button', { name: 'Ajuster au centimètre' }).click();
@@ -437,6 +430,9 @@ test('quai B-C réel : point partagé avec le bord du quai déplacé à la croix
 			page.getByRole('button', { name: 'Déplacer la croix vers la droite' }).click()
 		);
 	await page.getByRole('button', { name: 'Déplacer le point ici' }).click();
+	await expect(page.locator('header .share')).toHaveText(
+		'Point 4 déplacé : toit et bord du quai ajustés aussi.'
+	);
 	await page.getByRole('button', { name: 'Ajuster au centimètre' }).click(); // referme le pavé
 	await expectAccessible(page);
 	await page.getByRole('button', { name: 'Terminer' }).click();
@@ -444,21 +440,124 @@ test('quai B-C réel : point partagé avec le bord du quai déplacé à la croix
 
 	await page.goto(`/envoi/?id=${STATION}`);
 	await expect(
-		page.getByText('Quai B-C : forme modifiée (20 → 20 points), bord du quai ajusté aussi')
+		page.getByText(
+			'Quai B-C : forme modifiée (20 → 20 points) — toit et bord du quai ajustés aussi'
+		)
 	).toBeVisible();
+	await expect(page.getByRole('textbox')).toHaveValue(
+		/forme de quai corrigée \(toit et bord du quai ajustés aussi\)/
+	);
 	await page.getByRole('button', { name: 'Envoyer 1 modification' }).click();
 	await expect(page.getByText('1 modification envoyée.')).toBeVisible();
 
-	// Un seul nœud modifié (le même dans le quai et le bord de quai) ; aucun way touché
+	// Un seul nœud modifié (le même dans le quai, le toit et le bord de quai) ; aucun way touché
 	const quai = base.find((e) => e.type === 'way' && e.id === QUAI_BC)!;
-	const n6 = base.find((e) => e.type === 'node' && e.id === quai.nodes![5])!;
+	const n4 = base.find((e) => e.type === 'node' && e.id === quai.nodes![3])!;
 	const xml = calls.find((c) => c.path.endsWith('/upload'))!.body;
 	expect([...xml.matchAll(/<node /g)]).toHaveLength(1);
-	expect(xml).toContain(`<modify><node id="${n6.id}" version="${n6.version}" changeset="1234"`);
+	expect(xml).toContain(`<modify><node id="${n4.id}" version="${n4.version}" changeset="1234"`);
 	expect(xml).not.toContain('<way');
 	expect(xml).not.toContain('<create>');
 	expect(xml).not.toContain('<delete>');
 	expect(xml).not.toContain('<relation');
+	const create = calls.find((c) => c.path.endsWith('/changeset/create'))!.body;
+	expect(create).toContain('toit et bord du quai ajustés aussi');
+});
+
+test('E5 → E12 : zoom et centre de l’utilisateur conservés, point sélectionné sans zoom, menus au-dessus des repères', async ({
+	page
+}) => {
+	test.setTimeout(60_000);
+	await setup(page);
+	await page.goto(`/gare/carte/?id=${STATION}&focus=way/${QUAI_A}`);
+	const sheet = page.getByRole('region', { name: 'Objet sélectionné' });
+	await expect(sheet).toContainText('Quai A');
+	// L'utilisateur zoome à sa façon (clavier : +1), puis décale la vue
+	const e5 = page.locator('.map[data-zoom]');
+	await expect(e5).toHaveAttribute('data-zoom', '18.50');
+	await page.locator('.maplibregl-canvas').focus();
+	await page.keyboard.press('=');
+	await expect(e5).toHaveAttribute('data-zoom', '19.50');
+	await page.keyboard.press('ArrowLeft');
+	let last = '';
+	await expect
+		.poll(
+			async () => {
+				const now = (await e5.getAttribute('data-center')) ?? '';
+				const stable = now === last;
+				last = now;
+				return stable;
+			},
+			{ intervals: [300] }
+		)
+		.toBe(true);
+	const zoom = await e5.getAttribute('data-zoom');
+	const center = await e5.getAttribute('data-center');
+
+	await sheet.getByRole('link', { name: 'Modifier la forme' }).click();
+	await expect(page).toHaveURL(new RegExp(`&z=${zoom}&c=${center!.replace('.', '\\.')}`));
+	const box = page.locator('.mapbox');
+	await expect(box).toHaveAttribute('data-zoom', zoom!);
+	await expect(box).toHaveAttribute('data-center', center!);
+
+	// Sélectionner un point (toucher, puis « Prendre ce point ») : la carte glisse, le zoom reste
+	await moved(page, () => tap(page, 'Point 2 : le sélectionner'));
+	await expect(box).toHaveAttribute('data-zoom', zoom!);
+	await tap(page, 'Point 2 : le sélectionner'); // désélection
+	await page.getByRole('button', { name: 'Prendre ce point' }).click();
+	await expect(page.getByRole('button', { name: 'Déplacer le point ici' })).toBeVisible();
+	await expect(box).toHaveAttribute('data-zoom', zoom!);
+	await tap(page, 'Point 2 : le sélectionner');
+
+	// Les menus flottants sont au-dessus des repères de sommets (jamais l'inverse) : le quai
+	// passe sous le panneau du bas, chaque repère recouvert reste caché par le panneau.
+	const coverage = () =>
+		page.evaluate(() => {
+			const boxes = [...document.querySelectorAll('[data-map-avoid]')].map((e) =>
+				e.getBoundingClientRect()
+			);
+			let covered = 0,
+				onTop = 0;
+			for (const m of document.querySelectorAll<HTMLElement>('[data-point], .rc-mid')) {
+				const r = m.getBoundingClientRect();
+				const x = r.x + r.width / 2,
+					y = r.y + r.height / 2;
+				if (!boxes.some((b) => x > b.left && x < b.right && y > b.top && y < b.bottom)) continue;
+				covered++;
+				// (Un repère trop serré ignore le toucher : on le rend touchable le temps du test,
+				// sinon elementFromPoint le traverserait.)
+				const pe = m.style.pointerEvents;
+				m.style.pointerEvents = 'auto';
+				const hit = document.elementFromPoint(x, y);
+				m.style.pointerEvents = pe;
+				if (hit && m.contains(hit)) onTop++;
+			}
+			return { covered, onTop };
+		});
+	let hidden = await coverage();
+	for (let k = 0; k < 8 && !hidden.covered; k++) {
+		await pan(page, 0, -1);
+		hidden = await coverage();
+	}
+	expect(hidden.covered).toBeGreaterThan(0);
+	expect(hidden.onTop).toBe(0);
+	const done = page.getByRole('button', { name: 'Terminer' });
+	const r = (await done.boundingBox())!;
+	expect(
+		await page.evaluate(
+			([x, y]) => document.elementFromPoint(x, y)?.closest('button')?.textContent?.trim(),
+			[r.x + r.width / 2, r.y + r.height / 2]
+		)
+	).toBe('Terminer');
+
+	// Quitter : retour sur la carte de la gare avec la vue de E12
+	const z12 = await box.getAttribute('data-zoom');
+	const c12 = await box.getAttribute('data-center');
+	await page.getByRole('link', { name: 'Quitter sans enregistrer' }).click();
+	await expect(page).toHaveURL(/\/gare\/carte/);
+	await expect(page.locator('.map[data-zoom]')).toHaveAttribute('data-zoom', z12!);
+	await expect(page.locator('.map[data-zoom]')).toHaveAttribute('data-center', c12!);
+	await expect(sheet).toContainText('Quai A');
 });
 
 test('supprimer un quai en double : retiré de la zone d’arrêt, puis envoyé', async ({ page }) => {

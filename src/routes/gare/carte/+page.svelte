@@ -9,6 +9,7 @@
 	import {
 		REASONS,
 		deleteSummary,
+		isLinked,
 		platformName,
 		platformShape,
 		relationsPhrase
@@ -34,6 +35,22 @@
 	});
 	const id = $derived(mounted ? (page.url.searchParams.get('id') ?? '') : '');
 	const focus = $derived(mounted ? (page.url.searchParams.get('focus') ?? undefined) : undefined);
+	// Vue reprise d'un autre écran (retour de E12 : &z=19.30&c=lon,lat), lue une seule fois.
+	const startView = $derived.by(() => {
+		if (!mounted) return undefined;
+		const z = Number(page.url.searchParams.get('z'));
+		const c = (page.url.searchParams.get('c') ?? '').split(',').map(Number);
+		return z > 0 && c.length === 2 && c.every(Number.isFinite)
+			? { center: [c[0], c[1]] as [number, number], zoom: z }
+			: undefined;
+	});
+	/** Vue courante de la carte, transmise à E12 pour qu'il garde le zoom de l'utilisateur. */
+	let mapView = $state<{ center: [number, number]; zoom: number } | undefined>();
+	const viewQuery = $derived(
+		mapView
+			? `&z=${mapView.zoom.toFixed(2)}&c=${mapView.center.map((v) => v.toFixed(7)).join(',')}`
+			: ''
+	);
 	$effect(() => {
 		// Ne dépend que de l'identifiant : openStation lit et modifie l'état partagé.
 		const gare = id;
@@ -168,8 +185,10 @@
 			{data}
 			{visible}
 			{focus}
+			view={startView}
 			selected={selected?.osm}
 			onselect={select}
+			onview={(center, zoom) => (mapView = { center, zoom })}
 		/>
 	{/if}
 
@@ -275,7 +294,7 @@
 				</ul>
 			{/if}
 			{#if deleting && shapeOf}
-				{@const lost = shapeOf.nodes.filter((n) => !n.locked && !n.edge).length}
+				{@const lost = shapeOf.nodes.filter((n) => !isLinked(n)).length}
 				{@const kept = shapeOf.nodes.length - lost}
 				<div class="confirm">
 					<h3>Supprimer ce quai ?</h3>
@@ -359,7 +378,9 @@
 							{#if shapeOf && !shapeOf.refused}
 								<a
 									class="btn-quiet"
-									href={resolve(`/gare/forme?id=${encodeURIComponent(id)}&osm=${selected.osm}`)}
+									href={resolve(
+										`/gare/forme?id=${encodeURIComponent(id)}&osm=${selected.osm}${viewQuery}`
+									)}
 									><Icon name="shape" size={18} />{shownClosed
 										? 'Modifier la forme'
 										: 'Redessiner en surface'}</a

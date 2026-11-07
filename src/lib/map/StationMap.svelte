@@ -30,15 +30,21 @@
 		data,
 		visible,
 		focus,
+		view,
 		selected,
-		onselect
+		onselect,
+		onview
 	}: {
 		bbox: BBox;
 		data: FeatureCollection;
 		visible: Record<Kind, boolean>;
 		focus?: string;
+		/** Vue de départ (centre, zoom) reprise d'un autre écran (retour de E12). */
+		view?: { center: [number, number]; zoom: number };
 		selected?: string;
 		onselect: (p: FeatureProps | undefined) => void;
+		/** Fin de chaque déplacement : centre et zoom (transmis à E12, qui les reprend). */
+		onview?: (center: [number, number], zoom: number) => void;
 	} = $props();
 
 	let container: HTMLDivElement;
@@ -381,14 +387,26 @@
 				});
 				map.on('error', (e) => console.warn('[stationcomplete] carte :', e.error?.message));
 				map.on('moveend', relayout);
+				// Vue courante : exposée (data-center, data-zoom) et transmise à la page.
+				map.on('moveend', () => {
+					const c = map!.getCenter(),
+						z = map!.getZoom();
+					container.dataset.center = `${c.lng.toFixed(7)},${c.lat.toFixed(7)}`;
+					container.dataset.zoom = z.toFixed(2);
+					onview?.([c.lng, c.lat], z);
+				});
 				map.on('resize', relayout);
 				map.on('load', () => {
 					addLabels();
 					const f = focus ? data.features.find((x) => x.properties.osm === focus) : undefined;
+					// Vue reprise (retour de E12) : exactement celle de l'utilisateur.
+					if (view) map!.jumpTo({ center: view.center, zoom: view.zoom });
 					if (f) {
-						map!.jumpTo({ center: f.anchor ?? centerOf(f), zoom: 18.5 });
+						if (!view) map!.jumpTo({ center: f.anchor ?? centerOf(f), zoom: 18.5 });
 						onselect(f.properties);
-					} else map!.fitBounds(bbox, { padding: 32, maxZoom: 19, duration: 0 });
+					} else if (!view) map!.fitBounds(bbox, { padding: 32, maxZoom: 19, duration: 0 });
+					// (moveend initial : la vue est publiée même si rien n'a bougé.)
+					map!.fire('moveend');
 					highlight();
 					relayout();
 				});
@@ -495,6 +513,8 @@
 		position: absolute;
 		inset: 0;
 		background: #8c877c;
+		/* Repères MapLibre confinés sous les menus flottants (voir DrawMap). */
+		isolation: isolate;
 	}
 	.failed {
 		position: absolute;

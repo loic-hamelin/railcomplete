@@ -14,7 +14,15 @@ import {
 	type TagEdit
 } from './edits';
 import type { BBox, OsmElement, OsmNode, OsmRelation, OsmWay, Tags } from './osm';
-import { COMPLEX, REASONS, hasTags, shapeDiff } from './shape';
+import {
+	COMPLEX,
+	REASONS,
+	followers,
+	followersPhrase,
+	hasTags,
+	isLinked,
+	shapeDiff
+} from './shape';
 
 export interface Plan {
 	/** Objets à créer : nœuds d'abord, puis ways (quais dessinés). */
@@ -125,20 +133,6 @@ export function planUpload(edits: Edit[], fresh: OsmElement[]): Plan {
 			? n
 			: undefined;
 	};
-	/**
-	 * Nœud déplaçable sur le serveur : libre, ou (si `edge`) partagé seulement avec des bords
-	 * de quai (railway=platform_edge) — sans tag ni relation dans les deux cas.
-	 */
-	const movableNow = (id: number, owners: number[], edge: boolean) => {
-		const n = byKey.get(`node/${id}`) as OsmNode | undefined;
-		if (!n || hasTags(n.tags) || (relationsOf.get(`node/${id}`) ?? []).length) return undefined;
-		const others = [...(waysOf.get(id) ?? [])].filter((w) => !owners.includes(w));
-		if (!others.length) return n;
-		const edgesOnly = others.every(
-			(w) => (byKey.get(`way/${w}`) as OsmWay | undefined)?.tags?.railway === 'platform_edge'
-		);
-		return edge && edgesOnly ? n : undefined;
-	};
 	const sameVersion = (n: OsmNode, o?: OrigNode) =>
 		o?.version === undefined || n.version === o.version;
 	const conflict = (id: string, reason: string) => plan.conflicts.push({ id, reason });
@@ -220,30 +214,39 @@ export function planUpload(edits: Edit[], fresh: OsmElement[]): Plan {
 			conflict(ed.id, 'Contour du quai invalide.');
 			continue;
 		}
-		// Nœuds déplacés : libres (ou partagés seulement avec un bord de quai, qui suit) et
-		// inchangés sur le serveur. Nœuds retirés : supprimés s'ils sont libres ; un nœud déjà
-		// relié à la saisie est seulement retiré du way ; un nœud de bord de quai n'est jamais retiré.
+		// Nœuds déplacés (lot 7c) : libres ou partagés — c'est le même nœud, les objets qui le
+		// partagent suivent ; seule sa version doit être inchangée sur le serveur.
+		// Nœuds retirés : seulement retirés du way ; supprimés s'ils sont orphelins et sans tag
+		// sur le serveur (sinon gardés, sans « à revoir »). Un point de bord de quai n'est jamais
+		// retiré (ni déplacé en « redessiner en surface », où les points reliés restent fixes).
+		const edgeNow = (nid: number) =>
+			[...(waysOf.get(nid) ?? [])].some(
+				(w) =>
+					w !== id &&
+					(byKey.get(`way/${w}`) as OsmWay | undefined)?.tags?.railway === 'platform_edge'
+			);
 		if (
-			d.removed.some((o) => o.edge) ||
-			(ed.mode === 'area' && d.moved.some((n) => orig.get(n.id)!.edge))
+			d.removed.some((o) => o.edge || edgeNow(o.id)) ||
+			d.moved.some((n) => orig.get(n.id)!.locked) ||
+			(ed.mode === 'area' && d.moved.some((n) => isLinked(orig.get(n.id)!)))
 		) {
-			conflict(ed.id, 'Contour du quai invalide (point du bord du quai retiré ou déplacé).');
+			conflict(
+				ed.id,
+				'Contour du quai invalide (point du bord du quai retiré ou point fixe déplacé).'
+			);
 			continue;
 		}
 		let ok = true;
 		const moves: OsmNode[] = [];
 		const drops: OsmNode[] = [];
 		for (const n of d.moved) {
-			const o = orig.get(n.id)!;
-			const now = movableNow(n.id, [id], !!o.edge);
-			if (o.locked || !now || !sameVersion(now, o)) ok = false;
+			const now = byKey.get(`node/${n.id}`) as OsmNode | undefined;
+			if (!now || !sameVersion(now, orig.get(n.id))) ok = false;
 			else moves.push({ ...now, lon: n.lon, lat: n.lat });
 		}
 		for (const o of d.removed) {
-			if (o.locked) continue;
 			const now = freeNow(o.id, [id]);
-			if (!now || !sameVersion(now, o)) ok = false;
-			else drops.push(now);
+			if (now && sameVersion(now, o)) drops.push(now);
 		}
 		if (!ok) {
 			conflict(ed.id, NODE_CHANGED);
@@ -303,7 +306,7 @@ export function planUpload(edits: Edit[], fresh: OsmElement[]): Plan {
 			if (now && sameVersion(now, o)) drops.push(now);
 			// Nœud libre à la saisie, devenu relié ou modifié depuis : on ne décide pas à l'aveugle.
 			// (Relié à la saisie, bord de quai compris : il reste, seul le way disparaît.)
-			else if (!o || !(o.locked || o.edge)) ok = false;
+			else if (!o || !isLinked(o)) ok = false;
 		}
 		if (!ok) {
 			conflict(ed.id, NODE_CHANGED);
@@ -348,7 +351,18 @@ export function proposedComment(stationName: string, edits: Edit[]) {
 	if (edits.some((e) => e.kind === 'tags' || e.kind === 'node'))
 		parts.push('numéros de quais et de voies, pancartes d’arrêt');
 	if (edits.some((e) => e.kind === 'way')) parts.push('quai dessiné');
-	if (edits.some((e) => e.kind === 'shape')) parts.push('forme de quai corrigée');
+	const shapes = edits.filter((e): e is ShapeEdit => e.kind === 'shape');
+	if (shapes.length) {
+		// Objets qui ont suivi les points déplacés (lot 7c) : dits aussi dans le commentaire.
+		const f = { ways: new Set<string>(), tags: new Set<string>() };
+		for (const e of shapes) {
+			const one = followers(e.before, e.nodes);
+			one.ways.forEach((w) => f.ways.add(w));
+			one.tags.forEach((t) => f.tags.add(t));
+		}
+		const also = followersPhrase({ ways: [...f.ways], tags: [...f.tags] });
+		parts.push(`forme de quai corrigée${also ? ` (${also})` : ''}`);
+	}
 	for (const e of edits)
 		if (e.kind === 'delete') parts.push(`${e.name} supprimé (${REASONS[e.reason].toLowerCase()})`);
 	if (!parts.length) parts.push('numéros de quais et de voies, pancartes d’arrêt');

@@ -73,16 +73,16 @@ Sommaire
 
 Règles actuelles (`isRailStation` dans `scripts/build-stations.mjs`) : exclut `station=subway|light_rail|monorail|funicular|tram`, `usage=tourism`, `tourism=yes`, `train=no`.
 
-| Cas | Situation suisse | Règle proposée |
-| --- | --- | --- |
-| Funiculaires | Très nombreux (ex. stations de montagne) ; tagués `station=funicular` selon le schéma général **[pratique suisse non mesurée]** | Exclusion conservée : pas de quai numéroté ni de pancarte d'arrêt utile |
-| Chemins de fer à crémaillère et lignes de montagne (Gornergrat, Jungfrau, Rigi…) | Ce sont des trains (`railway=rail` + crémaillère `rack=*`) ; gares souvent `railway=station` | **Inclure** par défaut (ce sont des gares avec quais), mais prévoir une liste d'exclusion manuelle si des gares touristiques sans intérêt polluent la recherche |
-| Voie métrique (RhB, MOB, MGB, zb, RBS…) | Réseaux voyageurs à part entière, quais et numéros de voie | Inclure (rien à changer) |
-| Tram | Arrêts `railway=tram_stop`, non sélectionnés | Rien à changer |
-| Métro de Lausanne (m1/m2), lignes `light_rail` (ex. Forchbahn, Lausanne–Échallens ?) | Taggage variable **[non vérifié]** | Exclusion actuelle conservée ; à revoir sur les statistiques du premier index |
-| Gares frontalières (Genève, Bâle SBB / Bad Bf, Chiasso, Schaffhouse, Kreuzlingen–Konstanz) | Présentes dans les deux extraits ; Bâle Bad Bf (DB) est en Suisse | Découpe au polygone + dédoublonnage par identifiant OSM entre index |
-| Liechtenstein | 3 haltes ÖBB (Schaan-Vaduz…) **[non vérifié]** | Hors périmètre au départ, ou index « CH-LI » si l'extrait les contient |
-| Commune / canton | `geo.api.gouv.fr` inutilisable | Rattachement local aux limites OSM (cantons : `admin_level=4`, communes : `admin_level=8` **[niveaux à confirmer sur le wiki suisse]**) |
+| Cas                                                                                        | Situation suisse                                                                                                                | Règle proposée                                                                                                                                                  |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Funiculaires                                                                               | Très nombreux (ex. stations de montagne) ; tagués `station=funicular` selon le schéma général **[pratique suisse non mesurée]** | Exclusion conservée : pas de quai numéroté ni de pancarte d'arrêt utile                                                                                         |
+| Chemins de fer à crémaillère et lignes de montagne (Gornergrat, Jungfrau, Rigi…)           | Ce sont des trains (`railway=rail` + crémaillère `rack=*`) ; gares souvent `railway=station`                                    | **Inclure** par défaut (ce sont des gares avec quais), mais prévoir une liste d'exclusion manuelle si des gares touristiques sans intérêt polluent la recherche |
+| Voie métrique (RhB, MOB, MGB, zb, RBS…)                                                    | Réseaux voyageurs à part entière, quais et numéros de voie                                                                      | Inclure (rien à changer)                                                                                                                                        |
+| Tram                                                                                       | Arrêts `railway=tram_stop`, non sélectionnés                                                                                    | Rien à changer                                                                                                                                                  |
+| Métro de Lausanne (m1/m2), lignes `light_rail` (ex. Forchbahn, Lausanne–Échallens ?)       | Taggage variable **[non vérifié]**                                                                                              | Exclusion actuelle conservée ; à revoir sur les statistiques du premier index                                                                                   |
+| Gares frontalières (Genève, Bâle SBB / Bad Bf, Chiasso, Schaffhouse, Kreuzlingen–Konstanz) | Présentes dans les deux extraits ; Bâle Bad Bf (DB) est en Suisse                                                               | Découpe au polygone + dédoublonnage par identifiant OSM entre index                                                                                             |
+| Liechtenstein                                                                              | 3 haltes ÖBB (Schaan-Vaduz…) **[non vérifié]**                                                                                  | Hors périmètre au départ, ou index « CH-LI » si l'extrait les contient                                                                                          |
+| Commune / canton                                                                           | `geo.api.gouv.fr` inutilisable                                                                                                  | Rattachement local aux limites OSM (cantons : `admin_level=4`, communes : `admin_level=8` **[niveaux à confirmer sur le wiki suisse]**)                         |
 
 ### 2.4 Noms multilingues
 
@@ -119,15 +119,15 @@ Règles actuelles (`isRailStation` dans `scripts/build-stations.mjs`) : exclut `
 
 ### 3.5 Comparaison avec la France
 
-| Point | France (`docs/osm-tags-rapport.md`) | Suisse |
-| --- | --- | --- |
-| Affichage voyageur | « Voie 1 », parfois lettre de quai | « Gleis/voie/binario 7 » + secteurs A-D |
-| `ref` du quai | Liste des voies (`1;2`), choix de conception | Idem selon le wiki germanophone (`4;5`) |
-| `local_ref` | Lettre de quai propre (« Quai A ») | Peu pertinent (pas de numéro de quai affiché, sauf exceptions) **[à confirmer]** |
-| `railway:track_ref` | Numéro affiché sur la voie à quai ; débat wiki FR | Même usage (définition anglaise/allemande), pas de débat suisse trouvé |
-| `platform_edge` | Recommandé | Recommandé ; renforcé par `ref:sloid` par bord |
-| Identifiant officiel | `uic_ref` (gare) | `uic_ref` (gare) + **`ref:sloid`** (gare et quai), 2026 |
-| Langue des valeurs | Français | Valeurs numériques : pas de problème de langue ; `name` éventuels (« Gleis 7 ») à proscrire comme en France (Q7 doit aussi détecter « Gleis », « voie », « binario ») |
+| Point                | France (`docs/osm-tags-rapport.md`)               | Suisse                                                                                                                                                                |
+| -------------------- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Affichage voyageur   | « Voie 1 », parfois lettre de quai                | « Gleis/voie/binario 7 » + secteurs A-D                                                                                                                               |
+| `ref` du quai        | Liste des voies (`1;2`), choix de conception      | Idem selon le wiki germanophone (`4;5`)                                                                                                                               |
+| `local_ref`          | Lettre de quai propre (« Quai A »)                | Peu pertinent (pas de numéro de quai affiché, sauf exceptions) **[à confirmer]**                                                                                      |
+| `railway:track_ref`  | Numéro affiché sur la voie à quai ; débat wiki FR | Même usage (définition anglaise/allemande), pas de débat suisse trouvé                                                                                                |
+| `platform_edge`      | Recommandé                                        | Recommandé ; renforcé par `ref:sloid` par bord                                                                                                                        |
+| Identifiant officiel | `uic_ref` (gare)                                  | `uic_ref` (gare) + **`ref:sloid`** (gare et quai), 2026                                                                                                               |
+| Langue des valeurs   | Français                                          | Valeurs numériques : pas de problème de langue ; `name` éventuels (« Gleis 7 ») à proscrire comme en France (Q7 doit aussi détecter « Gleis », « voie », « binario ») |
 
 **Conclusion § 3** : les quêtes Q0, Q1, Q2, Q5, Q6 s'appliquent **telles quelles** en Suisse. Q7 doit apprendre les motifs « Gleis N », « voie N », « binario N ».
 
@@ -152,12 +152,12 @@ Le dessin des tableaux (H noir, chiffre, « A » + essieux) n'est pas dans le te
 
 Page [DE:OpenRailwayMap/Tagging in Switzerland](https://wiki.openstreetmap.org/wiki/DE:OpenRailwayMap/Tagging_in_Switzerland) (allemand, modifiée le 18 août 2026), section « Halt-, Kontroll- und Achtungssignale » :
 
-| Panneau | Signification | Tags documentés |
-| --- | --- | --- |
-| 577 | Halteort für alle Reisezüge — « schwarzes H auf weissem Grund » | `railway:signal:stop=CH-FDV:577` + `railway:signal:stop:form=sign` |
-| 578 | Halteort selon longueur — chiffre noir ; « Die Ziffer multipliziert mit 10 gibt die Zuglänge (inkl. Triebfahrzeug) an » | `railway:signal:stop=CH-FDV:578` + `…:form=sign` + `railway:signal:stop:caption=2` (200 m) |
-| 579 | Halteort selon nombre d'essieux — « A » sur la ligne du haut, nombre d'essieux en bas | `railway:signal:stop=CH-FDV:579` + `…:form=sign` + `…:caption=A 48` |
-| 580 | Zuglängentafel — longueur en clair + « m » | `railway:signal:stop=CH-FDV:580` + `…:form=sign` + `…:caption=120 m` |
+| Panneau | Signification                                                                                                           | Tags documentés                                                                            |
+| ------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| 577     | Halteort für alle Reisezüge — « schwarzes H auf weissem Grund »                                                         | `railway:signal:stop=CH-FDV:577` + `railway:signal:stop:form=sign`                         |
+| 578     | Halteort selon longueur — chiffre noir ; « Die Ziffer multipliziert mit 10 gibt die Zuglänge (inkl. Triebfahrzeug) an » | `railway:signal:stop=CH-FDV:578` + `…:form=sign` + `railway:signal:stop:caption=2` (200 m) |
+| 579     | Halteort selon nombre d'essieux — « A » sur la ligne du haut, nombre d'essieux en bas                                   | `railway:signal:stop=CH-FDV:579` + `…:form=sign` + `…:caption=A 48`                        |
+| 580     | Zuglängentafel — longueur en clair + « m »                                                                              | `railway:signal:stop=CH-FDV:580` + `…:form=sign` + `…:caption=120 m`                       |
 
 Plus, avec `railway=signal`, les tags génériques communs à tous les signaux ORM (`railway:signal:direction`, `railway:signal:position`), employés par les contributeurs suisses sur les autres signaux (ex. [node/10210368455](https://www.openstreetmap.org/node/10210368455) : `CH-FDV:n`, `direction=backward`, `position=right`). La page ne les répète pas pour 577-580.
 
@@ -188,7 +188,7 @@ Plus, avec `railway=signal`, les tags génériques communs à tous les signaux O
 
 ### 5.3 Sensibilités connues
 
-- **Applications grand public et défauts locaux** : fil d'août 2026 (étiquette *streetcomplete*) sur les réponses « no » saisies via StreetComplete pour des équipements qui n'existent pas localement ; reproche principal : l'appli ne connaît pas les **défauts implicites régionaux** ; pas de consensus, mais une demande claire de formulations précises et de quêtes désactivables par région ([forum – Vorgehen gegen das Eintragen von Nicht-Eigenschaften](https://community.openstreetmap.org/t/vorgehen-gegen-das-eintragen-von-nicht-eigenschaften/145808?page=2)). **Leçon pour stationcomplete** : questions sans ambiguïté, vocabulaire suisse exact (Gleis, pas Bahnsteig ; voie, pas quai), aucun tag « négatif » inventé, quêtes désactivables par pays.
+- **Applications grand public et défauts locaux** : fil d'août 2026 (étiquette _streetcomplete_) sur les réponses « no » saisies via StreetComplete pour des équipements qui n'existent pas localement ; reproche principal : l'appli ne connaît pas les **défauts implicites régionaux** ; pas de consensus, mais une demande claire de formulations précises et de quêtes désactivables par région ([forum – Vorgehen gegen das Eintragen von Nicht-Eigenschaften](https://community.openstreetmap.org/t/vorgehen-gegen-das-eintragen-von-nicht-eigenschaften/145808?page=2)). **Leçon pour stationcomplete** : questions sans ambiguïté, vocabulaire suisse exact (Gleis, pas Bahnsteig ; voie, pas quai), aucun tag « négatif » inventé, quêtes désactivables par pays.
 - **Identifiants officiels** : sujet actif (SLOID, CFF/OFT/SKI+) avec un souci de **limiter les clés étrangères** exprimé par un membre historique de SOSM ([fil déc. 2025](https://community.openstreetmap.org/t/new-public-transport-ids-modelling-in-switzerland/139323)). Ne rien ajouter de ce type.
 - **Données swisstopo** : historique de négociation (2021) mené par SOSM ; respecter scrupuleusement l'attribution ([sosm.ch, 2021](https://sosm.ch/use-of-swisstopo-data-and-products-with-and-in-openstreetmap/)).
 - **Contributeurs ferroviaires très pointus** (signalisation `CH-FDV` détaillée, ETCS, vitesses) : ils peuvent voir d'un mauvais œil des modifications approximatives sur « leurs » voies. Ne jamais modifier la géométrie des voies, ne pas toucher aux tags d'infrastructure.
@@ -205,26 +205,26 @@ _Section rédigée en premier, à partir du code. Les noms de fichiers sont rela
 
 ### 6.1 Ce qui est propre à la France aujourd'hui
 
-| Domaine | Où | Ce qui est figé « France » |
-| --- | --- | --- |
-| Imagerie | `src/lib/core/tiles.ts` | `IGN_TILE_URL` (WMTS Géoplateforme, `TILEMATRIXSET=PM`), `IGN_MAX_ZOOM = 19`, `AVG_TILE_BYTES = 16 000` (mesuré sur l'IGN), `stationTiles()` appelle `IGN_MAX_ZOOM` |
-| Imagerie | `src/lib/map/StationMap.svelte`, `PlacementMap.svelte`, `DrawMap.svelte` | Source MapLibre nommée `ign`, URL et zoom importés de `tiles.ts` (3 copies du même bloc de style) |
-| Attribution | `src/lib/map/style.ts` | `IGN_ATTRIBUTION = 'Photo © IGN – BD ORTHO'` |
-| Hors-ligne | `src/service-worker.ts` (l. 15, 59) | Cache des tuiles reconnu par `url.origin === 'https://data.geopf.fr'` |
-| Hors-ligne | `src/lib/offline.svelte.ts` | Commentaires et débit (« 4 à la fois, service gratuit de l'IGN ») |
-| CSP | `vite.config.ts` | `img-src` et `connect-src` ne contiennent que `https://data.geopf.fr` comme fournisseur d'imagerie |
-| Changeset | `src/lib/core/upload.ts` l. 587-590 | `locale: 'fr'` par défaut, `imagery_used = 'BDOrtho IGN'` en dur |
-| Index des gares | `.github/workflows/stations.yml` | Téléchargement de `europe/france-latest.osm.pbf`, fichiers `rail-fr.*` |
-| Index des gares | `scripts/build-stations.mjs` | Sortie `static/data/stations-fr.json` ; géocodage commune/département par `geo.api.gouv.fr` (API française) ; colonne `dep` (département) ; détection des anciennes pancartes `FR:ARRET` |
-| Index des gares | `src/lib/stations.ts` | Charge `data/stations-fr.json` ; type `Station` avec `dep` |
-| Pancartes (lecture) | `src/lib/core/osm.ts` | `isStopSign()` ne reconnaît que `FR:passenger_stop` et `FR:ARRET_*` |
-| Pancartes (libellés) | `src/lib/core/features.ts` | `stopSignLabel()` ne traduit que les valeurs `FR:*` |
-| Pancartes (écriture) | `src/lib/core/edits.ts` `signTags()` | Types `TT`, `nV`, `L`, `Z57`, `Z50`, `TGV`, `UFR`, `long`, `short`, `all`, `other` → valeurs `FR:*` uniquement |
-| Pancartes (UI) | `src/routes/gare/saisie/+page.svelte` (l. 124-127, 478-511) | Boutons et sous-formulaires Z57/Z50/TGV/UFR |
-| Quêtes | `src/lib/core/quests.ts` | Q3/Q4 (pancartes) s'appuient sur `isStopSign` donc sur le schéma FR ; Q7 cherche « Voie 1 » dans `name`/`ref` (motif français) |
-| Textes | `src/routes/+page.svelte` (« Explorez les gares de France »), `gares/+page.svelte` (« gares et haltes de France », `toLocaleString('fr-FR')`), `a-propos`, `mentions-legales` (« pas un service de la SNCF »), `donnees-personnelles` (« IGN – Géoplateforme (France) ») | Textes en dur, en français |
-| Traduction | — | Le dossier d'architecture (§ 9.2) prévoit Paraglide et `messages/fr.json`/`en.json`, **mais aucun dossier `messages/` n'existe** : toutes les chaînes sont en dur dans les composants |
-| Docs | `README.md`, `docs/osm-tags-rapport.md` | Périmètre déclaré « gares du réseau ferré français » |
+| Domaine              | Où                                                                                                                                                                                                                                                                       | Ce qui est figé « France »                                                                                                                                                               |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Imagerie             | `src/lib/core/tiles.ts`                                                                                                                                                                                                                                                  | `IGN_TILE_URL` (WMTS Géoplateforme, `TILEMATRIXSET=PM`), `IGN_MAX_ZOOM = 19`, `AVG_TILE_BYTES = 16 000` (mesuré sur l'IGN), `stationTiles()` appelle `IGN_MAX_ZOOM`                      |
+| Imagerie             | `src/lib/map/StationMap.svelte`, `PlacementMap.svelte`, `DrawMap.svelte`                                                                                                                                                                                                 | Source MapLibre nommée `ign`, URL et zoom importés de `tiles.ts` (3 copies du même bloc de style)                                                                                        |
+| Attribution          | `src/lib/map/style.ts`                                                                                                                                                                                                                                                   | `IGN_ATTRIBUTION = 'Photo © IGN – BD ORTHO'`                                                                                                                                             |
+| Hors-ligne           | `src/service-worker.ts` (l. 15, 59)                                                                                                                                                                                                                                      | Cache des tuiles reconnu par `url.origin === 'https://data.geopf.fr'`                                                                                                                    |
+| Hors-ligne           | `src/lib/offline.svelte.ts`                                                                                                                                                                                                                                              | Commentaires et débit (« 4 à la fois, service gratuit de l'IGN »)                                                                                                                        |
+| CSP                  | `vite.config.ts`                                                                                                                                                                                                                                                         | `img-src` et `connect-src` ne contiennent que `https://data.geopf.fr` comme fournisseur d'imagerie                                                                                       |
+| Changeset            | `src/lib/core/upload.ts` l. 587-590                                                                                                                                                                                                                                      | `locale: 'fr'` par défaut, `imagery_used = 'BDOrtho IGN'` en dur                                                                                                                         |
+| Index des gares      | `.github/workflows/stations.yml`                                                                                                                                                                                                                                         | Téléchargement de `europe/france-latest.osm.pbf`, fichiers `rail-fr.*`                                                                                                                   |
+| Index des gares      | `scripts/build-stations.mjs`                                                                                                                                                                                                                                             | Sortie `static/data/stations-fr.json` ; géocodage commune/département par `geo.api.gouv.fr` (API française) ; colonne `dep` (département) ; détection des anciennes pancartes `FR:ARRET` |
+| Index des gares      | `src/lib/stations.ts`                                                                                                                                                                                                                                                    | Charge `data/stations-fr.json` ; type `Station` avec `dep`                                                                                                                               |
+| Pancartes (lecture)  | `src/lib/core/osm.ts`                                                                                                                                                                                                                                                    | `isStopSign()` ne reconnaît que `FR:passenger_stop` et `FR:ARRET_*`                                                                                                                      |
+| Pancartes (libellés) | `src/lib/core/features.ts`                                                                                                                                                                                                                                               | `stopSignLabel()` ne traduit que les valeurs `FR:*`                                                                                                                                      |
+| Pancartes (écriture) | `src/lib/core/edits.ts` `signTags()`                                                                                                                                                                                                                                     | Types `TT`, `nV`, `L`, `Z57`, `Z50`, `TGV`, `UFR`, `long`, `short`, `all`, `other` → valeurs `FR:*` uniquement                                                                           |
+| Pancartes (UI)       | `src/routes/gare/saisie/+page.svelte` (l. 124-127, 478-511)                                                                                                                                                                                                              | Boutons et sous-formulaires Z57/Z50/TGV/UFR                                                                                                                                              |
+| Quêtes               | `src/lib/core/quests.ts`                                                                                                                                                                                                                                                 | Q3/Q4 (pancartes) s'appuient sur `isStopSign` donc sur le schéma FR ; Q7 cherche « Voie 1 » dans `name`/`ref` (motif français)                                                           |
+| Textes               | `src/routes/+page.svelte` (« Explorez les gares de France »), `gares/+page.svelte` (« gares et haltes de France », `toLocaleString('fr-FR')`), `a-propos`, `mentions-legales` (« pas un service de la SNCF »), `donnees-personnelles` (« IGN – Géoplateforme (France) ») | Textes en dur, en français                                                                                                                                                               |
+| Traduction           | —                                                                                                                                                                                                                                                                        | Le dossier d'architecture (§ 9.2) prévoit Paraglide et `messages/fr.json`/`en.json`, **mais aucun dossier `messages/` n'existe** : toutes les chaînes sont en dur dans les composants    |
+| Docs                 | `README.md`, `docs/osm-tags-rapport.md`                                                                                                                                                                                                                                  | Périmètre déclaré « gares du réseau ferré français »                                                                                                                                     |
 
 Ce qui est **déjà neutre** et se réutilise tel quel : modèle OSM (`osm.ts` hors pancartes), géométrie (`geo.ts`, `draw.ts`, `shape.ts`), quêtes Q0, Q1, Q2, Q5, Q6 (quais, `ref`, `local_ref`, `railway:track_ref`, vérification), file d'envoi et changesets (`upload.ts`, hors deux valeurs), OAuth2, lecture API OSM 0.6 (`osmapi.ts`), téléchargement hors-ligne (calcul des tuiles en Web Mercator).
 
@@ -235,35 +235,35 @@ Principe : **un pays = un fichier de configuration typé + un module de schéma 
 ```ts
 // src/lib/core/countries.ts (nouveau, code pur)
 export interface ImageryConfig {
-  id: string;                  // 'ign-bdortho', 'swisstopo-swissimage'
-  tileUrl: string;             // gabarit {z}/{x}/{y}
-  maxZoom: number;             // 19 (IGN) ; à mesurer pour swisstopo
-  avgTileBytes: number;        // mesuré
-  origin: string;              // pour la CSP et le service worker
-  attribution: string;         // texte affiché sur la carte
-  imageryUsed: string;         // valeur du tag de changeset imagery_used
-  licenceText: string;         // pages À propos / Mentions
-  bounds: BBox;                // emprise couverte (repli hors emprise)
-  maxParallel: number;         // politesse envers le fournisseur
+	id: string; // 'ign-bdortho', 'swisstopo-swissimage'
+	tileUrl: string; // gabarit {z}/{x}/{y}
+	maxZoom: number; // 19 (IGN) ; à mesurer pour swisstopo
+	avgTileBytes: number; // mesuré
+	origin: string; // pour la CSP et le service worker
+	attribution: string; // texte affiché sur la carte
+	imageryUsed: string; // valeur du tag de changeset imagery_used
+	licenceText: string; // pages À propos / Mentions
+	bounds: BBox; // emprise couverte (repli hors emprise)
+	maxParallel: number; // politesse envers le fournisseur
 }
 export interface CountryConfig {
-  code: 'FR' | 'CH';
-  index: string;               // 'data/stations-fr.json', 'data/stations-ch.json'
-  imagery: ImageryConfig;
-  stopSigns: StopSignSchema;   // module de schéma (voir ci-dessous)
-  locale: string;              // 'fr-FR' ; pour CH dépend de la langue de l'UI
-  adminLabel: string;          // 'département' / 'canton'
+	code: 'FR' | 'CH';
+	index: string; // 'data/stations-fr.json', 'data/stations-ch.json'
+	imagery: ImageryConfig;
+	stopSigns: StopSignSchema; // module de schéma (voir ci-dessous)
+	locale: string; // 'fr-FR' ; pour CH dépend de la langue de l'UI
+	adminLabel: string; // 'département' / 'canton'
 }
 ```
 
 ```ts
 // src/lib/core/stopsigns/types.ts
 export interface StopSignSchema {
-  isStopSign(t: Tags): boolean;          // remplace osm.ts isStopSign
-  isLegacy(t: Tags): boolean;
-  label(t: Tags): string;                // remplace features.ts stopSignLabel
-  types: SignTypeDef[];                  // boutons de l'écran de saisie
-  toTags(s: SignInput): Tags;            // remplace edits.ts signTags
+	isStopSign(t: Tags): boolean; // remplace osm.ts isStopSign
+	isLegacy(t: Tags): boolean;
+	label(t: Tags): string; // remplace features.ts stopSignLabel
+	types: SignTypeDef[]; // boutons de l'écran de saisie
+	toTags(s: SignInput): Tags; // remplace edits.ts signTags
 }
 // stopsigns/fr.ts : code actuel déplacé tel quel ; stopsigns/ch.ts : à écrire (§ 4)
 // Si un pays n'a pas de schéma établi, `stopSigns = null` → quêtes Q3/Q4 désactivées.
@@ -288,14 +288,14 @@ Points de conception :
 
 Estimations en jours de développement assisté, à confirmer ; elles supposent les réponses aux questions du § 7.
 
-| Lot | Contenu | Fichiers | Effort |
-| --- | --- | --- | --- |
-| P1 — Refonte « par pays », France seule | `countries.ts`, `stopsigns/fr.ts` (déplacement), imagerie passée en paramètre, service worker et CSP depuis la liste, `imagery_used`/`locale` depuis la config, champ `country` et `admin` dans l'index. **Aucun changement visible**, tous les tests verts. | `tiles.ts`, `style.ts`, 3 cartes, `service-worker.ts`, `offline.svelte.ts`, `vite.config.ts`, `upload.ts`, `send.svelte.ts`, `osm.ts`, `features.ts`, `edits.ts`, `quests.ts`, `saisie/+page.svelte`, `stations.ts`, `build-stations.mjs`, `stations.yml` | 3 à 4 j |
-| P2 — Index suisse | Matrice CI, extrait Geofabrik Suisse découpé au polygone, règles de sélection CH (§ 2), canton par limites OSM, dédoublonnage frontalier, statistiques | `build-stations.mjs`, `stations.yml`, `stations.ts`, page `gares` | 2 j |
-| P3 — Imagerie swisstopo | Config SWISSIMAGE, mesure du zoom et du poids moyen, attribution, pages légales, tests e2e hors-ligne sur une gare suisse | `countries.ts`, `a-propos`, `mentions-legales`, `donnees-personnelles`, tests | 1 à 2 j |
-| P4 — Traduction (allemand, puis italien) | Mise en place Paraglide, extraction de toutes les chaînes, glossaire métier (Gleis/Perron/Sektor), relecture par un germanophone | tous les composants | 5 à 8 j + relecture humaine |
-| P5 — Pancartes suisses | Seulement si un schéma OSM établi existe (§ 4) ; sinon quêtes pancartes désactivées en Suisse | `stopsigns/ch.ts`, saisie, tests | 2 à 3 j, ou 0 |
-| P6 — Ouverture | Message au forum suisse, pilote fermé (liste `pilotUsers` par pays dans `static/config.json`), gares de référence suisses en fixtures | `config.json`, `config.ts`, `fetch-fixtures.mjs` | 1 j + délai communautaire |
+| Lot                                      | Contenu                                                                                                                                                                                                                                                      | Fichiers                                                                                                                                                                                                                                                  | Effort                      |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| P1 — Refonte « par pays », France seule  | `countries.ts`, `stopsigns/fr.ts` (déplacement), imagerie passée en paramètre, service worker et CSP depuis la liste, `imagery_used`/`locale` depuis la config, champ `country` et `admin` dans l'index. **Aucun changement visible**, tous les tests verts. | `tiles.ts`, `style.ts`, 3 cartes, `service-worker.ts`, `offline.svelte.ts`, `vite.config.ts`, `upload.ts`, `send.svelte.ts`, `osm.ts`, `features.ts`, `edits.ts`, `quests.ts`, `saisie/+page.svelte`, `stations.ts`, `build-stations.mjs`, `stations.yml` | 3 à 4 j                     |
+| P2 — Index suisse                        | Matrice CI, extrait Geofabrik Suisse découpé au polygone, règles de sélection CH (§ 2), canton par limites OSM, dédoublonnage frontalier, statistiques                                                                                                       | `build-stations.mjs`, `stations.yml`, `stations.ts`, page `gares`                                                                                                                                                                                         | 2 j                         |
+| P3 — Imagerie swisstopo                  | Config SWISSIMAGE, mesure du zoom et du poids moyen, attribution, pages légales, tests e2e hors-ligne sur une gare suisse                                                                                                                                    | `countries.ts`, `a-propos`, `mentions-legales`, `donnees-personnelles`, tests                                                                                                                                                                             | 1 à 2 j                     |
+| P4 — Traduction (allemand, puis italien) | Mise en place Paraglide, extraction de toutes les chaînes, glossaire métier (Gleis/Perron/Sektor), relecture par un germanophone                                                                                                                             | tous les composants                                                                                                                                                                                                                                       | 5 à 8 j + relecture humaine |
+| P5 — Pancartes suisses                   | Seulement si un schéma OSM établi existe (§ 4) ; sinon quêtes pancartes désactivées en Suisse                                                                                                                                                                | `stopsigns/ch.ts`, saisie, tests                                                                                                                                                                                                                          | 2 à 3 j, ou 0               |
+| P6 — Ouverture                           | Message au forum suisse, pilote fermé (liste `pilotUsers` par pays dans `static/config.json`), gares de référence suisses en fixtures                                                                                                                        | `config.json`, `config.ts`, `fetch-fixtures.mjs`                                                                                                                                                                                                          | 1 j + délai communautaire   |
 
 ---
 
@@ -314,17 +314,17 @@ Ce qui rend l'ouverture **non triviale** n'est pas technique : c'est la **langue
 
 ### 7.2 Risques
 
-| Risque | Gravité | Parade |
-| --- | --- | --- |
-| CORS absent sur `wmts.geo.admin.ch` | Bloquant pour la carte et le hors-ligne | Test d'une minute dans le navigateur (§ 1.2) **avant tout développement** ; si absent, demander à swisstopo plutôt que monter un proxy (pas de serveur dans l'architecture) |
-| Zoom maximal 3857 limité à 18 | Moyen (tracé des quais moins précis) | Mesurer ; si 18, accepter l'agrandissement ou envisager l'usage de la grille suisse (lourd, non recommandé) |
-| Cache hors-ligne jugé contraire au fair use | Faible (usage humain, quelques centaines de tuiles) | Débit limité (4 requêtes parallèles comme pour l'IGN), téléchargement uniquement à la demande d'un humain ; écrire à `info@geo.admin.ch` pour faire confirmer cet usage |
-| Rejet communautaire (appli « étrangère », non traduite, vocabulaire français) | Élevé | Message préalable au forum, pilote fermé, interface en allemand avant l'ouverture publique |
-| Mauvais libellés (Gleis/Perron/Sektor) → données fausses | Moyen | Glossaire relu par un contributeur suisse germanophone ; Q7 étendue |
-| Confusion secteurs A-D / numéros de voie | Moyen | Texte d'aide explicite ; jamais de lettre seule dans `ref` du quai en Suisse sans confirmation |
-| Divergence d'usage réel (`local_ref`, `track_ref`) non mesurée | Moyen | Mesure Overpass avant P2 ; ajuster les quêtes si l'usage suisse diffère |
-| Doublons de gares frontalières | Faible | Découpe au polygone + dédoublonnage par identifiant |
-| Évolution FDV (renumérotation des signaux) | Faible | Suivre la page ORM suisse ; schéma isolé dans `stopsigns/ch.ts` |
+| Risque                                                                        | Gravité                                             | Parade                                                                                                                                                                      |
+| ----------------------------------------------------------------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CORS absent sur `wmts.geo.admin.ch`                                           | Bloquant pour la carte et le hors-ligne             | Test d'une minute dans le navigateur (§ 1.2) **avant tout développement** ; si absent, demander à swisstopo plutôt que monter un proxy (pas de serveur dans l'architecture) |
+| Zoom maximal 3857 limité à 18                                                 | Moyen (tracé des quais moins précis)                | Mesurer ; si 18, accepter l'agrandissement ou envisager l'usage de la grille suisse (lourd, non recommandé)                                                                 |
+| Cache hors-ligne jugé contraire au fair use                                   | Faible (usage humain, quelques centaines de tuiles) | Débit limité (4 requêtes parallèles comme pour l'IGN), téléchargement uniquement à la demande d'un humain ; écrire à `info@geo.admin.ch` pour faire confirmer cet usage     |
+| Rejet communautaire (appli « étrangère », non traduite, vocabulaire français) | Élevé                                               | Message préalable au forum, pilote fermé, interface en allemand avant l'ouverture publique                                                                                  |
+| Mauvais libellés (Gleis/Perron/Sektor) → données fausses                      | Moyen                                               | Glossaire relu par un contributeur suisse germanophone ; Q7 étendue                                                                                                         |
+| Confusion secteurs A-D / numéros de voie                                      | Moyen                                               | Texte d'aide explicite ; jamais de lettre seule dans `ref` du quai en Suisse sans confirmation                                                                              |
+| Divergence d'usage réel (`local_ref`, `track_ref`) non mesurée                | Moyen                                               | Mesure Overpass avant P2 ; ajuster les quêtes si l'usage suisse diffère                                                                                                     |
+| Doublons de gares frontalières                                                | Faible                                              | Découpe au polygone + dédoublonnage par identifiant                                                                                                                         |
+| Évolution FDV (renumérotation des signaux)                                    | Faible                                              | Suivre la page ORM suisse ; schéma isolé dans `stopsigns/ch.ts`                                                                                                             |
 
 ### 7.3 Prérequis, dans l'ordre
 

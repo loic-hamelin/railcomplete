@@ -1,8 +1,11 @@
 <script lang="ts">
 	// Carte du dessin de quai (E11) et de la modification d'un quai (E12) : la croix reste au
 	// centre, la carte glisse dessous. Affiche les voies, les quais existants et le contour en
-	// cours ; les sommets se touchent. En E12 : contour toujours fermé, sommets verrouillés
-	// (carrés), repères « + » au milieu des côtés, ancienne ligne en pointillés.
+	// cours ; les sommets se touchent. En E12 : contour toujours fermé, sommets partagés avec
+	// d'autres objets (rond à point central), sommets fixes (carrés, rares), repères « + » au
+	// milieu des côtés, ancienne ligne en pointillés.
+	// Vue : celle de l'écran précédent si elle est fournie (zoom de l'utilisateur conservé),
+	// sinon cadrée sur le quai. Sélectionner un point ne change jamais le zoom.
 	import 'maplibre-gl/dist/maplibre-gl.css';
 	import type { LonLat } from '#lib/core/draw.js';
 	import { IGN_MAX_ZOOM, IGN_TILE_URL } from '#lib/core/tiles.js';
@@ -29,12 +32,13 @@
 		snapped = false,
 		closed = false,
 		locked = [],
-		edge = [],
+		shared = [],
 		vertexLabel,
 		midpoints = false,
 		guide,
 		anchors = [],
 		bounds,
+		view,
 		onmove,
 		onvertex,
 		onmidpoint,
@@ -51,10 +55,10 @@
 		snapped?: boolean;
 		/** E12 : le contour est toujours fermé (pas de côté en cours vers la croix). */
 		closed?: boolean;
-		/** Sommets reliés à d'autres objets : affichés carrés, jamais déplacés. */
+		/** Sommets fixes (point répété, point relié en « redessiner en surface ») : carrés. */
 		locked?: boolean[];
-		/** Sommets partagés avec le bord du quai : déplaçables (le bord suit), style distinct. */
-		edge?: boolean[];
+		/** Sommets partagés avec d'autres objets : déplaçables (ils suivent), style distinct. */
+		shared?: boolean[];
 		vertexLabel?: (i: number) => string;
 		/** Repères « + » au milieu des côtés (insérer un point). */
 		midpoints?: boolean;
@@ -62,9 +66,12 @@
 		guide?: LonLat[];
 		/** Points de l'ancienne forme qu'on peut reprendre dans le contour (verrouillés). */
 		anchors?: { at: LonLat; label: string }[];
-		/** Vue initiale : emprise à montrer entièrement. */
+		/** Vue initiale : emprise à montrer entièrement (sans `view`, ou si elle est hors écran). */
 		bounds?: [LonLat, LonLat];
-		onmove: (c: LonLat) => void;
+		/** Vue initiale reprise de l'écran précédent (centre et zoom exacts). */
+		view?: { center: LonLat; zoom: number };
+		/** Fin de chaque déplacement : centre (sous la croix) et zoom. */
+		onmove: (c: LonLat, zoom: number) => void;
 		onvertex: (i: number) => void;
 		onmidpoint?: (i: number) => void;
 		onanchor?: (i: number) => void;
@@ -168,7 +175,7 @@
 			points,
 			selected,
 			locked,
-			edge,
+			shared,
 			closed,
 			[...room],
 			anchors,
@@ -184,7 +191,7 @@
 				const el = document.createElement(r ? 'button' : 'div');
 				el.dataset.point = String(i + 1);
 				const closing = !closed && i === 0 && points.length >= 3;
-				el.className = `rc-vertex${i === 0 && !closed ? ' first' : ''}${i === selected ? ' selected' : ''}${closing ? ' closing' : ''}${locked[i] ? ' locked' : ''}${edge[i] ? ' edge' : ''}${r ? '' : ' crowded'}`;
+				el.className = `rc-vertex${i === 0 && !closed ? ' first' : ''}${i === selected ? ' selected' : ''}${closing ? ' closing' : ''}${locked[i] ? ' locked' : shared[i] ? ' shared' : ''}${r ? '' : ' crowded'}`;
 				const dot = document.createElement('span');
 				dot.textContent = String(i + 1);
 				el.append(dot);
@@ -279,7 +286,6 @@
 		const mpp = (156543.03392 * Math.cos((lat * Math.PI) / 180)) / 2 ** map.getZoom();
 		map.panBy([(dx * m) / mpp, (dy * m) / mpp], { duration: 0 });
 	}
-	/** Place la croix sur ce point (sélection d'un sommet en E12). */
 	/** Position à l'écran (px) d'un point, par rapport à la croix (centre de la carte). */
 	export function fromCross(p: LonLat): { x: number; y: number } | undefined {
 		if (!map) return undefined;
@@ -287,8 +293,17 @@
 			c = map.project(map.getCenter());
 		return { x: a.x - c.x, y: a.y - c.y };
 	}
+	/**
+	 * Place la croix sur ce point (sélection d'un sommet en E12) en faisant glisser la carte,
+	 * sans jamais changer le zoom ; rien si le point est déjà sous la croix. Glissement court,
+	 * immédiat si l'utilisateur a demandé moins d'animations.
+	 */
 	export function centerOn(p: LonLat) {
-		map?.jumpTo({ center: p });
+		if (!map) return;
+		const d = fromCross(p);
+		if (d && Math.hypot(d.x, d.y) < 1) return;
+		const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+		map.easeTo({ center: p, zoom: map.getZoom(), duration: still ? 0 : 200 });
 	}
 	export function zoom(d: number) {
 		map?.zoomTo(map.getZoom() + d, { duration: 0 });
@@ -304,9 +319,9 @@
 				const round = { 'line-join': 'round', 'line-cap': 'round' } as const;
 				map = new lib.Map({
 					container,
-					center,
-					zoom: 18,
-					...(bounds ? { bounds, fitBoundsOptions: { padding: 72, maxZoom: 20 } } : {}),
+					center: view?.center ?? center,
+					zoom: view?.zoom ?? 18,
+					...(bounds && !view ? { bounds, fitBoundsOptions: { padding: 72, maxZoom: 20 } } : {}),
 					maxZoom: 22,
 					minZoom: 15,
 					pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
@@ -314,6 +329,9 @@
 					dragRotate: false,
 					pitchWithRotate: false,
 					touchPitch: false,
+					// Toucher deux sommets coup sur coup ne doit pas zoomer (le zoom reste celui
+					// de l'utilisateur : boutons +/− ou pincement).
+					doubleClickZoom: false,
 					fadeDuration: 0,
 					style: {
 						version: 8,
@@ -453,12 +471,19 @@
 						]
 					}
 				});
+				// Vue reprise de l'écran précédent, mais quai entièrement hors écran : on le cadre.
+				if (view && bounds) {
+					const b = map.getBounds();
+					const [[w, s], [e, n]] = bounds;
+					if (e < b.getWest() || w > b.getEast() || n < b.getSouth() || s > b.getNorth())
+						map.fitBounds(bounds, { padding: 72, maxZoom: 20, duration: 0 });
+				}
 				const el = document.createElement('div');
 				el.className = 'rc-preview';
 				previewMarker = new lib.Marker({ element: el });
 				const move = () => {
 					const c = map!.getCenter();
-					onmove([c.lng, c.lat]);
+					onmove([c.lng, c.lat], map!.getZoom());
 				};
 				map.on('moveend', move);
 				// Les cibles (taille, repères « + ») dépendent des distances à l'écran.
@@ -496,7 +521,7 @@
 		void selected;
 		void preview;
 		void locked.join();
-		void edge.join();
+		void shared.join();
 		void anchors.length;
 		refresh();
 	});
@@ -517,6 +542,9 @@
 	.wrap {
 		position: relative;
 		height: 100%;
+		/* Contexte d'empilement propre : les repères MapLibre (z-index internes) restent sous
+		   les menus flottants de la page, quel que soit leur z-index. */
+		isolation: isolate;
 	}
 	.map {
 		position: absolute;
@@ -569,7 +597,7 @@
 		height: 14px;
 		background: #fff700;
 	}
-	/* Sommet verrouillé (relié à un autre objet) : carré sombre cerclé de blanc. */
+	/* Sommet fixe (point répété, point relié en « redessiner en surface ») : carré sombre. */
 	:global(.rc-vertex.locked > span) {
 		width: 11px;
 		height: 11px;
@@ -586,12 +614,17 @@
 	:global(.rc-vertex.crowded) {
 		pointer-events: none;
 	}
-	/* Sommet partagé avec le bord du quai : rond blanc à double filet (le bord suit). */
-	:global(.rc-vertex.edge > span) {
-		box-shadow:
-			0 0 0 1.5px #14110e,
-			0 0 0 3px #fff,
-			0 0 0 4px #14110e;
+	/* Sommet partagé avec d'autres objets (gare, toit, bord du quai…) : rond blanc à point
+	   central sombre, discret ; déplaçable, les objets qui le partagent suivent. */
+	:global(.rc-vertex.shared > span) {
+		width: 11px;
+		height: 11px;
+		background: radial-gradient(circle, #14110e 0 2px, #fff 2.5px);
+	}
+	:global(.rc-vertex.shared.selected > span) {
+		width: 14px;
+		height: 14px;
+		background: radial-gradient(circle, #14110e 0 2.5px, #fff700 3px);
 	}
 	/* Point reprenable de l'ancienne ligne : carré clair en pointillés. */
 	:global(.rc-vertex.anchor > span) {

@@ -1,7 +1,9 @@
 <script lang="ts">
 	// E12 — Modifier la forme d'un quai existant, ou redessiner en surface un quai tracé en
 	// ligne (lot 7). Même carte que E11 : croix fixe, carte qui glisse, pavé de flèches.
-	// Le way garde son identifiant ; les points reliés à d'autres objets ne bougent jamais.
+	// Le way garde son identifiant. Un point partagé avec d'autres objets peut être déplacé
+	// (lot 7c) : c'est le même nœud, ils suivent — l'appli le dit avant ; retiré, il quitte
+	// seulement ce quai. La vue (centre, zoom) vient de la carte de la gare et y retourne.
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
@@ -11,12 +13,17 @@
 	import { OsmData, isPlatform, isRail, type OsmNode, type OsmWay } from '#lib/core/osm.js';
 	import {
 		checkLocks,
+		followers,
+		followersPhrase,
 		isFixed,
+		isLinked,
 		listFr,
-		lockNotice,
 		platformName,
 		platformShape,
+		pointInfo,
 		samePlace,
+		sharedLabel,
+		shareNotice,
 		shapeSummary
 	} from '#lib/core/shape.js';
 	import { current, openStation } from '#lib/current.svelte.js';
@@ -35,6 +42,15 @@
 	const id = $derived(mounted ? (page.url.searchParams.get('id') ?? '') : '');
 	const osm = $derived(mounted ? (page.url.searchParams.get('osm') ?? '') : '');
 	const wayId = $derived(/^way\/\d+$/.test(osm) ? Number(osm.slice(4)) : undefined);
+	// Vue de la carte de la gare (E5) au moment d'ouvrir cet écran : reprise telle quelle.
+	const startView = $derived.by(() => {
+		if (!mounted) return undefined;
+		const z = Number(page.url.searchParams.get('z'));
+		const c = (page.url.searchParams.get('c') ?? '').split(',').map(Number);
+		return z > 0 && c.length === 2 && c.every(Number.isFinite)
+			? { center: [c[0], c[1]] as LonLat, zoom: z }
+			: undefined;
+	});
 	$effect(() => {
 		const gare = id;
 		if (gare) untrack(() => openStation(gare));
@@ -61,7 +77,14 @@
 		previous?.mode ?? (info && !info.closed ? 'area' : 'reshape')
 	);
 	const name = $derived(platformName(info?.way.tags));
-	const back = $derived(resolve(`/gare/carte?id=${encodeURIComponent(id)}&focus=${osm}`));
+	let centerNow = $state<LonLat | undefined>();
+	let zoomNow = $state<number | undefined>();
+	// Retour à la carte de la gare avec la vue de cet écran (centre et zoom).
+	const back = $derived(
+		resolve(
+			`/gare/carte?id=${encodeURIComponent(id)}&focus=${osm}${centerNow && zoomNow ? `&z=${zoomNow.toFixed(2)}&c=${centerNow.map((v) => v.toFixed(7)).join(',')}` : ''}`
+		)
+	);
 
 	const nodes = $derived(
 		new Map(
@@ -90,7 +113,8 @@
 	let pts = $state<RingNode[]>([]);
 	let history = $state<RingNode[][]>([]);
 	let selected = $state<number | undefined>();
-	let centerNow = $state<LonLat | undefined>();
+	/** Dernière action et ses conséquences, affichée en clair (« il reste dans la gare »). */
+	let lastNote = $state('');
 	let errors = $state<string[]>([]);
 	let said = $state('');
 	let saving = $state(false);
@@ -118,23 +142,30 @@
 	});
 
 	const orig = $derived(new Map((info?.nodes ?? []).map((n) => [n.id, n])));
-	// Verrouillé : ne bouge pas (en « redessiner en surface », les points du bord du quai aussi).
+	// Fixe : point répété dans le contour, ou point relié en « redessiner en surface ».
 	const locked = $derived(
 		pts.map((p) => {
 			const o = orig.get(p.id);
 			return !!o && isFixed(o, mode);
 		})
 	);
-	// Partagé seulement avec le bord du quai : déplaçable (le bord suit), jamais retiré.
+	// Partagé avec d'autres objets : déplaçable (ils suivent) ; retiré, il quitte le quai seul.
+	const shared = $derived(
+		pts.map((p, i) => {
+			const o = orig.get(p.id);
+			return !!o && !locked[i] && isLinked(o);
+		})
+	);
+	// Partagé avec un bord de quai : déplaçable, jamais retiré.
 	const edge = $derived(pts.map((p) => mode === 'reshape' && !!orig.get(p.id)?.edge));
 	const linksOf = (i: number) => listFr(orig.get(pts[i]?.id)?.links ?? ['autre objet']);
-	const notice = $derived(info && !noticeClosed ? lockNotice(info.nodes) : '');
-	/** Sommet lisible au lecteur d'écran, avec la raison du verrou. */
+	const notice = $derived(info && !noticeClosed ? shareNotice(info.nodes) : '');
+	/** Sommet lisible au lecteur d'écran : ce qu'il partage, ou la raison du verrou. */
 	const vertexLabel = (i: number) =>
 		locked[i]
 			? `Point ${i + 1} : relié à d’autres objets (${linksOf(i)}), non modifiable`
-			: edge[i]
-				? `Point ${i + 1} : partagé avec le bord du quai, le sélectionner`
+			: shared[i]
+				? `Point ${i + 1} : ${sharedLabel(orig.get(pts[i].id)!)}, le sélectionner`
 				: `Point ${i + 1} : le sélectionner`;
 	const ring = $derived(pts.map((p) => [p.lon, p.lat] as LonLat));
 	const snap = $derived(
@@ -169,6 +200,12 @@
 	const sel = $derived(selected !== undefined ? pts[selected] : undefined);
 	const selLocked = $derived(selected !== undefined && locked[selected]);
 	const selEdge = $derived(selected !== undefined && edge[selected]);
+	/** Ce qui suivra le déplacement du point sélectionné, et ce que ferait son retrait. */
+	const selInfo = $derived(
+		selected !== undefined && shared[selected]
+			? pointInfo(orig.get(pts[selected].id))
+			: { move: '', remove: '' }
+	);
 	/** Rayon de prise à la croix, à l'écran (px). */
 	const PICK_PX = 24;
 	const m = (v: number) => `${Math.round(v)} m`;
@@ -178,22 +215,26 @@
 		pts = next;
 		errors = [];
 		said = message;
+		lastNote = '';
 	}
 	const snapped = (p: LonLat) => snapToEdge(p, railWays, (i) => nodes.get(i))?.point ?? p;
 
 	function vertex(i: number) {
 		errors = [];
+		lastNote = '';
 		if (selected === i) {
 			selected = undefined;
 			said = `Point ${i + 1} désélectionné.`;
 			return;
 		}
 		selected = i;
+		// La croix vient sur le point : la carte glisse, le zoom ne change pas.
 		mapRef?.centerOn([pts[i].lon, pts[i].lat]);
+		const o = orig.get(pts[i].id);
 		said = locked[i]
 			? `Point ${i + 1} : relié à ${linksOf(i)}, il reste en place.`
-			: edge[i]
-				? `Point ${i + 1} sélectionné : il est aussi sur le bord du quai, qui suivra.`
+			: shared[i] && o
+				? `Point ${i + 1} sélectionné. ${pointInfo(o).move}`
 				: `Point ${i + 1} sélectionné : il est sous la croix.`;
 	}
 
@@ -215,7 +256,9 @@
 			.filter((c) => c.px <= PICK_PX)
 			.sort((x, y) => x.px - y.px);
 		if (a.length) return anchor(a[0].i);
-		errors = ['Placez la croix sur un point du quai, puis « Prendre ce point ».'];
+		errors = [
+			'Aucun point sous la croix : amenez la croix sur un point du quai (rond blanc), ou touchez directement le point.'
+		];
 		said = errors[0];
 	}
 
@@ -266,16 +309,24 @@
 		const i = selected;
 		const next = [...pts];
 		next[i] = { ...next[i], lon: preview[0], lat: preview[1] };
-		commit(next, `Point ${i + 1} déplacé${snap ? ', accroché au bord de la voie' : ''}.`);
+		const o = orig.get(next[i].id);
+		const also = o && isLinked(o) ? followersPhrase(followers([o], [next[i]])) : '';
+		commit(
+			next,
+			`Point ${i + 1} déplacé${snap ? ', accroché au bord de la voie' : ''}${also ? ` : ${also}` : ''}.`
+		);
+		if (also) lastNote = `Point ${i + 1} déplacé : ${also}.`;
 		selected = undefined;
 	}
 	function removePoint() {
 		if (selected === undefined || selLocked || selEdge || pts.length <= 3) return;
 		const i = selected;
+		const kept = shared[i] ? pointInfo(orig.get(pts[i].id)).remove : '';
 		commit(
 			pts.filter((_, k) => k !== i),
-			`Point ${i + 1} retiré.`
+			`Point ${i + 1} retiré du quai.${kept ? ` ${kept}` : ''}`
 		);
+		if (kept) lastNote = `Point ${i + 1} retiré du quai. ${kept}`;
 		selected = undefined;
 	}
 	function addPoint() {
@@ -322,10 +373,9 @@
 		}
 		saving = true;
 		try {
-			const edgeMoved = pts.filter(
-				(p) => orig.get(p.id)?.edge && !samePlace(p, orig.get(p.id)!)
-			).length;
-			const summary = shapeSummary(name, mode, info.nodes.length, pts.length, edgeMoved);
+			// Objets qui suivent les points partagés déplacés : dits dans le résumé (E8, E9).
+			const also = followersPhrase(followers(info.nodes, pts));
+			const summary = shapeSummary(name, mode, info.nodes.length, pts.length, also);
 			await saveEdit({
 				kind: 'shape',
 				id: newEditId(),
@@ -356,12 +406,18 @@
 
 <div class="screen" data-map-scope>
 	<!-- data-center : centre visé, lu par les tests pour attendre la fin d'un déplacement. -->
-	<div class="mapbox" data-center={centerNow?.map((v) => v.toFixed(7)).join(',')}>
+	<!-- data-zoom : zoom de la carte, lu par les tests (vue reprise de E5, zoom conservé). -->
+	<div
+		class="mapbox"
+		data-center={centerNow?.map((v) => v.toFixed(7)).join(',')}
+		data-zoom={zoomNow?.toFixed(2)}
+	>
 		{#if view && ready && info && isQuai && !info.refused}
 			<DrawMap
 				bind:this={mapRef}
 				center={[ready.station.lon, ready.station.lat]}
 				{bounds}
+				view={startView}
 				tracks={trackLines}
 				platforms={platformRings}
 				points={ring}
@@ -370,12 +426,15 @@
 				snapped={!!snap}
 				closed
 				{locked}
-				{edge}
+				{shared}
 				{vertexLabel}
 				midpoints={mode === 'reshape' || pts.length >= 3}
 				{guide}
 				{anchors}
-				onmove={(c) => (centerNow = c)}
+				onmove={(c, z) => {
+					centerNow = c;
+					zoomNow = z;
+				}}
 				onvertex={vertex}
 				onmidpoint={midpoint}
 				onanchor={anchor}
@@ -415,9 +474,6 @@
 					{#if sel && selLocked}
 						Le point {selected! + 1} est relié à : <strong>{linksOf(selected!)}</strong>. Il reste
 						en place ; corrigez-le avec JOSM ou iD, ou ajoutez des points autour.
-					{:else if sel && selEdge}
-						Le <strong>point {selected! + 1}</strong> est aussi un point du bord du quai : le déplacer
-						déplace aussi le bord. Il ne peut pas être retiré.
 					{:else if sel}
 						Faites glisser la carte jusqu’au nouvel emplacement du <strong
 							>point {selected! + 1}</strong
@@ -426,13 +482,24 @@
 						Faites le tour du quai, coin après coin ; l’ancienne ligne est en pointillés.
 						{#if anchorNodes.length}Touchez ses points carrés pour les reprendre.{/if}
 					{:else}
-						Placez la croix sur un point (ou touchez-le), ou sur un côté pour en ajouter un. Les
-						points carrés sont reliés à d’autres objets.
+						Placez la croix sur un point (ou touchez-le), ou sur un côté pour en ajouter un.
+						{#if info.nodes.some(isLinked)}Les points à cœur sombre sont partagés avec d’autres
+							objets.{/if}
 					{/if}
 				</p>
+				{#if sel && (selInfo.move || selInfo.remove)}
+					<!-- Ce qui suivra : dit avant de valider, sans bloquer. -->
+					<p class="share" role="note">
+						<Icon name="info" size={16} /><span>{selInfo.move} {selInfo.remove}</span>
+					</p>
+				{:else if !sel && lastNote}
+					<p class="share" role="note">
+						<Icon name="info" size={16} /><span>{lastNote}</span>
+					</p>
+				{/if}
 				{#if notice}
 					<div class="notice" role="note">
-						<Icon name="lock" size={16} /><span>{notice}</span>
+						<Icon name="info" size={16} /><span>{notice}</span>
 						<button class="btn-quiet" type="button" onclick={() => (noticeClosed = true)}
 							>Compris</button
 						>
@@ -675,6 +742,18 @@
 	.cross .btn-sm {
 		flex: 1 1 140px;
 		padding: 0 8px;
+	}
+	.top p.share {
+		display: flex;
+		align-items: flex-start;
+		gap: 6px;
+		margin-top: 6px;
+		color: var(--text);
+	}
+	.share :global(svg) {
+		flex-shrink: 0;
+		margin-top: 2px;
+		color: var(--text-2);
 	}
 	.notice {
 		display: flex;

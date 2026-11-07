@@ -71,15 +71,27 @@ export interface RingNode {
 /** Nœud du quai tel qu'il était sur OpenStreetMap au moment de la saisie (lot 7). */
 export interface OrigNode extends RingNode {
 	version?: number;
-	/** Tagué, partagé avec un autre way ou membre d'une relation : jamais déplacé ni supprimé. */
+	/**
+	 * Ni déplacé ni retiré. Depuis le lot 7c : seulement un point répété dans le contour.
+	 * (Saisies plus anciennes : tout point relié ; elles ne l'ont jamais déplacé ni retiré.)
+	 */
 	locked: boolean;
 	/**
-	 * Partagé uniquement avec des bords de quai (railway=platform_edge), sans tag ni relation :
-	 * déplaçable (le bord suit, c'est le même nœud), jamais retiré du contour (lot 7 suite).
+	 * Relié à d'autres objets (autre way, tags propres, relation) — lot 7c : déplaçable (c'est
+	 * le même nœud : les objets qui le partagent suivent) ; retiré, il quitte seulement ce quai.
+	 */
+	shared?: boolean;
+	/**
+	 * Partagé avec au moins un bord de quai (railway=platform_edge) : déplaçable (le bord suit),
+	 * jamais retiré du contour (le bord deviendrait incohérent avec le quai).
 	 */
 	edge?: boolean;
 	/** À quoi le nœud est relié, en clair (« bord du quai », « toit »…), pour l'expliquer. */
 	links?: string[];
+	/** Objets (ways) qui partagent ce nœud, en clair (« gare », « toit »), sans doublon. */
+	ways?: string[];
+	/** Ce que le nœud est lui-même s'il porte des tags (« ascenseur », « entrée »…). */
+	tag?: string;
 }
 
 /**
@@ -116,6 +128,7 @@ export interface RelationRef {
 }
 
 /** Suppression d'un quai (way) : ses nœuds devenus orphelins sont supprimés avec lui. */
+// (Un nœud relié à d'autres objets, `shared`/`edge`/`locked`, reste : seul le way disparaît.)
 export interface DeleteEdit extends EditBase {
 	kind: 'delete';
 	target: `way/${number}`;

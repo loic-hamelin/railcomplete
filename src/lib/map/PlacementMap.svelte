@@ -241,6 +241,9 @@
 	.wrap {
 		position: relative;
 		height: 100%;
+		/* Contexte d'empilement propre : les repères MapLibre (z-index internes) restent sous
+		   les menus flottants de la page, quel que soit leur z-index. */
+		isolation: isolate;
 	}
 	.map {
 		position: absolute;
