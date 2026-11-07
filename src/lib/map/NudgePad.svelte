@@ -9,49 +9,56 @@
 	const id = $props.id();
 </script>
 
-<button
-	class="toggle float"
-	type="button"
-	aria-expanded={open}
-	aria-controls={id}
-	aria-label="Ajuster au centimètre"
-	title="Ajuster au centimètre"
-	onclick={() => (open = !open)}
->
-	<Icon name={open ? 'close' : 'nudge'} size={20} />
-</button>
+<!-- Le pavé s'ouvre à gauche du bouton, aligné sur son bas : il ne descend jamais plus bas que
+     le bouton, donc jamais sous le panneau d'actions, même sur un petit écran. -->
+<div class="np">
+	<button
+		class="toggle float"
+		type="button"
+		aria-expanded={open}
+		aria-controls={id}
+		aria-label="Ajuster au centimètre"
+		title="Ajuster au centimètre"
+		onclick={() => (open = !open)}
+	>
+		<Icon name={open ? 'close' : 'nudge'} size={20} />
+	</button>
 
-{#if open}
-	<div class="pad float" {id} role="group" aria-label="Déplacer la croix de 20 cm">
-		<button
-			class="u"
-			type="button"
-			aria-label="Déplacer la croix vers le haut"
-			onclick={() => onnudge(0, -1)}><Icon name="arrow-u" size={20} /></button
-		>
-		<button
-			class="l"
-			type="button"
-			aria-label="Déplacer la croix vers la gauche"
-			onclick={() => onnudge(-1, 0)}><Icon name="arrow-l" size={20} /></button
-		>
-		<span class="step" aria-hidden="true">20 cm</span>
-		<button
-			class="r"
-			type="button"
-			aria-label="Déplacer la croix vers la droite"
-			onclick={() => onnudge(1, 0)}><Icon name="arrow-r" size={20} /></button
-		>
-		<button
-			class="d"
-			type="button"
-			aria-label="Déplacer la croix vers le bas"
-			onclick={() => onnudge(0, 1)}><Icon name="arrow-d" size={20} /></button
-		>
-	</div>
-{/if}
+	{#if open}
+		<div class="pad float" {id} role="group" aria-label="Déplacer la croix de 20 cm">
+			<button
+				class="u"
+				type="button"
+				aria-label="Déplacer la croix vers le haut"
+				onclick={() => onnudge(0, -1)}><Icon name="arrow-u" size={20} /></button
+			>
+			<button
+				class="l"
+				type="button"
+				aria-label="Déplacer la croix vers la gauche"
+				onclick={() => onnudge(-1, 0)}><Icon name="arrow-l" size={20} /></button
+			>
+			<span class="step" aria-hidden="true">20 cm</span>
+			<button
+				class="r"
+				type="button"
+				aria-label="Déplacer la croix vers la droite"
+				onclick={() => onnudge(1, 0)}><Icon name="arrow-r" size={20} /></button
+			>
+			<button
+				class="d"
+				type="button"
+				aria-label="Déplacer la croix vers le bas"
+				onclick={() => onnudge(0, 1)}><Icon name="arrow-d" size={20} /></button
+			>
+		</div>
+	{/if}
+</div>
 
 <style>
+	.np {
+		position: relative;
+	}
 	.toggle {
 		width: 44px;
 		height: 44px;
@@ -65,6 +72,9 @@
 		color: var(--primary);
 	}
 	.pad {
+		position: absolute;
+		right: calc(100% + 8px);
+		bottom: 0;
 		display: grid;
 		grid-template-columns: repeat(3, 44px);
 		grid-template-rows: repeat(3, 44px);
