@@ -125,6 +125,20 @@ export function planUpload(edits: Edit[], fresh: OsmElement[]): Plan {
 			? n
 			: undefined;
 	};
+	/**
+	 * Nœud déplaçable sur le serveur : libre, ou (si `edge`) partagé seulement avec des bords
+	 * de quai (railway=platform_edge) — sans tag ni relation dans les deux cas.
+	 */
+	const movableNow = (id: number, owners: number[], edge: boolean) => {
+		const n = byKey.get(`node/${id}`) as OsmNode | undefined;
+		if (!n || hasTags(n.tags) || (relationsOf.get(`node/${id}`) ?? []).length) return undefined;
+		const others = [...(waysOf.get(id) ?? [])].filter((w) => !owners.includes(w));
+		if (!others.length) return n;
+		const edgesOnly = others.every(
+			(w) => (byKey.get(`way/${w}`) as OsmWay | undefined)?.tags?.railway === 'platform_edge'
+		);
+		return edge && edgesOnly ? n : undefined;
+	};
 	const sameVersion = (n: OsmNode, o?: OrigNode) =>
 		o?.version === undefined || n.version === o.version;
 	const conflict = (id: string, reason: string) => plan.conflicts.push({ id, reason });
@@ -206,14 +220,22 @@ export function planUpload(edits: Edit[], fresh: OsmElement[]): Plan {
 			conflict(ed.id, 'Contour du quai invalide.');
 			continue;
 		}
-		// Nœuds déplacés : libres et inchangés sur le serveur. Nœuds retirés : supprimés s'ils
-		// sont libres ; un nœud déjà relié à la saisie est seulement retiré du way.
+		// Nœuds déplacés : libres (ou partagés seulement avec un bord de quai, qui suit) et
+		// inchangés sur le serveur. Nœuds retirés : supprimés s'ils sont libres ; un nœud déjà
+		// relié à la saisie est seulement retiré du way ; un nœud de bord de quai n'est jamais retiré.
+		if (
+			d.removed.some((o) => o.edge) ||
+			(ed.mode === 'area' && d.moved.some((n) => orig.get(n.id)!.edge))
+		) {
+			conflict(ed.id, 'Contour du quai invalide (point du bord du quai retiré ou déplacé).');
+			continue;
+		}
 		let ok = true;
 		const moves: OsmNode[] = [];
 		const drops: OsmNode[] = [];
 		for (const n of d.moved) {
 			const o = orig.get(n.id)!;
-			const now = freeNow(n.id, [id]);
+			const now = movableNow(n.id, [id], !!o.edge);
 			if (o.locked || !now || !sameVersion(now, o)) ok = false;
 			else moves.push({ ...now, lon: n.lon, lat: n.lat });
 		}
@@ -233,10 +255,16 @@ export function planUpload(edits: Edit[], fresh: OsmElement[]): Plan {
 		}
 		for (const n of d.added) plan.create.push({ type: 'node', id: n.id, lat: n.lat, lon: n.lon });
 		const ids = ed.nodes.map((n) => n.id);
-		w.nodes = [...ids, ids[0]];
-		w.tags = changeTags(w.tags, ed.tags);
-		if (ed.mode === 'area') w.tags = { ...w.tags, ...AREA_TAGS };
-		modified.add(ed.target);
+		const nodes = [...ids, ids[0]];
+		let tags = changeTags(w.tags, ed.tags);
+		if (ed.mode === 'area') tags = { ...tags, ...AREA_TAGS };
+		// Way modifié seulement si sa liste de nœuds ou ses tags changent (un point déplacé
+		// seul ne touche que le nœud : le way et le bord de quai restent intacts).
+		if (nodes.join() !== w.nodes.join() || JSON.stringify(tags) !== JSON.stringify(w.tags ?? {})) {
+			w.nodes = nodes;
+			w.tags = tags;
+			modified.add(ed.target);
+		}
 		deleteNodes.push(...drops);
 		sent(ed.id, [ed.target, ...moves.map(key), ...drops.map(key)]);
 	}
@@ -274,7 +302,8 @@ export function planUpload(edits: Edit[], fresh: OsmElement[]): Plan {
 			const now = freeNow(n, [id]);
 			if (now && sameVersion(now, o)) drops.push(now);
 			// Nœud libre à la saisie, devenu relié ou modifié depuis : on ne décide pas à l'aveugle.
-			else if (!o || !o.locked) ok = false;
+			// (Relié à la saisie, bord de quai compris : il reste, seul le way disparaît.)
+			else if (!o || !(o.locked || o.edge)) ok = false;
 		}
 		if (!ok) {
 			conflict(ed.id, NODE_CHANGED);

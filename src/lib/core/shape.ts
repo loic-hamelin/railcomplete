@@ -53,17 +53,80 @@ export function shapeSummary(
 	name: string,
 	mode: 'reshape' | 'area',
 	before: number,
-	after: number
+	after: number,
+	/** Nombre de points partagés avec le bord du quai qui ont été déplacés. */
+	edgeMoved = 0
 ) {
 	return mode === 'area'
 		? `${name} redessiné en surface`
-		: `${name} : forme modifiée (${before} → ${after} points)`;
+		: `${name} : forme modifiée (${before} → ${after} points)${edgeMoved ? ', bord du quai ajusté aussi' : ''}`;
 }
 
 export function deleteSummary(name: string, reason: keyof typeof REASONS, rels: RelationRef[]) {
 	const why = reason === 'duplicate' ? 'en double' : 'n’existe plus';
 	const from = relationsPhrase(rels);
 	return `${name} supprimé (${why})${from ? ` — ${from}` : ''}`;
+}
+
+/** Ce à quoi un way voisin correspond, en clair, pour expliquer un point verrouillé. */
+export function wayLabel(t: Tags = {}) {
+	if (t.railway === 'platform_edge') return 'bord du quai';
+	if (t.building === 'roof' || t['building:part'] === 'roof' || t.roof) return 'toit';
+	if (t.indoor) return 'espace intérieur';
+	if (t.highway === 'steps') return 'escalier';
+	if (['footway', 'path', 'pedestrian', 'corridor', 'cycleway'].includes(t.highway ?? ''))
+		return 'chemin piéton';
+	if (t.highway === 'elevator') return 'ascenseur';
+	if (t.highway) return 'route';
+	if (t.public_transport === 'station' || t.railway === 'station') return 'gare';
+	if (t.building) return 'bâtiment';
+	if (t.railway === 'platform' || t.public_transport === 'platform') return 'autre quai';
+	if (t.railway) return 'voie ou installation ferroviaire';
+	if (t.barrier) return 'clôture ou mur';
+	if (t.landuse || t.amenity || t.area || t.leisure) return 'zone';
+	return 'autre objet';
+}
+
+/** « point avec des informations (ascenseur) » : un nœud qui porte lui-même des tags. */
+export function nodeTagsLabel(t: Tags = {}) {
+	const what =
+		t.highway === 'elevator'
+			? 'ascenseur'
+			: t.entrance || t.door
+				? 'entrée'
+				: t.highway === 'bus_stop'
+					? 'arrêt de bus'
+					: t.barrier
+						? 'barrière'
+						: t.railway
+							? 'élément ferroviaire'
+							: '';
+	return `point avec des informations${what ? ` (${what})` : ''}`;
+}
+
+/** Liste lisible : « toit, bâtiment et chemin piéton ». */
+export const listFr = (items: string[]) =>
+	items.length <= 1 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} et ${items.at(-1)}`;
+
+/**
+ * Bandeau d'ouverture de E12 quand une part notable des points est verrouillée :
+ * « 4 points sur 20 sont reliés à d'autres objets (toit…) : ceux-là se corrigent avec JOSM ou iD. »
+ */
+export function lockNotice(nodes: OrigNode[]) {
+	const locked = nodes.filter((n) => n.locked);
+	if (!locked.length || (locked.length < 3 && locked.length / nodes.length < 0.25)) return '';
+	const freq = new Map<string, number>();
+	for (const n of locked)
+		for (const l of n.links ?? []) if (l !== 'bord du quai') freq.set(l, (freq.get(l) ?? 0) + 1);
+	const top = [...freq].sort((a, b) => b[1] - a[1]).map(([l]) => l);
+	const why = top.length ? ` (${top.slice(0, 2).join(', ')}${top.length > 2 ? '…' : ''})` : '';
+	const edges = nodes.filter((n) => n.edge).length;
+	return (
+		`${locked.length} point${locked.length > 1 ? 's' : ''} sur ${nodes.length} ${locked.length > 1 ? 'sont reliés' : 'est relié'} à d’autres objets${why} : ${locked.length > 1 ? 'ceux-là se corrigent' : 'celui-là se corrige'} avec JOSM ou iD.` +
+		(edges
+			? ` ${edges} point${edges > 1 ? 's' : ''} du bord du quai ${edges > 1 ? 'suivent' : 'suit'} vos déplacements.`
+			: '')
+	);
 }
 
 /** Ce qu'on peut faire d'un quai (way) : contour, nœuds verrouillés, relations, refus. */
@@ -93,13 +156,25 @@ export function platformShape(data: OsmData, wayId: number): PlatformShape | und
 	for (const id of ids) {
 		const n = data.nodes.get(id);
 		if (!n) return undefined; // donnée incomplète : on ne touche à rien
-		const others = (data.waysOfNode.get(id) ?? []).some((w) => w !== wayId);
+		const others = [...new Set(data.waysOfNode.get(id) ?? [])]
+			.filter((w) => w !== wayId)
+			.map((w) => data.ways.get(w));
+		const links: string[] = [];
+		if (hasTags(n.tags)) links.push(nodeTagsLabel(n.tags));
+		for (const w of others) links.push(w ? wayLabel(w.tags) : 'autre objet');
+		if (inRelation.has(id)) links.push('membre d’une relation');
+		if (count.get(id)! > 1) links.push('point répété dans le contour');
+		const uniq = [...new Set(links)];
+		// Partagé seulement avec des bords de quai : déplaçable (le bord suit), pas retirable.
+		const edge = !!others.length && uniq.length === 1 && uniq[0] === 'bord du quai';
 		nodes.push({
 			id,
 			lon: n.lon,
 			lat: n.lat,
 			version: n.version,
-			locked: hasTags(n.tags) || others || inRelation.has(id) || count.get(id)! > 1
+			locked: !!uniq.length && !edge,
+			...(edge ? { edge } : {}),
+			...(uniq.length ? { links: uniq } : {})
 		});
 	}
 	const parents = rels.filter((r) => r.members.some((m) => m.type === 'way' && m.ref === wayId));
@@ -134,27 +209,39 @@ export function shapeDiff(before: OrigNode[], nodes: RingNode[]) {
 	};
 }
 
+/** Point qui ne bouge pas : verrouillé, ou bord de quai en « redessiner en surface ». */
+export const isFixed = (n: OrigNode, mode: 'reshape' | 'area') =>
+	n.locked || (mode === 'area' && !!n.edge);
+
 /**
  * Contrôle de sécurité d'un nouveau contour, avant enregistrement :
- * aucun nœud verrouillé déplacé ; en « reshape », aucun nœud verrouillé retiré ;
- * en « area » (ligne redessinée), tous les nœuds verrouillés de l'ancienne ligne sont repris.
+ * aucun nœud verrouillé déplacé ; en « reshape », aucun nœud verrouillé ou de bord de quai
+ * retiré ; en « area » (ligne redessinée), tous ces nœuds de l'ancienne ligne sont repris tels quels.
  */
 export function checkLocks(before: OrigNode[], nodes: RingNode[], mode: 'reshape' | 'area') {
 	const d = shapeDiff(before, nodes);
 	const pos = (n: OrigNode) => before.indexOf(n) + 1;
-	if (d.foreign.length) return 'Un point vient d’un autre objet : forme refusée.';
-	if (new Set(nodes.map((n) => n.id)).size !== nodes.length)
-		return 'Un point apparaît deux fois dans le contour.';
-	const movedLocked = d.moved.filter((n) => before.find((o) => o.id === n.id)!.locked);
-	if (movedLocked.length) return 'Un point relié à un autre objet a été déplacé : forme refusée.';
-	const lost = d.removed.filter((n) => n.locked);
-	if (!lost.length) return undefined;
-	const list = lost.map(pos);
-	const which =
+	const which = (list: number[]) =>
 		list.length === 1
 			? `Le point ${list[0]}`
 			: `Les points ${list.slice(0, -1).join(', ')} et ${list.at(-1)}`;
-	return mode === 'area'
-		? `${which} de l’ancienne ligne ${list.length > 1 ? 'sont reliés' : 'est relié'} à d’autres objets : ${list.length > 1 ? 'ils doivent' : 'il doit'} faire partie du contour. Touchez ${list.length > 1 ? 'ces points' : 'ce point'} (cadenas) pour ${list.length > 1 ? 'les ajouter' : 'l’ajouter'}, ou utilisez un éditeur comme iD ou JOSM.`
-		: `${which} est relié à un autre objet : il ne peut pas être retiré.`;
+	if (d.foreign.length) return 'Un point vient d’un autre objet : forme refusée.';
+	if (new Set(nodes.map((n) => n.id)).size !== nodes.length)
+		return 'Un point apparaît deux fois dans le contour.';
+	const movedLocked = d.moved.filter((n) =>
+		isFixed(
+			before.find((o) => o.id === n.id)!,
+			mode
+		)
+	);
+	if (movedLocked.length) return 'Un point relié à un autre objet a été déplacé : forme refusée.';
+	const lost = d.removed.filter((n) => isFixed(n, mode) || n.edge);
+	if (!lost.length) return undefined;
+	const list = lost.map(pos);
+	const many = list.length > 1;
+	if (mode === 'area')
+		return `${which(list)} de l’ancienne ligne ${many ? 'sont reliés' : 'est relié'} à d’autres objets : ${many ? 'ils doivent' : 'il doit'} faire partie du contour. Touchez ${many ? 'ces points' : 'ce point'} (carrés) pour ${many ? 'les ajouter' : 'l’ajouter'}, ou utilisez un éditeur comme iD ou JOSM.`;
+	if (lost.every((n) => n.edge))
+		return `${which(list)} ${many ? 'sont aussi des points' : 'est aussi un point'} du bord du quai : ${many ? 'les' : 'le'} retirer du contour ${many ? 'les' : 'le'} laisserait dans le bord. Déplacez-${many ? 'les' : 'le'} plutôt, ou utilisez JOSM ou iD.`;
+	return `${which(list)} ${many ? 'sont reliés' : 'est relié'} à d’autres objets : ${many ? 'ils ne peuvent' : 'il ne peut'} pas être retiré${many ? 's' : ''}.`;
 }

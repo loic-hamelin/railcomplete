@@ -16,6 +16,8 @@ import {
 	COMPLEX,
 	checkLocks,
 	deleteSummary,
+	lockNotice,
+	wayLabel,
 	platformShape,
 	relationsPhrase,
 	shapeDiff,
@@ -441,6 +443,136 @@ describe('parseDiffResult avec suppressions', () => {
 	});
 });
 
+describe('points partagés avec le bord du quai (lot 7 suite)', () => {
+	// Quai 100 (1-2-3-4) ; bord de quai 400 sur 1-2 ; le nœud 2 est aussi sur un toit (500) ;
+	// le nœud 4 est partagé avec un chemin (300).
+	const els = (): OsmElement[] => [
+		...base(),
+		{
+			type: 'way',
+			id: 400,
+			version: 1,
+			nodes: [1, 2],
+			tags: { railway: 'platform_edge', ref: '1' }
+		},
+		{ type: 'way', id: 500, version: 1, nodes: [2, 3], tags: { building: 'roof' } }
+	];
+
+	it('rend déplaçable un point partagé seulement avec un bord de quai ; explique les autres', () => {
+		const n = orig(els());
+		expect(n.map((x) => [x.id, x.locked, !!x.edge])).toEqual([
+			[1, false, true],
+			[2, true, false],
+			[3, true, false],
+			[4, true, false]
+		]);
+		expect(n[0].links).toEqual(['bord du quai']);
+		expect(n[1].links).toEqual(['bord du quai', 'toit']);
+		expect(n[3].links).toEqual(['chemin piéton']);
+	});
+
+	it('libellés lisibles des objets reliés', () => {
+		expect(wayLabel({ railway: 'platform_edge' })).toBe('bord du quai');
+		expect(wayLabel({ building: 'roof' })).toBe('toit');
+		expect(wayLabel({ building: 'yes' })).toBe('bâtiment');
+		expect(wayLabel({ highway: 'footway' })).toBe('chemin piéton');
+		expect(wayLabel({ highway: 'steps' })).toBe('escalier');
+		expect(wayLabel({ indoor: 'room', level: '0' })).toBe('espace intérieur');
+		const tagged = base();
+		(tagged[0] as OsmNode).tags = { highway: 'elevator' };
+		tagged.push({
+			type: 'relation',
+			id: 9,
+			members: [{ type: 'node', ref: 2, role: '' }],
+			tags: { type: 'site' }
+		});
+		const n = orig(tagged);
+		expect(n[0].links).toEqual(['point avec des informations (ascenseur)']);
+		expect(n[1].links).toEqual(['membre d’une relation']);
+	});
+
+	it('bandeau quand une part notable des points est verrouillée', () => {
+		expect(lockNotice(orig(els()))).toBe(
+			'3 points sur 4 sont reliés à d’autres objets (toit, chemin piéton) : ceux-là se corrigent avec JOSM ou iD. 1 point du bord du quai suit vos déplacements.'
+		);
+		expect(lockNotice(orig(base().filter((e) => e.id !== 300)))).toBe('');
+	});
+
+	it('refuse de retirer un point du bord du quai, accepte de le déplacer', () => {
+		const e = els();
+		const before = orig(e);
+		expect(checkLocks(before, [keep(e, 2), keep(e, 3), keep(e, 4)], 'reshape')).toMatch(
+			/Le point 1 est aussi un point du bord du quai/
+		);
+		expect(
+			checkLocks(before, [at(1, 0, 1.5), keep(e, 2), keep(e, 3), keep(e, 4)], 'reshape')
+		).toBeUndefined();
+		// Redessiner en surface : traité comme verrouillé
+		expect(checkLocks(before, [at(1, 0, 1.5), keep(e, 2), keep(e, 3), keep(e, 4)], 'area')).toMatch(
+			/déplacé/
+		);
+	});
+
+	it('envoi : un seul nœud modifié, ni le quai ni le bord de quai', () => {
+		const e = els();
+		const ed = shape(e, [at(1, 0, 1.5), keep(e, 2), keep(e, 3), keep(e, 4)]);
+		const plan = planUpload([ed], e);
+		expect(plan.conflicts).toEqual([]);
+		expect(plan.modify.map((x) => `${x.type}/${x.id}`)).toEqual(['node/1']);
+		expect(plan.create).toEqual([]);
+		expect(plan.delete).toEqual([]);
+		const xml = osmChangeXml(3, plan);
+		expect(xml).not.toContain('<way');
+		expect(plan.touched.s1).toEqual(['way/100', 'node/1']);
+	});
+
+	it('à revoir si le point est devenu partagé avec autre chose qu’un bord de quai', () => {
+		const e = els();
+		const ed = shape(e, [at(1, 0, 1.5), keep(e, 2), keep(e, 3), keep(e, 4)]);
+		const fresh = [...e, { type: 'way', id: 600, nodes: [9, 1], tags: { highway: 'steps' } }];
+		expect(planUpload([ed], fresh as OsmElement[]).conflicts[0].reason).toMatch(/relié/);
+		// Bord de quai devenu autre chose (tags changés) : à revoir aussi
+		const retagged = els().map((x) =>
+			x.id === 400 && x.type === 'way' ? { ...x, tags: { highway: 'footway' } } : x
+		);
+		expect(planUpload([ed], retagged).conflicts).toHaveLength(1);
+		// Un point libre à la saisie, devenu bord de quai : à revoir (règle stricte)
+		const e2 = base();
+		const ed2 = shape(e2, [at(1, 0, 1.5), keep(e2, 2), keep(e2, 3), keep(e2, 4)]);
+		expect(
+			planUpload(
+				[ed2],
+				[...e2, { type: 'way', id: 401, nodes: [1, 9], tags: { railway: 'platform_edge' } }]
+			).conflicts
+		).toHaveLength(1);
+	});
+
+	it('suppression : les points du bord du quai restent, sans « à revoir »', () => {
+		const e = els();
+		const s2 = platformShape(new OsmData(e), 100)!;
+		const plan = planUpload(
+			[
+				{
+					kind: 'delete',
+					id: 'd2',
+					station: 's',
+					createdAt: 0,
+					target: 'way/100',
+					version: 5,
+					reason: 'duplicate',
+					before: s2.nodes,
+					relations: [],
+					name: 'Quai A',
+					summary: ''
+				}
+			],
+			e
+		);
+		expect(plan.conflicts).toEqual([]);
+		expect(plan.delete.map((x) => `${x.type}/${x.id}`)).toEqual(['way/100']);
+	});
+});
+
 describe('Ambérieu-en-Bugey (données réelles)', () => {
 	const els = JSON.parse(readFileSync('tests/fixtures/amberieu-en-bugey.json', 'utf8'))
 		.elements as OsmElement[];
@@ -466,6 +598,19 @@ describe('Ambérieu-en-Bugey (données réelles)', () => {
 				others
 			).errors
 		).toEqual([]);
+	});
+
+	it('quai B-C : points du bord du quai déplaçables, points sous le toit verrouillés', () => {
+		const s = platformShape(data, 1420417938)!;
+		const edge = s.nodes.filter((n) => n.edge).length;
+		const locked = s.nodes.filter((n) => n.locked);
+		expect(s.nodes).toHaveLength(20);
+		expect(edge).toBeGreaterThan(10);
+		expect(locked.length).toBeGreaterThan(0);
+		expect(locked.every((n) => n.links!.includes('toit'))).toBe(true);
+		expect(lockNotice(s.nodes)).toMatch(
+			/sont reliés à d’autres objets \(toit\) : ceux-là se corrigent avec JOSM ou iD/
+		);
 	});
 
 	it('quai D-E-F (multipolygone) : refusé', () => {

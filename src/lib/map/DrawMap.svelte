@@ -7,7 +7,16 @@
 	import type { LonLat } from '#lib/core/draw.js';
 	import { IGN_MAX_ZOOM, IGN_TILE_URL } from '#lib/core/tiles.js';
 	import Reticle from './Reticle.svelte';
-	import { IGN_ATTRIBUTION, MAP, OSM_ATTRIBUTION, QUAI_W, VOIE_W, W, plus } from './style.js';
+	import {
+		IGN_ATTRIBUTION,
+		MAP,
+		OSM_ATTRIBUTION,
+		QUAI_W,
+		VOIE_W,
+		W,
+		avoidBoxes,
+		plus
+	} from './style.js';
 	import { onMount } from 'svelte';
 
 	let {
@@ -20,6 +29,7 @@
 		snapped = false,
 		closed = false,
 		locked = [],
+		edge = [],
 		vertexLabel,
 		midpoints = false,
 		guide,
@@ -43,6 +53,8 @@
 		closed?: boolean;
 		/** Sommets reliés à d'autres objets : affichés carrés, jamais déplacés. */
 		locked?: boolean[];
+		/** Sommets partagés avec le bord du quai : déplaçables (le bord suit), style distinct. */
+		edge?: boolean[];
 		vertexLabel?: (i: number) => string;
 		/** Repères « + » au milieu des côtés (insérer un point). */
 		midpoints?: boolean;
@@ -58,6 +70,8 @@
 		onanchor?: (i: number) => void;
 	} = $props();
 
+	/** Longueur minimale d'un côté à l'écran pour y afficher un repère « + » (px). */
+	const MID_MIN_PX = 48;
 	let container: HTMLDivElement;
 	let map: import('maplibre-gl').Map | undefined;
 	let lib: typeof import('maplibre-gl') | undefined;
@@ -65,6 +79,8 @@
 	let extraMarkers: import('maplibre-gl').Marker[] = [];
 	let lengthMarkers: import('maplibre-gl').Marker[] = [];
 	let previewMarker: import('maplibre-gl').Marker | undefined;
+	let observer: ResizeObserver | undefined;
+	let markerSig = '';
 	let failed = $state('');
 
 	type GJ = import('maplibre-gl').GeoJSONSourceSpecification['data'];
@@ -107,41 +123,115 @@
 		// serait perdu.)
 		if (!map || !lib || !map.getSource('trace')) return;
 		(map.getSource('trace') as import('maplibre-gl').GeoJSONSource).setData(drawing());
-		for (const m of vertexMarkers) m.remove();
-		vertexMarkers = points.map((p, i) => {
-			const el = document.createElement('button');
-			el.type = 'button';
-			const closing = !closed && i === 0 && points.length >= 3;
-			el.className = `rc-vertex${i === 0 && !closed ? ' first' : ''}${i === selected ? ' selected' : ''}${closing ? ' closing' : ''}${locked[i] ? ' locked' : ''}`;
-			const dot = document.createElement('span');
-			dot.textContent = String(i + 1);
-			el.append(dot);
-			el.setAttribute(
-				'aria-label',
-				vertexLabel
-					? vertexLabel(i)
-					: closing
-						? 'Point 1 : fermer le quai'
-						: `Point ${i + 1} : le déplacer`
-			);
-			if (i === selected) el.setAttribute('aria-pressed', 'true');
-			el.addEventListener('click', (e) => {
-				e.stopPropagation();
-				onvertex(i);
-			});
-			return new lib!.Marker({ element: el }).setLngLat(p).addTo(map!);
-		});
-		// E12 : repères « + » au milieu des côtés, points reprenables de l'ancienne ligne.
-		for (const m of extraMarkers) m.remove();
-		extraMarkers = [];
+		// Cibles sans recouvrement (WCAG 2.5.8) : chaque repère prend la place libre autour de
+		// lui (carré de 44 px au plus) ; un sommet trop serré (< 24 px) reste visible mais n'est
+		// pas touchable à ce zoom : on zoome, ou on le prend à la croix (« Prendre ce point »).
+		const placed: { x: number; y: number; r: number }[] = [];
+		// Les menus flottants (data-map-avoid) recouvrent la carte : pas de cible dessous.
+		const boxes = avoidBoxes(container);
+		const claim = (p: LonLat, max: number) => {
+			const q = map!.project(p);
+			let r = max;
+			for (const b of boxes)
+				r = Math.min(r, Math.max(b.x - q.x, q.x - b.x - b.w, b.y - q.y, q.y - b.y - b.h));
+			for (const o of placed)
+				r = Math.min(r, Math.max(Math.abs(q.x - o.x), Math.abs(q.y - o.y)) - o.r);
+			r = Math.floor(r);
+			if (r < 12) return 0;
+			placed.push({ x: q.x, y: q.y, r });
+			return r;
+		};
+		const order = points.map((_, i) => i);
+		if (selected !== undefined)
+			order.sort((a, b) => Number(b === selected) - Number(a === selected));
+		const room = new Map(order.map((i) => [i, claim(points[i], 22)]));
+		const anchorRoom = anchors.map((a) => claim(a.at, 22));
+		const mids: { i: number; at: LonLat; r: number }[] = [];
 		if (midpoints && points.length >= 2) {
 			const sides = closed && points.length >= 3 ? points.length : points.length - 1;
 			for (let i = 0; i < sides; i++) {
 				const a = points[i],
 					b = points[(i + 1) % points.length];
+				// Repère seulement sur un côté assez long à l'écran (sinon les cibles se recouvrent ;
+				// « Ajouter un point ici » à la croix reste toujours possible).
+				const pa = map.project(a),
+					pb = map.project(b);
+				if (Math.hypot(pa.x - pb.x, pa.y - pb.y) < MID_MIN_PX) continue;
+				const at: LonLat = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+				const r = claim(at, 22);
+				if (r) mids.push({ i, at, r });
+			}
+		}
+		// Rien n'a changé pour les repères : on garde les éléments (pas de recréation pendant
+		// qu'on les touche).
+		const sig = JSON.stringify([
+			points,
+			selected,
+			locked,
+			edge,
+			closed,
+			[...room],
+			anchors,
+			anchorRoom,
+			mids,
+			points.map((_, i) => vertexLabel?.(i))
+		]);
+		if (sig !== markerSig) {
+			markerSig = sig;
+			for (const m of vertexMarkers) m.remove();
+			vertexMarkers = points.map((p, i) => {
+				const r = room.get(i)!;
+				const el = document.createElement(r ? 'button' : 'div');
+				el.dataset.point = String(i + 1);
+				const closing = !closed && i === 0 && points.length >= 3;
+				el.className = `rc-vertex${i === 0 && !closed ? ' first' : ''}${i === selected ? ' selected' : ''}${closing ? ' closing' : ''}${locked[i] ? ' locked' : ''}${edge[i] ? ' edge' : ''}${r ? '' : ' crowded'}`;
+				const dot = document.createElement('span');
+				dot.textContent = String(i + 1);
+				el.append(dot);
+				if (!r) {
+					el.setAttribute('aria-hidden', 'true');
+					return new lib!.Marker({ element: el }).setLngLat(p).addTo(map!);
+				}
+				(el as HTMLButtonElement).type = 'button';
+				el.style.width = el.style.height = `${2 * r}px`;
+				el.setAttribute(
+					'aria-label',
+					vertexLabel
+						? vertexLabel(i)
+						: closing
+							? 'Point 1 : fermer le quai'
+							: `Point ${i + 1} : le déplacer`
+				);
+				if (i === selected) el.setAttribute('aria-pressed', 'true');
+				el.addEventListener('click', (e) => {
+					e.stopPropagation();
+					onvertex(i);
+				});
+				return new lib!.Marker({ element: el }).setLngLat(p).addTo(map!);
+			});
+			// E12 : points reprenables de l'ancienne ligne, repères « + » au milieu des côtés.
+			for (const m of extraMarkers) m.remove();
+			extraMarkers = [];
+			anchors.forEach((a, i) => {
+				const r = anchorRoom[i];
+				if (!r) return;
+				const el = document.createElement('button');
+				el.type = 'button';
+				el.className = 'rc-vertex locked anchor';
+				el.style.width = el.style.height = `${2 * r}px`;
+				el.setAttribute('aria-label', a.label);
+				el.append(document.createElement('span'));
+				el.addEventListener('click', (e) => {
+					e.stopPropagation();
+					onanchor?.(i);
+				});
+				extraMarkers.push(new lib!.Marker({ element: el }).setLngLat(a.at).addTo(map!));
+			});
+			for (const { i, at, r } of mids) {
 				const el = document.createElement('button');
 				el.type = 'button';
 				el.className = 'rc-mid';
+				el.style.width = el.style.height = `${2 * r}px`;
 				el.setAttribute(
 					'aria-label',
 					`Ajouter un point entre ${i + 1} et ${((i + 1) % points.length) + 1}`
@@ -151,25 +241,9 @@
 					e.stopPropagation();
 					onmidpoint?.(i);
 				});
-				extraMarkers.push(
-					new lib.Marker({ element: el })
-						.setLngLat([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2])
-						.addTo(map)
-				);
+				extraMarkers.push(new lib.Marker({ element: el }).setLngLat(at).addTo(map));
 			}
 		}
-		anchors.forEach((a, i) => {
-			const el = document.createElement('button');
-			el.type = 'button';
-			el.className = 'rc-vertex locked anchor';
-			el.setAttribute('aria-label', a.label);
-			el.append(document.createElement('span'));
-			el.addEventListener('click', (e) => {
-				e.stopPropagation();
-				onanchor?.(i);
-			});
-			extraMarkers.push(new lib!.Marker({ element: el }).setLngLat(a.at).addTo(map!));
-		});
 		if (preview) previewMarker?.setLngLat(preview).addTo(map);
 		else previewMarker?.remove();
 		// Longueur des côtés (répétée en texte dans le panneau, d'où aria-hidden).
@@ -206,6 +280,13 @@
 		map.panBy([(dx * m) / mpp, (dy * m) / mpp], { duration: 0 });
 	}
 	/** Place la croix sur ce point (sélection d'un sommet en E12). */
+	/** Position à l'écran (px) d'un point, par rapport à la croix (centre de la carte). */
+	export function fromCross(p: LonLat): { x: number; y: number } | undefined {
+		if (!map) return undefined;
+		const a = map.project(p),
+			c = map.project(map.getCenter());
+		return { x: a.x - c.x, y: a.y - c.y };
+	}
 	export function centerOn(p: LonLat) {
 		map?.jumpTo({ center: p });
 	}
@@ -225,7 +306,7 @@
 					container,
 					center,
 					zoom: 18,
-					...(bounds ? { bounds, fitBoundsOptions: { padding: 72, maxZoom: 19 } } : {}),
+					...(bounds ? { bounds, fitBoundsOptions: { padding: 72, maxZoom: 20 } } : {}),
 					maxZoom: 22,
 					minZoom: 15,
 					pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
@@ -380,9 +461,21 @@
 					onmove([c.lng, c.lat]);
 				};
 				map.on('moveend', move);
+				// Les cibles (taille, repères « + ») dépendent des distances à l'écran.
+				map.on('zoomend', refresh);
 				map.on('load', () => {
 					move();
 					refresh();
+					// Un menu flottant change de taille (pavé ouvert, message) : cibles recalculées.
+					const scope = container.closest('[data-map-scope]');
+					if (scope && 'ResizeObserver' in window) {
+						let raf = 0;
+						observer = new ResizeObserver(() => {
+							cancelAnimationFrame(raf);
+							raf = requestAnimationFrame(refresh);
+						});
+						for (const el of scope.querySelectorAll('[data-map-avoid]')) observer.observe(el);
+					}
 				});
 			} catch (e) {
 				failed = 'La carte ne peut pas s’afficher sur cet appareil (WebGL indisponible).';
@@ -391,6 +484,7 @@
 		})();
 		return () => {
 			disposed = true;
+			observer?.disconnect();
 			map?.remove();
 		};
 	});
@@ -402,6 +496,7 @@
 		void selected;
 		void preview;
 		void locked.join();
+		void edge.join();
 		void anchors.length;
 		refresh();
 	});
@@ -486,6 +581,17 @@
 		box-shadow:
 			0 0 0 1.5px #fff,
 			0 0 0 4px #fff700;
+	}
+	/* Sommet trop serré pour être touché à ce zoom : visible, sans cible. */
+	:global(.rc-vertex.crowded) {
+		pointer-events: none;
+	}
+	/* Sommet partagé avec le bord du quai : rond blanc à double filet (le bord suit). */
+	:global(.rc-vertex.edge > span) {
+		box-shadow:
+			0 0 0 1.5px #14110e,
+			0 0 0 3px #fff,
+			0 0 0 4px #14110e;
 	}
 	/* Point reprenable de l'ancienne ligne : carré clair en pointillés. */
 	:global(.rc-vertex.anchor > span) {

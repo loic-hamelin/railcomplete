@@ -73,6 +73,13 @@ export interface OrigNode extends RingNode {
 	version?: number;
 	/** Tagué, partagé avec un autre way ou membre d'une relation : jamais déplacé ni supprimé. */
 	locked: boolean;
+	/**
+	 * Partagé uniquement avec des bords de quai (railway=platform_edge), sans tag ni relation :
+	 * déplaçable (le bord suit, c'est le même nœud), jamais retiré du contour (lot 7 suite).
+	 */
+	edge?: boolean;
+	/** À quoi le nœud est relié, en clair (« bord du quai », « toit »…), pour l'expliquer. */
+	links?: string[];
 }
 
 /**

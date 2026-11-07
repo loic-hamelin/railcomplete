@@ -275,7 +275,7 @@
 				</ul>
 			{/if}
 			{#if deleting && shapeOf}
-				{@const lost = shapeOf.nodes.filter((n) => !n.locked).length}
+				{@const lost = shapeOf.nodes.filter((n) => !n.locked && !n.edge).length}
 				{@const kept = shapeOf.nodes.length - lost}
 				<div class="confirm">
 					<h3>Supprimer ce quai ?</h3>

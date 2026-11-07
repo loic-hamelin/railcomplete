@@ -11,6 +11,9 @@
 	import { OsmData, isPlatform, isRail, type OsmNode, type OsmWay } from '#lib/core/osm.js';
 	import {
 		checkLocks,
+		isFixed,
+		listFr,
+		lockNotice,
 		platformName,
 		platformShape,
 		samePlace,
@@ -95,7 +98,9 @@
 		nudge: (dx: number, dy: number) => void;
 		zoom: (d: number) => void;
 		centerOn: (p: LonLat) => void;
+		fromCross: (p: LonLat) => { x: number; y: number } | undefined;
 	}>();
+	let noticeClosed = $state(false);
 
 	let initFor = '';
 	$effect(() => {
@@ -113,7 +118,24 @@
 	});
 
 	const orig = $derived(new Map((info?.nodes ?? []).map((n) => [n.id, n])));
-	const locked = $derived(pts.map((p) => !!orig.get(p.id)?.locked));
+	// Verrouillé : ne bouge pas (en « redessiner en surface », les points du bord du quai aussi).
+	const locked = $derived(
+		pts.map((p) => {
+			const o = orig.get(p.id);
+			return !!o && isFixed(o, mode);
+		})
+	);
+	// Partagé seulement avec le bord du quai : déplaçable (le bord suit), jamais retiré.
+	const edge = $derived(pts.map((p) => mode === 'reshape' && !!orig.get(p.id)?.edge));
+	const linksOf = (i: number) => listFr(orig.get(pts[i]?.id)?.links ?? ['autre objet']);
+	const notice = $derived(info && !noticeClosed ? lockNotice(info.nodes) : '');
+	/** Sommet lisible au lecteur d'écran, avec la raison du verrou. */
+	const vertexLabel = (i: number) =>
+		locked[i]
+			? `Point ${i + 1} : relié à d’autres objets (${linksOf(i)}), non modifiable`
+			: edge[i]
+				? `Point ${i + 1} : partagé avec le bord du quai, le sélectionner`
+				: `Point ${i + 1} : le sélectionner`;
 	const ring = $derived(pts.map((p) => [p.lon, p.lat] as LonLat));
 	const snap = $derived(
 		centerNow ? snapToEdge(centerNow, railWays, (i) => nodes.get(i)) : undefined
@@ -132,7 +154,7 @@
 	// Redessiner en surface : points reliés de l'ancienne ligne, à reprendre dans le contour.
 	const anchorNodes = $derived(
 		mode === 'area'
-			? (info?.nodes ?? []).filter((n) => n.locked && !pts.some((p) => p.id === n.id))
+			? (info?.nodes ?? []).filter((n) => isFixed(n, 'area') && !pts.some((p) => p.id === n.id))
 			: []
 	);
 	const anchors = $derived(
@@ -146,6 +168,9 @@
 	);
 	const sel = $derived(selected !== undefined ? pts[selected] : undefined);
 	const selLocked = $derived(selected !== undefined && locked[selected]);
+	const selEdge = $derived(selected !== undefined && edge[selected]);
+	/** Rayon de prise à la croix, à l'écran (px). */
+	const PICK_PX = 24;
 	const m = (v: number) => `${Math.round(v)} m`;
 
 	function commit(next: RingNode[], message: string) {
@@ -166,8 +191,65 @@
 		selected = i;
 		mapRef?.centerOn([pts[i].lon, pts[i].lat]);
 		said = locked[i]
-			? `Point ${i + 1} : relié à un autre objet, il reste en place.`
-			: `Point ${i + 1} sélectionné : il est sous la croix.`;
+			? `Point ${i + 1} : relié à ${linksOf(i)}, il reste en place.`
+			: edge[i]
+				? `Point ${i + 1} sélectionné : il est aussi sur le bord du quai, qui suivra.`
+				: `Point ${i + 1} sélectionné : il est sous la croix.`;
+	}
+
+	const pxFromCross = (p: { lon: number; lat: number }) => {
+		const d = mapRef?.fromCross([p.lon, p.lat]);
+		return d ? Math.hypot(d.x, d.y) : Infinity;
+	};
+
+	/** « Prendre ce point » : le sommet le plus proche de la croix (modifiable de préférence). */
+	function pick() {
+		errors = [];
+		const near = pts
+			.map((p, i) => ({ i, px: pxFromCross(p) }))
+			.filter((c) => c.px <= PICK_PX)
+			.sort((a, b) => Number(locked[a.i]) - Number(locked[b.i]) || a.px - b.px);
+		if (near.length) return vertex(near[0].i);
+		const a = anchorNodes
+			.map((n, i) => ({ i, px: pxFromCross(n) }))
+			.filter((c) => c.px <= PICK_PX)
+			.sort((x, y) => x.px - y.px);
+		if (a.length) return anchor(a[0].i);
+		errors = ['Placez la croix sur un point du quai, puis « Prendre ce point ».'];
+		said = errors[0];
+	}
+
+	/** « Ajouter un point ici » : sur le côté le plus proche de la croix, sous la croix. */
+	function addHere() {
+		errors = [];
+		if (!preview || pts.length < 2) return;
+		let best = -1,
+			bestPx = Infinity;
+		const sides = pts.length >= 3 ? pts.length : pts.length - 1;
+		for (let i = 0; i < sides; i++) {
+			const q = pts[(i + 1) % pts.length];
+			const a = mapRef?.fromCross([pts[i].lon, pts[i].lat]);
+			const b = mapRef?.fromCross([q.lon, q.lat]);
+			if (!a || !b) continue;
+			// Distance de la croix (0, 0) au segment AB, en pixels.
+			const ab = { x: b.x - a.x, y: b.y - a.y };
+			const l2 = ab.x ** 2 + ab.y ** 2 || 1;
+			const t = Math.max(0, Math.min(1, -(a.x * ab.x + a.y * ab.y) / l2));
+			const px = Math.hypot(a.x + t * ab.x, a.y + t * ab.y);
+			if (px < bestPx) [best, bestPx] = [i, px];
+		}
+		if (best < 0 || bestPx > PICK_PX) {
+			errors = ['Placez la croix sur un côté du quai, puis « Ajouter un point ici ».'];
+			said = errors[0];
+			return;
+		}
+		const next = [...pts];
+		next.splice(best + 1, 0, { id: nextTempId(), lon: preview[0], lat: preview[1] });
+		commit(
+			next,
+			`Point ${best + 2} ajouté entre ${best + 1} et ${((best + 1) % pts.length) + 1}${snap ? ', accroché au bord de la voie' : ''}.`
+		);
+		selected = best + 1;
 	}
 	function midpoint(i: number) {
 		const a = pts[i],
@@ -188,7 +270,7 @@
 		selected = undefined;
 	}
 	function removePoint() {
-		if (selected === undefined || selLocked || pts.length <= 3) return;
+		if (selected === undefined || selLocked || selEdge || pts.length <= 3) return;
 		const i = selected;
 		commit(
 			pts.filter((_, k) => k !== i),
@@ -240,7 +322,10 @@
 		}
 		saving = true;
 		try {
-			const summary = shapeSummary(name, mode, info.nodes.length, pts.length);
+			const edgeMoved = pts.filter(
+				(p) => orig.get(p.id)?.edge && !samePlace(p, orig.get(p.id)!)
+			).length;
+			const summary = shapeSummary(name, mode, info.nodes.length, pts.length, edgeMoved);
 			await saveEdit({
 				kind: 'shape',
 				id: newEditId(),
@@ -269,7 +354,7 @@
 	></svelte:head
 >
 
-<div class="screen">
+<div class="screen" data-map-scope>
 	<!-- data-center : centre visé, lu par les tests pour attendre la fin d'un déplacement. -->
 	<div class="mapbox" data-center={centerNow?.map((v) => v.toFixed(7)).join(',')}>
 		{#if view && ready && info && isQuai && !info.refused}
@@ -285,10 +370,8 @@
 				snapped={!!snap}
 				closed
 				{locked}
-				vertexLabel={(i) =>
-					locked[i]
-						? `Point ${i + 1} : relié à un autre objet, non modifiable`
-						: `Point ${i + 1} : le sélectionner`}
+				{edge}
+				{vertexLabel}
 				midpoints={mode === 'reshape' || pts.length >= 3}
 				{guide}
 				{anchors}
@@ -318,7 +401,7 @@
 	{/if}
 
 	<div class="stack">
-		<header class="top float">
+		<header class="top float" data-map-avoid>
 			<div class="row">
 				<a class="icon-btn" href={back} aria-label="Quitter sans enregistrer"
 					><Icon name="close" size={22} /></a
@@ -330,8 +413,11 @@
 				<p>
 					<strong>{name}</strong> ·
 					{#if sel && selLocked}
-						Le point {selected! + 1} est relié à un autre objet : il reste en place. Ajoutez des points
-						autour de lui.
+						Le point {selected! + 1} est relié à : <strong>{linksOf(selected!)}</strong>. Il reste
+						en place ; corrigez-le avec JOSM ou iD, ou ajoutez des points autour.
+					{:else if sel && selEdge}
+						Le <strong>point {selected! + 1}</strong> est aussi un point du bord du quai : le déplacer
+						déplace aussi le bord. Il ne peut pas être retiré.
 					{:else if sel}
 						Faites glisser la carte jusqu’au nouvel emplacement du <strong
 							>point {selected! + 1}</strong
@@ -340,14 +426,22 @@
 						Faites le tour du quai, coin après coin ; l’ancienne ligne est en pointillés.
 						{#if anchorNodes.length}Touchez ses points carrés pour les reprendre.{/if}
 					{:else}
-						Touchez un point pour le sélectionner, ou un « + » pour en ajouter un. Les points carrés
-						sont reliés à d’autres objets.
+						Placez la croix sur un point (ou touchez-le), ou sur un côté pour en ajouter un. Les
+						points carrés sont reliés à d’autres objets.
 					{/if}
 				</p>
+				{#if notice}
+					<div class="notice" role="note">
+						<Icon name="lock" size={16} /><span>{notice}</span>
+						<button class="btn-quiet" type="button" onclick={() => (noticeClosed = true)}
+							>Compris</button
+						>
+					</div>
+				{/if}
 			{/if}
 		</header>
 		{#if view && info && !info.refused}
-			<div class="tools">
+			<div class="tools" data-map-avoid>
 				<div class="zoom float">
 					<button type="button" aria-label="Zoomer" onclick={() => mapRef?.zoom(1)}
 						><Icon name="plus" size={20} /></button
@@ -362,7 +456,7 @@
 	</div>
 
 	{#if view && info && isQuai && !info.refused}
-		<section class="panel float" aria-label="Forme du quai">
+		<section class="panel float" aria-label="Forme du quai" data-map-avoid>
 			<div class="info" class:ok={!!snap} role="status">
 				<Icon name={snap ? 'check' : 'locate'} size={20} />
 				<span>
@@ -379,12 +473,27 @@
 				</ul>
 			{/if}
 
+			{#if !sel}
+				<div class="cross">
+					<button
+						class="btn-sm"
+						type="button"
+						disabled={!pts.length && !anchorNodes.length}
+						onclick={pick}><Icon name="locate" size={18} />Prendre ce point</button
+					>
+					{#if mode === 'reshape' || pts.length >= 3}
+						<button class="btn-sm" type="button" disabled={!preview} onclick={addHere}
+							><Icon name="plus" size={18} />Ajouter un point ici</button
+						>
+					{/if}
+				</div>
+			{/if}
 			<div class="two">
 				{#if sel}
 					<button
 						class="btn btn-secondary"
 						type="button"
-						disabled={selLocked || pts.length <= 3}
+						disabled={selLocked || selEdge || pts.length <= 3}
 						onclick={removePoint}><Icon name="trash" size={20} />Retirer ce point</button
 					>
 					<button class="btn" type="button" disabled={selLocked || !preview} onclick={moveHere}
@@ -557,6 +666,34 @@
 	}
 	.two .btn {
 		padding: 0 10px;
+	}
+	.cross {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+	.cross .btn-sm {
+		flex: 1 1 140px;
+		padding: 0 8px;
+	}
+	.notice {
+		display: flex;
+		align-items: flex-start;
+		gap: 6px;
+		margin: 6px 0 0 12px;
+		font-size: 0.875rem;
+		line-height: 1.43;
+		color: var(--text);
+	}
+	.notice :global(svg) {
+		flex-shrink: 0;
+		margin-top: 2px;
+		color: var(--text-2);
+	}
+	.notice .btn-quiet {
+		flex-shrink: 0;
+		min-height: 32px;
+		margin-top: -6px;
 	}
 	.foot {
 		display: flex;

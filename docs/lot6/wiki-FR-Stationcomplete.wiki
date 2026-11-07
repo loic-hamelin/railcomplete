@@ -26,7 +26,7 @@ L'utilisateur choisit une gare. L'appli lit les données de la gare par l'API OS
 |-
 | Quai absent d'OSM (nouveau way fermé) || <code>railway=platform</code>, <code>public_transport=platform</code>, <code>train=yes</code>, <code>area=yes</code> || polygone tracé sur la photo aérienne, bord accroché à 1,5 m de l'axe de la voie ; jamais de nœud partagé avec la voie
 |-
-| Forme d'un quai existant (way) || liste de nœuds du way ; position des nœuds libres déplacés ; nouveaux nœuds ; nœuds libres retirés supprimés || même identifiant de way (historique et relations conservés). Possible à distance, sur la photo aérienne
+| Forme d'un quai existant (way) || liste de nœuds du way ; position des nœuds libres déplacés (et des nœuds partagés seulement avec le bord du quai, qui suit) ; nouveaux nœuds ; nœuds libres retirés supprimés || même identifiant de way (historique et relations conservés). Possible à distance, sur la photo aérienne
 |-
 | Quai tracé en ligne, redessiné en surface || liste de nœuds (contour fermé), <code>area=yes</code> ajouté || même way, autres tags conservés ; les nœuds reliés à d'autres objets sont repris dans le contour
 |-
@@ -47,7 +47,8 @@ L'utilisateur choisit une gare. L'appli lit les données de la gare par l'API OS
 * Envoi transactionnel, sans doublon même après une coupure réseau.
 * Interrupteur d'arrêt d'urgence : l'auteur peut suspendre tous les envois en quelques minutes en cas de problème.
 * Formes et suppressions de quais :
-** un nœud qui porte des tags, appartient à un autre way ou à une relation n'est '''jamais déplacé ni supprimé''' (on peut ajouter des points autour) ;
+** un nœud qui porte des tags, appartient à un autre way ou à une relation n'est '''jamais déplacé ni supprimé''' (on peut ajouter des points autour), avec une exception : '''un point partagé seulement avec le bord du quai''' (<code>railway=platform_edge</code>, sans tag ni relation) '''peut être déplacé, le bord suit''' (c'est le même nœud : seul le nœud est modifié) ; il n'est jamais retiré du contour ;
+** l'appli explique à l'utilisateur à quoi un point verrouillé est relié (toit, bâtiment, chemin piéton…) et le renvoie vers iD ou JOSM pour ceux-là ;
 ** le way garde toujours son identifiant : il n'est jamais supprimé puis recréé ;
 ** les quais décrits par un multipolygone ne sont pas modifiables dans l'appli (renvoi vers iD ou JOSM), de même qu'une suppression qui viderait une relation ;
 ** juste avant l'envoi, l'appli relit sur l'API la version du way, celle de chaque nœud déplacé ou supprimé, et les ways et relations de ces nœuds : au moindre changement, rien n'est envoyé pour ce quai (« à revoir ») ;
