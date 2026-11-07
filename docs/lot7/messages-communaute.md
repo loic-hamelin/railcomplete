@@ -1,6 +1,6 @@
 # Lot 7 : informer la communauté
 
-L'annonce du forum, la page wiki et le ticket des administrateurs de l'API disaient que l'appli ne supprime rien et ne touche qu'à quelques tags. C'est faux depuis le lot 7 : il faut le dire **avant** le premier envoi qui modifie une forme ou supprime un quai.
+L'annonce du forum, la page wiki et le ticket des administrateurs de l'API disaient que l'appli ne supprime rien et ne touche qu'à quelques tags. C'est faux depuis le lot 7 : il faut le dire **avant** le premier envoi qui modifie une forme ou supprime un quai — et, depuis le lot 7d, avant la première suppression d'une pancarte d'arrêt (§ 4).
 
 ## 1. Page wiki
 
@@ -28,3 +28,24 @@ Ouvrez la page wiki de stationcomplete, cliquez sur « Modifier le code source �
 ## 3. Commentaire sur le ticket des administrateurs de l'API (en anglais)
 
 > Update before the pilot goes further: stationcomplete can now also edit the geometry of existing platforms (move/add/remove nodes of the outline; turn a linear platform into an area while keeping the same way id) and delete a platform (with a mandatory reason; the platform is removed from its relations). Since real platforms share most of their nodes with other features (station outline, buildings, roofs, platform edges), a node shared with another way, or carrying tags, may now be moved: it is the same node, so only the node is modified and every way sharing it follows. Exception: a node that belongs to a railway track (rail, light_rail, tram…) stays locked; track geometry is never modified. The user is told before confirming which features will follow, and the changeset comment says so (e.g. "station and building adjusted too"). Shared or tagged nodes are never deleted: removing one from the outline only removes it from the platform way, and a node shared with a `railway=platform_edge` way is never removed from the outline. Just before uploading, the app re-reads the platform way and its area with one `GET /api/0.6/map` call (bbox of its nodes + 10 m; per-node `ways`/`relations` calls only as a fallback): if the way or a moved node has a new version, the edit is put aside; a removed node is deleted only if it is still unused and untagged. Expected volume is unchanged: a handful of calls per upload.
+
+## 4. Lot 7d : suppression des pancartes d'arrêt (à publier avant le premier envoi de ce type)
+
+Page wiki : même démarche qu'au § 1, résumé « Lot 7d : suppression d'une pancarte d'arrêt ».
+
+### Réponse sur le fil du forum (à coller telle quelle)
+
+> Nouvelle petite mise à jour : stationcomplete permet maintenant aussi de **supprimer une pancarte d'arrêt** existante (`railway=signal` + `railway:signal:stop=FR:passenger_stop`, ou l'ancien `FR:ARRET_*`), avec un motif obligatoire : « en double » ou « mal placée » (permis à distance), « n'existe plus » (seulement sur place). C'est le seul autre type d'objet supprimable ; **les voies ne le sont jamais**.
+>
+> La pancarte est un nœud de la voie, d'où des règles prudentes :
+>
+> - le nœud est retiré de la voie puis supprimé **seulement** s'il n'appartient qu'à cette voie, ne porte que des tags de pancarte (`railway=signal`, `railway:signal:*`, `ref`, `note`, `source`, `check_date`…, liste explicite), n'est dans aucune relation, et si son retrait déplace la voie de moins de 0,3 m (nœud quasi aligné avec ses voisins) ;
+> - sinon le nœud reste dans la voie et seuls les tags de la pancarte sont retirés : **la géométrie de la voie ne change jamais** ; l'utilisateur voit lequel des deux cas s'applique avant de confirmer ;
+> - juste avant l'envoi, l'appli relit le nœud, la voie complète et l'usage du nœud ; si quelque chose a changé, la saisie est mise de côté ;
+> - le motif figure dans le commentaire du changeset (« pancarte d'arrêt « TT » supprimée (en double) »).
+>
+> Une question : quand le nœud est gardé, faut-il aussi retirer `ref`, `note` ou `check_date` s'il porte d'autres tags (aujourd'hui on les laisse, ne sachant pas à quoi ils se rapportent) ?
+
+### Commentaire sur le ticket des administrateurs de l'API (en anglais)
+
+> Small update: stationcomplete can now also delete an existing passenger stop sign (`railway=signal` node with `railway:signal:stop=FR:passenger_stop` or legacy `FR:ARRET_*`), with a mandatory reason (duplicate or misplaced: allowed remotely; no longer exists: on site only). Railway tracks are never deletable, and no other object type is. The sign is a node of the track way: it is removed from the way and deleted only if it belongs to that single way, carries nothing but sign tags (explicit list), is in no relation, and removing it shifts the track geometry by less than 0.3 m; otherwise the node is kept and only the sign tags are removed, so track geometry never changes. Just before uploading, the app re-reads the node (`nodes`), the full way (`way/{id}/full`) and the node's `ways` and `relations` (at most two concurrent requests); if the node or the way has a new version, or a node announced as removed is now shared or in a relation, the edit is put aside. That is four small reads per deleted sign; expected volume stays a handful of calls per upload.

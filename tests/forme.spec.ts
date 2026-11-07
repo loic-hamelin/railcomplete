@@ -170,30 +170,29 @@ async function toCross(page: Page, target: { x: number; y: number }) {
 	// de (croix − cible) : la cible arrive sous la croix.
 	const d = { x: c.x - target.x, y: c.y - target.y };
 	const vp = page.viewportSize()!;
-	let from = c;
-	for (const [dx, dy] of [
-		[0, 0],
-		[0, -60],
-		[0, 60],
-		[-60, 0],
-		[60, 0],
-		[-60, -60],
-		[60, 60],
-		[60, -60],
-		[-60, 60]
-	]) {
-		const p = { x: c.x + dx, y: c.y + dy };
+	// (Lot 7d : un sommet se glisse au doigt ; partir d'un sommet le déplacerait au lieu de
+	// faire glisser la carte. On cherche donc la zone libre la plus proche de la croix, sur une
+	// grille de 20 px, d'où le doigt peut glisser sans sortir de l'écran si possible.)
+	// (Cible lointaine : le doigt peut finir hors de l'écran, comme avant le lot 7d.)
+	const spots: { x: number; y: number }[] = [];
+	for (let x = 8; x < vp.width - 8; x += 20)
+		for (let y = 8; y < vp.height - 8; y += 20) spots.push({ x, y });
+	const out = (p: { x: number; y: number }) => {
 		const q = { x: p.x + d.x, y: p.y + d.y };
-		if (q.x < 4 || q.y < 4 || q.x > vp.width - 4 || q.y > vp.height - 4) continue;
-		const free = await page.evaluate(
-			([x, y]) => document.elementFromPoint(x, y)?.classList.contains('maplibregl-canvas'),
-			[p.x, p.y]
-		);
-		if (free) {
-			from = p;
-			break;
-		}
-	}
+		return q.x < 4 || q.y < 4 || q.x > vp.width - 4 || q.y > vp.height - 4 ? 1 : 0;
+	};
+	spots.sort(
+		(a, b) => out(a) - out(b) || Math.hypot(a.x - c.x, a.y - c.y) - Math.hypot(b.x - c.x, b.y - c.y)
+	);
+	const free = await page.evaluate(
+		(list) =>
+			list.findIndex((p) =>
+				document.elementFromPoint(p.x, p.y)?.classList.contains('maplibregl-canvas')
+			),
+		spots
+	);
+	const from = free >= 0 ? spots[free] : undefined;
+	if (!from) throw new Error('Aucune zone libre de la carte pour y poser le doigt.');
 	const to = { x: from.x + d.x, y: from.y + d.y };
 	const cdp = await page.context().newCDPSession(page);
 	const touch = (type: string, p?: { x: number; y: number }) =>
@@ -643,4 +642,238 @@ test('vraie carte, à distance : « N’existe plus » refusé, quai multipolygo
 	await sheet.getByRole('button', { name: 'Plus d’actions' }).click();
 	await expect(sheet).toContainText('Quai complexe : à modifier avec un éditeur comme iD ou JOSM');
 	await expect(sheet.getByRole('button', { name: 'Supprimer ce quai…' })).toHaveCount(0);
+});
+
+// ---------- Lot 7d : accrochage limité à 12 px, sommets glissés au doigt ----------
+
+/** Coordonnées du nœud n de la fixture. */
+const at = (id: number) => {
+	const n = base.find((e) => e.type === 'node' && e.id === id)!;
+	return { lon: n.lon!, lat: n.lat! };
+};
+/** Distance (m) entre deux positions proches. */
+const meters = (a: { lon: number; lat: number }, b: { lon: number; lat: number }) =>
+	Math.hypot(
+		(a.lon - b.lon) * 111_320 * Math.cos((a.lat * Math.PI) / 180),
+		(a.lat - b.lat) * 111_320
+	);
+
+test('E12 zoomé : la croix sur un côté du quai, près d’une voie, sans accrochage parasite', async ({
+	page
+}) => {
+	test.setTimeout(60_000);
+	const calls = await setup(page);
+	// Milieu du côté 25-26 du quai A : axe de la voie à 3,9 m (l'ancienne règle accrochait le
+	// point 2,4 m plus loin, au bord de la voie, comme sur la capture de Loïc).
+	const quai = base.find((e) => e.type === 'way' && e.id === QUAI_A)!;
+	const ring = quai.nodes!.slice(0, -1);
+	const [a, b] = [at(ring[24]), at(ring[25])];
+	const mid = { lon: (a.lon + b.lon) / 2, lat: (a.lat + b.lat) / 2 };
+	const c = `${mid.lon.toFixed(7)},${mid.lat.toFixed(7)}`;
+
+	// Vue d'ensemble (z18) : 12 px ≈ 5 m, l'accrochage s'applique et se voit sur la croix
+	await page.goto(`/gare/forme/?id=${STATION}&osm=way/${QUAI_A}&z=18.00&c=${c}`);
+	await expect(page.locator('.mapbox')).toHaveAttribute('data-zoom', '18.00');
+	const info = page.locator('.panel [role="status"]');
+	await expect(info).toContainText('Accroché au bord de la voie');
+	await expect(page.locator('.reticle.snapped')).toHaveCount(1);
+	await expect(page.locator('.rc-preview')).toHaveCount(1);
+
+	// Zoomé (z21) : 12 px ≈ 0,3 m, plus d'accrochage : le point est sous la croix
+	await page.goto(`/gare/forme/?id=${STATION}&osm=way/${QUAI_A}&z=21.00&c=${c}`);
+	const box = page.locator('.mapbox');
+	await expect(box).toHaveAttribute('data-zoom', '21.00'); // carte chargée, croix connue
+	await expect(info).toContainText('Point sous la croix');
+	await expect(page.locator('.reticle.snapped')).toHaveCount(0);
+	await expect(page.locator('.rc-preview')).toHaveCount(0);
+	const cross = (await box.getAttribute('data-center'))!.split(',').map(Number);
+	await page.getByRole('button', { name: 'Ajouter un point ici' }).click();
+	await expect(page.getByText('27 points')).toBeVisible();
+	await expect(page.getByText(/Point 26 ajouté entre 25 et 26\.$/)).toBeAttached();
+	await expectAccessible(page);
+	await page.getByRole('button', { name: 'Terminer' }).click();
+	await expect(page).toHaveURL(/\/gare\/carte/);
+
+	await page.goto(`/envoi/?id=${STATION}`);
+	await page.getByRole('button', { name: 'Envoyer 1 modification' }).click();
+	await expect(page.getByText('1 modification envoyée.')).toBeVisible();
+	const xml = calls.find((x) => x.path.endsWith('/upload'))!.body;
+	const added = xml.match(/<node id="-\d+" changeset="1234" lat="([\d.]+)" lon="([\d.]+)"/)!;
+	// Le point ajouté est exactement sous la croix (au dixième de millimètre de degré près)
+	expect(
+		meters({ lat: Number(added[1]), lon: Number(added[2]) }, { lon: cross[0], lat: cross[1] })
+	).toBeLessThan(0.02);
+});
+
+test('E12 : « Accrocher à la voie » se coupe, et la préférence est gardée', async ({ page }) => {
+	await setup(page);
+	const quai = base.find((e) => e.type === 'way' && e.id === QUAI_A)!;
+	const ring = quai.nodes!.slice(0, -1);
+	const [a, b] = [at(ring[24]), at(ring[25])];
+	const c = `${((a.lon + b.lon) / 2).toFixed(7)},${((a.lat + b.lat) / 2).toFixed(7)}`;
+	await page.goto(`/gare/forme/?id=${STATION}&osm=way/${QUAI_A}&z=18.00&c=${c}`);
+	const info = page.locator('.panel [role="status"]');
+	await expect(info).toContainText('Accroché au bord de la voie');
+	const toggle = page.getByRole('switch', { name: 'Accrocher à la voie' });
+	await expect(toggle).toBeChecked();
+	await toggle.uncheck();
+	await expect(info).toContainText('Point sous la croix');
+	await expect(page.locator('.reticle.snapped')).toHaveCount(0);
+	expect(await page.evaluate(() => localStorage.getItem('rc:snapEdge'))).toBe('false');
+	await page.reload();
+	await expect(page.locator('.mapbox')).toHaveAttribute('data-zoom', '18.00');
+	await expect(page.getByRole('switch', { name: 'Accrocher à la voie' })).not.toBeChecked();
+	await expect(info).toContainText('Point sous la croix');
+});
+
+test('E12 : glisser un sommet au doigt, l’annuler, le refaire, puis l’envoyer', async ({
+	page
+}) => {
+	test.setTimeout(60_000);
+	const calls = await setup(page);
+	const quai = base.find((e) => e.type === 'way' && e.id === QUAI_A)!;
+	const ring = quai.nodes!.slice(0, -1);
+	const p2 = at(ring[1]);
+	// Vue zoomée centrée à côté du point 2 (le point reste touchable, hors de la croix)
+	await page.goto(
+		`/gare/forme/?id=${STATION}&osm=way/${QUAI_A}&z=21.00&c=${(p2.lon + 0.00004).toFixed(7)},${p2.lat.toFixed(7)}`
+	);
+	await expect(page.locator('.maplibregl-canvas')).toBeVisible();
+	const point2 = page.getByRole('button', { name: 'Point 2 : le sélectionner' });
+	await expect(point2).toBeVisible();
+	const box = page.locator('.mapbox');
+	const centerBefore = await box.getAttribute('data-center');
+
+	/** Glisser au doigt (événements tactiles réels) du sommet n, de (dx, dy) px. */
+	async function dragVertex(n: number, dx: number, dy: number) {
+		const from = await spot(page, n);
+		const cdp = await page.context().newCDPSession(page);
+		const touch = (type: string, p?: { x: number; y: number }) =>
+			cdp.send('Input.dispatchTouchEvent', {
+				type: type as 'touchStart',
+				touchPoints: p ? [{ x: Math.round(p.x), y: Math.round(p.y) }] : []
+			});
+		await touch('touchStart', from);
+		for (let i = 1; i <= 10; i++)
+			await touch('touchMove', { x: from.x + (dx * i) / 10, y: from.y + (dy * i) / 10 });
+		await touch('touchEnd');
+		await cdp.detach();
+	}
+	await dragVertex(2, 0, -40);
+	// Annonce au relâcher ; la carte n'a pas bougé (le doigt a glissé le point, pas la carte)
+	await expect(page.getByText(/^Point 2 déplacé/)).toBeAttached();
+	await expect(box).toHaveAttribute('data-center', centerBefore!);
+	await page.getByRole('button', { name: 'Annuler la dernière action' }).click();
+	await expect(page.getByText('Dernière action annulée.')).toBeAttached();
+	await dragVertex(2, 0, -40);
+	await expect(page.getByText(/^Point 2 déplacé/)).toBeAttached();
+	// Un toucher sans glisser sélectionne toujours le point
+	await point2.click();
+	await expect(page.getByRole('button', { name: 'Déplacer le point ici' })).toBeVisible();
+	await point2.click();
+	await page.getByRole('button', { name: 'Terminer' }).click();
+	await expect(page).toHaveURL(/\/gare\/carte/);
+
+	await page.goto(`/envoi/?id=${STATION}`);
+	await expect(page.getByText('Quai A : forme modifiée (26 → 26 points)')).toBeVisible();
+	await page.getByRole('button', { name: 'Envoyer 1 modification' }).click();
+	await expect(page.getByText('1 modification envoyée.')).toBeVisible();
+	const xml = calls.find((x) => x.path.endsWith('/upload'))!.body;
+	const n2 = base.find((e) => e.type === 'node' && e.id === ring[1])!;
+	const m = xml.match(
+		new RegExp(
+			`<node id="${ring[1]}" version="${n2.version}" changeset="1234" lat="([\\d.]+)" lon="([\\d.]+)"`
+		)
+	)!;
+	// 40 px au zoom 21 ≈ 1 m vers le nord (un seul glisser compté : l'annulé ne s'ajoute pas)
+	const moved = { lat: Number(m[1]), lon: Number(m[2]) };
+	expect(meters(moved, p2)).toBeGreaterThan(0.6);
+	expect(meters(moved, p2)).toBeLessThan(1.4);
+	expect(moved.lat).toBeGreaterThan(p2.lat);
+	expect(xml).not.toContain('<create>');
+	expect(xml).not.toContain(`<way id="${QUAI_A}"`); // seule la position du nœud change
+});
+
+// ---------- Lot 7d : avertissement « le quai ne longe plus la voie » ----------
+
+// Quai court (40 m × 4 m) le long d'une voie « 9 », ajoutés dans un coin vide de l'emprise
+// d'Ambérieu. (Les quais réels d'Ambérieu longent des voies à longs segments : déplacer un
+// de leurs points ne leur fait perdre aucune voie, voir sign.test.ts.)
+const SHORT = 9_000_000_110;
+const TRACK9 = 9_000_000_120;
+const shortData = (): El[] => {
+	const lat = 45.95462,
+		lon0 = 5.34369;
+	const dLon = (m: number) => m / (111_320 * Math.cos((lat * Math.PI) / 180));
+	const dLat = (m: number) => m / 111_320;
+	const n = (id: number, x: number, y: number): El => ({
+		type: 'node',
+		id,
+		version: 1,
+		lat: lat + dLat(y),
+		lon: lon0 + dLon(x)
+	});
+	return [
+		n(9_000_000_101, -60, 0),
+		n(9_000_000_102, 100, 0),
+		{
+			type: 'way',
+			id: TRACK9,
+			version: 1,
+			nodes: [9_000_000_101, 9_000_000_102],
+			tags: { railway: 'rail', 'railway:track_ref': '9' }
+		},
+		n(9_000_000_111, 0, 1.6),
+		n(9_000_000_112, 40, 1.6),
+		n(9_000_000_113, 40, 5.6),
+		n(9_000_000_114, 0, 5.6),
+		{
+			type: 'way',
+			id: SHORT,
+			version: 1,
+			nodes: [9_000_000_111, 9_000_000_112, 9_000_000_113, 9_000_000_114, 9_000_000_111],
+			tags: { railway: 'platform', public_transport: 'platform', train: 'yes', ref: '9' }
+		}
+	];
+};
+
+test('E12 : le quai ne longe plus sa voie → avertissement non bloquant, « Corriger » ou « Enregistrer quand même »', async ({
+	page
+}) => {
+	test.setTimeout(60_000);
+	await setup(page, [...base, ...shortData()]);
+	const corner = shortData().find((e) => e.id === 9_000_000_113)!;
+	await page.goto(
+		`/gare/forme/?id=${STATION}&osm=way/${SHORT}&z=19.00&c=${corner.lon!.toFixed(7)},${corner.lat!.toFixed(7)}`
+	);
+	await expect(page.locator('.mapbox')).toHaveAttribute('data-zoom', '19.00');
+	// Coin nord-est tiré d'environ 30 m vers le nord, à la croix (pas de 100 px ≈ 10 m)
+	await page.getByRole('button', { name: 'Prendre ce point' }).click();
+	await expect(page.getByRole('button', { name: 'Déplacer le point ici' })).toBeVisible();
+	await pan(page, 0, -3);
+	await page.getByRole('button', { name: 'Déplacer le point ici' }).click();
+	await page.getByRole('button', { name: 'Terminer' }).click();
+	const warn = page.locator('.panel .lost');
+	await expect(warn).toHaveText(
+		/Le quai ne longe plus la voie 9 \(bord plus parallèle à la voie\)\. Vérifiez la forme : le bord du quai doit suivre la voie\./
+	);
+	await expect(page).toHaveURL(/\/gare\/forme/);
+	await expectAccessible(page);
+	// « Corriger » : on reste sur l'écran ; « Annuler » remet le point, plus d'avertissement
+	await warn.getByRole('button', { name: 'Corriger' }).click();
+	await expect(warn).toHaveCount(0);
+	await page.getByRole('button', { name: 'Terminer' }).click();
+	await expect(warn).toBeVisible();
+	await warn.getByRole('button', { name: 'Enregistrer quand même' }).click();
+	await expect(page).toHaveURL(/\/gare\/carte/);
+	// La voie reste sur la carte, discrète, avec son numéro (elle ne longe plus aucun quai) ;
+	// son étiquette peut être masquée par l'évitement des collisions (feuille ouverte).
+	await expect(
+		page.getByRole('button', {
+			name: 'Voie 9. Ne longe aucun quai cartographié',
+			includeHidden: true
+		})
+	).toBeAttached();
+	await page.goto(`/envoi/?id=${STATION}`);
+	await expect(page.getByText('Quai voies 9 : forme modifiée (4 → 4 points)')).toBeVisible();
 });

@@ -143,15 +143,43 @@ export interface DeleteEdit extends EditBase {
 	summary: string;
 }
 
-export type Edit = TagEdit | NewNodeEdit | NewWayEdit | ShapeEdit | DeleteEdit;
+/**
+ * Suppression d'une pancarte d'arrêt existante (lot 7d) : nœud retiré de la voie puis
+ * supprimé (« remove »), ou gardé dans la voie sans les tags de la pancarte (« untag »).
+ * La décision est relue à l'envoi sur les données à jour (sign.ts, planUpload).
+ */
+export interface SignDeleteEdit extends EditBase {
+	kind: 'signdelete';
+	target: `node/${number}`;
+	/** Version du nœud au moment de la saisie : toute autre version à l'envoi → « à revoir ». */
+	version?: number;
+	/** Voie qui contient la pancarte (absente si le nœud n'est dans aucun way). */
+	way?: number;
+	wayVersion?: number;
+	/** « gone » : sur place seulement ; « duplicate », « misplaced » : permis à distance. */
+	reason: 'gone' | 'duplicate' | 'misplaced';
+	/** Décision annoncée à la saisie (le récapitulatif l'a dite à l'utilisateur). */
+	mode: 'remove' | 'untag';
+	/** Clés retirées en « untag ». */
+	untag: string[];
+	/** Libellé de la pancarte (« TGV 2 »), pour les résumés et le commentaire du changeset. */
+	label: string;
+	summary: string;
+}
+
+export type Edit = TagEdit | NewNodeEdit | NewWayEdit | ShapeEdit | DeleteEdit | SignDeleteEdit;
+
+/** Saisie qui vise un objet existant par `target` (tags, forme, suppressions). */
+export const targets = (e: Edit): e is TagEdit | ShapeEdit | DeleteEdit | SignDeleteEdit =>
+	e.kind === 'tags' || e.kind === 'shape' || e.kind === 'delete' || e.kind === 'signdelete';
+
+/** Suppression (quai ou pancarte) : jamais renvoyée telle quelle, elle se refait sur la carte. */
+export const isRemoval = (e: Edit): e is DeleteEdit | SignDeleteEdit =>
+	e.kind === 'delete' || e.kind === 'signdelete';
 
 /** Clé de l'objet principal d'une saisie (« way/-3 », « node/-1 », « way/123 »). */
 export const editKey = (e: Edit): ElementKey =>
-	e.kind === 'tags' || e.kind === 'shape' || e.kind === 'delete'
-		? e.target
-		: e.kind === 'node'
-			? `node/${e.tempId}`
-			: `way/${e.tempId}`;
+	targets(e) ? e.target : e.kind === 'node' ? `node/${e.tempId}` : `way/${e.tempId}`;
 
 /** Applique des changements de tags (null ou vide = retirer). */
 export function changeTags(tags: Tags | undefined, changes: Record<string, string | null> = {}) {
@@ -168,7 +196,9 @@ export const AREA_TAGS = { area: 'yes' } as const;
 
 /** Famille d'objet d'une saisie (couleur de la ligne dans les listes E8 et E9). */
 export const editFamily = (e: Edit): 'quai' | 'voie' | 'pancarte' =>
-	e.kind === 'node' || (e.kind === 'tags' && e.target.startsWith('node/'))
+	e.kind === 'node' ||
+	e.kind === 'signdelete' ||
+	(e.kind === 'tags' && e.target.startsWith('node/'))
 		? 'pancarte'
 		: e.kind !== 'tags' || e.summary.startsWith('Quai')
 			? 'quai'
@@ -176,7 +206,7 @@ export const editFamily = (e: Edit): 'quai' | 'voie' | 'pancarte' =>
 
 /** Icône d'une saisie : la famille, ou la nature du changement pour un quai existant. */
 export const editIcon = (e: Edit) =>
-	e.kind === 'shape' ? 'shape' : e.kind === 'delete' ? 'trash' : editFamily(e);
+	e.kind === 'shape' ? 'shape' : isRemoval(e) ? 'trash' : editFamily(e);
 
 /** Nature d'une saisie, en clair (« Forme du quai », « Suppression »…). */
 export function editLabel(e: Edit) {
@@ -185,6 +215,8 @@ export function editLabel(e: Edit) {
 	if (e.kind === 'shape') return e.mode === 'area' ? 'Quai redessiné en surface' : 'Forme du quai';
 	if (e.kind === 'delete')
 		return `Suppression · motif : ${e.reason === 'duplicate' ? 'en double avec un autre quai' : 'n’existe plus'}`;
+	if (e.kind === 'signdelete')
+		return `Suppression de pancarte · motif : ${e.reason === 'duplicate' ? 'en double' : e.reason === 'misplaced' ? 'mal placée' : 'n’existe plus'}`;
 	return 'Modification';
 }
 
@@ -197,7 +229,8 @@ export const newEditId = () =>
  * - tags d'un objet déjà saisi → fusion avec la saisie précédente ;
  * - quai existant (lot 7) : forme et tags dans une seule saisie (un seul <modify> du way) ;
  *   une suppression remplace toutes les autres saisies sur ce quai ;
- *   des tags sur un quai marqué à supprimer sont refusés (exception).
+ *   des tags sur un quai marqué à supprimer sont refusés (exception) ;
+ * - pancarte existante (lot 7d) : même règle, la suppression remplace ses saisies de tags.
  * Renvoie la saisie à enregistrer et les identifiants des saisies à retirer.
  */
 export function mergeEdit(list: Edit[], edit: Edit): { edit?: Edit; drop: string[] } {
@@ -218,11 +251,13 @@ export function mergeEdit(list: Edit[], edit: Edit): { edit?: Edit; drop: string
 			drop: []
 		};
 	}
-	const onTarget = (target: string) =>
-		list.filter(
-			(e) => (e.kind === 'tags' || e.kind === 'shape' || e.kind === 'delete') && e.target === target
-		);
+	const onTarget = (target: string) => list.filter((e) => targets(e) && e.target === target);
 	const drop: string[] = [];
+	if (edit.kind === 'tags' && edit.target.startsWith('node/')) {
+		if (onTarget(edit.target).some((e) => e.kind === 'signdelete' && !e.conflict))
+			throw new Error('Cette pancarte est marquée à supprimer : retirez d’abord cette saisie.');
+	}
+	if (edit.kind === 'signdelete') return { edit, drop: onTarget(edit.target).map((e) => e.id) };
 	if (edit.kind === 'tags' && edit.target.startsWith('way/')) {
 		const others = onTarget(edit.target);
 		if (others.some((e) => e.kind === 'delete' && !e.conflict))
@@ -323,6 +358,21 @@ export function applyEdits(elements: OsmElement[], edits: Edit[]): OsmElement[] 
 						...e,
 						members: e.members.filter((m) => !(m.type === 'way' && m.ref === id))
 					});
+		} else if (ed.kind === 'signdelete') {
+			// La pancarte disparaît de la vue locale : nœud retiré de la voie, ou tags retirés.
+			const n = out.get(ed.target) as OsmNode | undefined;
+			if (!n) continue;
+			const id = n.id;
+			if (ed.mode === 'untag') {
+				const tags = { ...(n.tags ?? {}) };
+				for (const k of ed.untag) delete tags[k];
+				out.set(ed.target, { ...n, tags });
+				continue;
+			}
+			out.delete(ed.target);
+			for (const [k, e] of out)
+				if (e.type === 'way' && e.nodes.includes(id))
+					out.set(k, { ...e, nodes: e.nodes.filter((x) => x !== id) });
 		} else if (ed.kind === 'way') {
 			for (const n of ed.nodes)
 				out.set(`node/${n.id}`, { type: 'node', id: n.id, lon: n.lon, lat: n.lat });

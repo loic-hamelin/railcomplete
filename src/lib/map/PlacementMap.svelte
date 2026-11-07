@@ -3,7 +3,14 @@
 	// À chaque arrêt du déplacement, le point visé est accroché à l'axe de la voie la plus proche.
 	import 'maplibre-gl/dist/maplibre-gl.css';
 	import { snapToTracks, type Snap } from '#lib/core/edits.js';
-	import { isPlatform, type OsmElement, type OsmNode, type OsmWay } from '#lib/core/osm.js';
+	import { metersPerPixel } from '#lib/core/draw.js';
+	import {
+		isPlatform,
+		isUnderground,
+		type OsmElement,
+		type OsmNode,
+		type OsmWay
+	} from '#lib/core/osm.js';
 	import { IGN_MAX_ZOOM, IGN_TILE_URL } from '#lib/core/tiles.js';
 	import Reticle from './Reticle.svelte';
 	import {
@@ -12,6 +19,9 @@
 		MAP,
 		OSM_ATTRIBUTION,
 		QUAI_W,
+		UNDER_CASING,
+		UNDER_DASH,
+		UNDER_LINE,
 		VOIE_W,
 		W,
 		plus
@@ -37,6 +47,7 @@
 	let snapped = $state(false);
 	let snappedWay: number | undefined;
 
+	const UNDER = ['==', ['get', 'under'], true] as import('maplibre-gl').ExpressionSpecification;
 	const nodes = $derived(
 		new Map(elements.filter((e): e is OsmNode => e.type === 'node').map((n) => [n.id, n]))
 	);
@@ -57,13 +68,13 @@
 			features: [
 				...platforms.map((w) => ({
 					type: 'Feature',
-					properties: { kind: 'quai' },
+					properties: { kind: 'quai', under: isUnderground(w.tags) },
 					geometry: { type: 'LineString', coordinates: line(w) }
 				})),
 				...tracks.map((w) => ({
 					type: 'Feature',
 					id: w.id,
-					properties: { kind: 'voie' },
+					properties: { kind: 'voie', under: isUnderground(w.tags) },
 					geometry: { type: 'LineString', coordinates: line(w) }
 				})),
 				...signs.map((n) => ({
@@ -93,8 +104,7 @@
 	/** Déplace la croix de `m` mètres (la carte glisse en sens inverse). */
 	export function nudge(dx: number, dy: number, m = 0.2) {
 		if (!map) return;
-		const lat = map.getCenter().lat;
-		const mpp = (156543.03392 * Math.cos((lat * Math.PI) / 180)) / 2 ** map.getZoom();
+		const mpp = metersPerPixel(map.getZoom(), map.getCenter().lat);
 		map.panBy([(dx * m) / mpp, (dy * m) / mpp], { duration: 0 });
 	}
 	export function zoom(d: number) {
@@ -147,7 +157,7 @@
 								layout: { 'line-join': 'round' },
 								paint: {
 									'line-color': MAP.casing,
-									'line-opacity': 0.7,
+									'line-opacity': ['case', UNDER, UNDER_CASING, 0.7],
 									'line-width': W(plus(QUAI_W, 1.5))
 								}
 							},
@@ -155,9 +165,22 @@
 								id: 'quai',
 								type: 'line',
 								source: 'objets',
-								filter: ['==', ['get', 'kind'], 'quai'],
+								filter: ['all', ['==', ['get', 'kind'], 'quai'], ['!', UNDER]],
 								layout: { 'line-join': 'round' },
 								paint: { 'line-color': MAP.quai, 'line-width': W(QUAI_W) }
+							},
+							// Souterrain : pointillés estompés (lot 7d).
+							{
+								id: 'quai-under',
+								type: 'line',
+								source: 'objets',
+								filter: ['all', ['==', ['get', 'kind'], 'quai'], UNDER],
+								paint: {
+									'line-color': MAP.quai,
+									'line-opacity': UNDER_LINE,
+									'line-width': W(QUAI_W),
+									'line-dasharray': UNDER_DASH
+								}
 							},
 							{
 								id: 'voie-sel',
@@ -179,7 +202,7 @@
 								layout: { 'line-cap': 'round', 'line-join': 'round' },
 								paint: {
 									'line-color': MAP.casing,
-									'line-opacity': 0.7,
+									'line-opacity': ['case', UNDER, UNDER_CASING, 0.7],
 									'line-width': W(plus(VOIE_W, 1.5))
 								}
 							},
@@ -187,11 +210,23 @@
 								id: 'voie',
 								type: 'line',
 								source: 'objets',
-								filter: ['==', ['get', 'kind'], 'voie'],
+								filter: ['all', ['==', ['get', 'kind'], 'voie'], ['!', UNDER]],
 								layout: { 'line-cap': 'round', 'line-join': 'round' },
 								paint: {
 									'line-color': ['case', IS_SEL, MAP.sel, MAP.voie],
 									'line-width': W(VOIE_W)
+								}
+							},
+							{
+								id: 'voie-under',
+								type: 'line',
+								source: 'objets',
+								filter: ['all', ['==', ['get', 'kind'], 'voie'], UNDER],
+								paint: {
+									'line-color': ['case', IS_SEL, MAP.sel, MAP.voie],
+									'line-opacity': ['case', IS_SEL, 1, UNDER_LINE],
+									'line-width': W(VOIE_W),
+									'line-dasharray': UNDER_DASH
 								}
 							},
 							{

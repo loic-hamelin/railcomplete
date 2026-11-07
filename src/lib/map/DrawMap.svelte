@@ -3,9 +3,13 @@
 	// centre, la carte glisse dessous. Affiche les voies, les quais existants et le contour en
 	// cours ; les sommets se touchent. En E12 : contour toujours fermé, sommets partagés avec
 	// d'autres objets (rond à point central), sommets fixes (carrés, rares), repères « + » au
-	// milieu des côtés, ancienne ligne en pointillés.
+	// milieu des côtés, ancienne ligne en trait pâle.
 	// Vue : celle de l'écran précédent si elle est fournie (zoom de l'utilisateur conservé),
 	// sinon cadrée sur le quai. Sélectionner un point ne change jamais le zoom.
+	// Lot 7d : le point visé est exactement sous la croix ; accroché au bord d'une voie, la croix
+	// devient jaune et un petit trait la relie au point accroché. Un sommet modifiable se glisse
+	// aussi au doigt (marqueur MapLibre déplaçable) ; la croix reste l'alternative sans glisser.
+	// Pointillés estompés : objets souterrains seulement.
 	import 'maplibre-gl/dist/maplibre-gl.css';
 	import type { LonLat } from '#lib/core/draw.js';
 	import { IGN_MAX_ZOOM, IGN_TILE_URL } from '#lib/core/tiles.js';
@@ -15,17 +19,23 @@
 		MAP,
 		OSM_ATTRIBUTION,
 		QUAI_W,
+		UNDER_CASING,
+		UNDER_DASH,
+		UNDER_LINE,
 		VOIE_W,
 		W,
 		avoidBoxes,
 		plus
 	} from './style.js';
+	import { metersPerPixel } from '#lib/core/draw.js';
 	import { onMount } from 'svelte';
 
 	let {
 		center,
 		tracks,
 		platforms,
+		tracksUnder = [],
+		platformsUnder = [],
 		points,
 		selected,
 		preview,
@@ -42,16 +52,20 @@
 		onmove,
 		onvertex,
 		onmidpoint,
-		onanchor
+		onanchor,
+		ondragpoint
 	}: {
 		center: LonLat;
 		tracks: LonLat[][];
 		platforms: LonLat[][];
+		/** Voies et quais souterrains (même ordre que `tracks` et `platforms`) : pointillés estompés. */
+		tracksUnder?: boolean[];
+		platformsUnder?: boolean[];
 		points: LonLat[];
 		selected?: number;
-		/** Point qui sera ajouté (après accrochage), affiché sous la croix. */
+		/** Point qui sera ajouté : sous la croix, ou au bord de la voie s'il est accroché. */
 		preview?: LonLat;
-		/** Le point visé est accroché au bord d'une voie (croix jaune). */
+		/** Le point visé est accroché au bord d'une voie (croix jaune, trait vers le point). */
 		snapped?: boolean;
 		/** E12 : le contour est toujours fermé (pas de côté en cours vers la croix). */
 		closed?: boolean;
@@ -75,6 +89,11 @@
 		onvertex: (i: number) => void;
 		onmidpoint?: (i: number) => void;
 		onanchor?: (i: number) => void;
+		/**
+		 * Sommet glissé au doigt puis relâché ici (lot 7d). Sans ce rappel, les sommets ne se
+		 * glissent pas. Les sommets fixes (`locked`) ne se glissent jamais.
+		 */
+		ondragpoint?: (i: number, at: LonLat) => void;
 	} = $props();
 
 	/** Longueur minimale d'un côté à l'écran pour y afficher un repère « + » (px). */
@@ -91,6 +110,7 @@
 	let failed = $state('');
 
 	type GJ = import('maplibre-gl').GeoJSONSourceSpecification['data'];
+	const UNDER = ['==', ['get', 'under'], true] as import('maplibre-gl').ExpressionSpecification;
 	const fc = (features: unknown[]) => ({ type: 'FeatureCollection', features }) as unknown as GJ;
 	const line = (c: LonLat[]) => ({
 		type: 'Feature',
@@ -114,14 +134,22 @@
 			? [points[points.length - 1], preview]
 			: undefined;
 
+	/** Sommet en cours de glisser : son indice et sa position (aperçu du contour). */
+	let dragging: { i: number; at: LonLat } | undefined;
+
 	function drawing(): GJ {
 		const f: unknown[] = [];
+		const pts = dragging ? points.map((p, i) => (i === dragging!.i ? dragging!.at : p)) : points;
 		if (guide && guide.length >= 2) f.push({ ...line(guide), properties: { guide: true } });
-		if (points.length >= 3) f.push(poly(points));
-		if (points.length >= 2)
-			f.push(line(closed && points.length >= 3 ? [...points, points[0]] : points));
-		const n = nextSide();
+		if (pts.length >= 3) f.push(poly(pts));
+		if (pts.length >= 2) f.push(line(closed && pts.length >= 3 ? [...pts, pts[0]] : pts));
+		const n = dragging ? undefined : nextSide();
 		if (n) f.push({ ...line(n), properties: { next: true } });
+		// Accrochage : petit trait de la croix (centre de la carte) au point accroché.
+		if (snapped && preview && map && !dragging) {
+			const c = map.getCenter();
+			f.push({ ...line([[c.lng, c.lat], preview]), properties: { link: true } });
+		}
 		return fc(f);
 	}
 
@@ -201,6 +229,8 @@
 				}
 				(el as HTMLButtonElement).type = 'button';
 				el.style.width = el.style.height = `${2 * r}px`;
+				const drag = !!ondragpoint && !locked[i];
+				if (drag) el.classList.add('draggable');
 				el.setAttribute(
 					'aria-label',
 					vertexLabel
@@ -214,7 +244,25 @@
 					e.stopPropagation();
 					onvertex(i);
 				});
-				return new lib!.Marker({ element: el }).setLngLat(p).addTo(map!);
+				const marker = new lib!.Marker({ element: el, draggable: drag }).setLngLat(p).addTo(map!);
+				if (drag) {
+					// Pendant le glisser : aperçu du contour ; au relâcher, la page décide (accrochage,
+					// historique). Les repères sont recréés ensuite à leur place réelle.
+					marker.on('dragstart', () => el.classList.add('dragging'));
+					marker.on('drag', () => {
+						const ll = marker.getLngLat();
+						dragging = { i, at: [ll.lng, ll.lat] };
+						(map!.getSource('trace') as import('maplibre-gl').GeoJSONSource).setData(drawing());
+					});
+					marker.on('dragend', () => {
+						const ll = marker.getLngLat();
+						dragging = undefined;
+						markerSig = '';
+						ondragpoint?.(i, [ll.lng, ll.lat]);
+						refresh();
+					});
+				}
+				return marker;
 			});
 			// E12 : points reprenables de l'ancienne ligne, repères « + » au milieu des côtés.
 			for (const m of extraMarkers) m.remove();
@@ -251,7 +299,8 @@
 				extraMarkers.push(new lib.Marker({ element: el }).setLngLat(at).addTo(map));
 			}
 		}
-		if (preview) previewMarker?.setLngLat(preview).addTo(map);
+		// Point accroché seulement (sinon le point est exactement sous la croix : rien de plus).
+		if (preview && snapped) previewMarker?.setLngLat(preview).addTo(map);
 		else previewMarker?.remove();
 		// Longueur des côtés (répétée en texte dans le panneau, d'où aria-hidden).
 		for (const m of lengthMarkers) m.remove();
@@ -282,8 +331,7 @@
 
 	export function nudge(dx: number, dy: number, m = 0.2) {
 		if (!map) return;
-		const lat = map.getCenter().lat;
-		const mpp = (156543.03392 * Math.cos((lat * Math.PI) / 180)) / 2 ** map.getZoom();
+		const mpp = metersPerPixel(map.getZoom(), map.getCenter().lat);
 		map.panBy([(dx * m) / mpp, (dy * m) / mpp], { duration: 0 });
 	}
 	/** Position à l'écran (px) d'un point, par rapport à la croix (centre de la carte). */
@@ -346,8 +394,14 @@
 							existant: {
 								type: 'geojson',
 								data: fc([
-									...tracks.map((t) => ({ ...line(t), properties: { k: 'voie' } })),
-									...platforms.map((p) => ({ ...poly(p), properties: { k: 'quai' } }))
+									...tracks.map((t, i) => ({
+										...line(t),
+										properties: { k: 'voie', under: !!tracksUnder[i] }
+									})),
+									...platforms.map((p, i) => ({
+										...poly(p),
+										properties: { k: 'quai', under: !!platformsUnder[i] }
+									}))
 								]),
 								attribution: OSM_ATTRIBUTION
 							},
@@ -362,7 +416,10 @@
 								type: 'fill',
 								source: 'existant',
 								filter: ['==', ['get', 'k'], 'quai'],
-								paint: { 'fill-color': MAP.quai, 'fill-opacity': 0.1 }
+								paint: {
+									'fill-color': MAP.quai,
+									'fill-opacity': ['case', UNDER, 0.05, 0.1]
+								}
 							},
 							{
 								id: 'quai-casing',
@@ -372,7 +429,7 @@
 								layout: round,
 								paint: {
 									'line-color': MAP.casing,
-									'line-opacity': 0.7,
+									'line-opacity': ['case', UNDER, UNDER_CASING, 0.7],
 									'line-width': W(plus(QUAI_W, 1.5))
 								}
 							},
@@ -380,9 +437,21 @@
 								id: 'quai-line',
 								type: 'line',
 								source: 'existant',
-								filter: ['==', ['get', 'k'], 'quai'],
+								filter: ['all', ['==', ['get', 'k'], 'quai'], ['!', UNDER]],
 								layout: round,
 								paint: { 'line-color': MAP.quai, 'line-width': W(QUAI_W) }
+							},
+							{
+								id: 'quai-line-under',
+								type: 'line',
+								source: 'existant',
+								filter: ['all', ['==', ['get', 'k'], 'quai'], UNDER],
+								paint: {
+									'line-color': MAP.quai,
+									'line-opacity': UNDER_LINE,
+									'line-width': W(QUAI_W),
+									'line-dasharray': UNDER_DASH
+								}
 							},
 							{
 								id: 'voie-casing',
@@ -392,7 +461,7 @@
 								layout: round,
 								paint: {
 									'line-color': MAP.casing,
-									'line-opacity': 0.7,
+									'line-opacity': ['case', UNDER, UNDER_CASING, 0.7],
 									'line-width': W(plus(VOIE_W, 1.5))
 								}
 							},
@@ -400,24 +469,31 @@
 								id: 'voie',
 								type: 'line',
 								source: 'existant',
-								filter: ['==', ['get', 'k'], 'voie'],
+								filter: ['all', ['==', ['get', 'k'], 'voie'], ['!', UNDER]],
 								layout: round,
 								paint: { 'line-color': MAP.voie, 'line-width': W(VOIE_W) }
 							},
-							// Ancienne forme (E12, redessiner en surface) : pointillés clairs sur liseré.
 							{
-								id: 'guide-casing',
+								id: 'voie-under',
 								type: 'line',
-								source: 'trace',
-								filter: ['has', 'guide'],
-								paint: { 'line-color': MAP.casing, 'line-opacity': 0.6, 'line-width': 3.5 }
+								source: 'existant',
+								filter: ['all', ['==', ['get', 'k'], 'voie'], UNDER],
+								paint: {
+									'line-color': MAP.voie,
+									'line-opacity': UNDER_LINE,
+									'line-width': W(VOIE_W),
+									'line-dasharray': UNDER_DASH
+								}
 							},
+							// Ancienne forme (E12, redessiner en surface) : trait pâle et large, plein
+							// (les pointillés sont réservés aux objets souterrains, lot 7d).
 							{
 								id: 'guide',
 								type: 'line',
 								source: 'trace',
 								filter: ['has', 'guide'],
-								paint: { 'line-color': MAP.quai, 'line-width': 2, 'line-dasharray': [2, 2] }
+								layout: round,
+								paint: { 'line-color': MAP.quai, 'line-opacity': 0.45, 'line-width': 6 }
 							},
 							// Polygone en cours : jaune 2 px sur liseré, remplissage 12 %.
 							{
@@ -435,7 +511,8 @@
 									'all',
 									['==', ['geometry-type'], 'LineString'],
 									['!', ['has', 'next']],
-									['!', ['has', 'guide']]
+									['!', ['has', 'guide']],
+									['!', ['has', 'link']]
 								],
 								layout: round,
 								paint: { 'line-color': MAP.casing, 'line-opacity': 0.6, 'line-width': 3.5 }
@@ -448,10 +525,28 @@
 									'all',
 									['==', ['geometry-type'], 'LineString'],
 									['!', ['has', 'next']],
-									['!', ['has', 'guide']]
+									['!', ['has', 'guide']],
+									['!', ['has', 'link']]
 								],
 								layout: round,
 								paint: { 'line-color': MAP.sel, 'line-width': 2 }
+							},
+							// Accrochage : trait court de la croix au point accroché (jaune sur liseré).
+							{
+								id: 'snap-link-casing',
+								type: 'line',
+								source: 'trace',
+								filter: ['has', 'link'],
+								layout: round,
+								paint: { 'line-color': MAP.casing, 'line-opacity': 0.7, 'line-width': 3 }
+							},
+							{
+								id: 'snap-link',
+								type: 'line',
+								source: 'trace',
+								filter: ['has', 'link'],
+								layout: round,
+								paint: { 'line-color': MAP.sel, 'line-width': 1.5 }
 							},
 							// Côté en cours, vers la croix : tirets 4/3.
 							{
@@ -520,6 +615,7 @@
 		void points.map((p) => p.join());
 		void selected;
 		void preview;
+		void snapped;
 		void locked.join();
 		void shared.join();
 		void anchors.length;
@@ -665,6 +761,19 @@
 	}
 	:global(.rc-mid > span::after) {
 		transform: rotate(90deg);
+	}
+	/* Sommet qui se glisse au doigt : la carte ne bouge pas quand on le touche. */
+	:global(.rc-vertex.draggable) {
+		touch-action: none;
+		cursor: grab;
+	}
+	:global(.rc-vertex.dragging) {
+		cursor: grabbing;
+	}
+	:global(.rc-vertex.dragging > span) {
+		width: 16px;
+		height: 16px;
+		background: #fff700;
 	}
 	:global(.rc-preview) {
 		width: 7px;

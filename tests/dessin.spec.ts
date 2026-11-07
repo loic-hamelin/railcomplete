@@ -160,3 +160,60 @@ test('refuse de fermer un quai dont les côtés se croisent', async ({ page }) =
 	await expect(page.getByRole('alert')).toContainText('se croisent');
 	await expect(page).toHaveURL(/\/gare\/dessiner/);
 });
+
+test('E11 : glisser au doigt un point déjà posé, annuler ce déplacement, puis fermer le quai', async ({
+	page
+}) => {
+	const uploads = await setup(page);
+	await page.goto(`/gare/dessiner/?id=${STATION}`);
+	await expect(page.locator('.maplibregl-canvas')).toBeVisible();
+	const add = page.getByRole('button', { name: 'Ajouter un point', exact: true });
+	await add.click();
+	await pan(page, 2, 0);
+	await add.click();
+	await pan(page, 0, 1);
+	await add.click();
+	await expect(page.getByText('3 points')).toBeVisible();
+
+	const vertex = page.locator('[data-point="2"]');
+	const where = async () => {
+		const b = (await vertex.boundingBox())!;
+		return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+	};
+	/** Glisser au doigt (événements tactiles réels) du point 2, de (dx, dy) px. */
+	async function drag(dx: number, dy: number) {
+		const from = await where();
+		const cdp = await page.context().newCDPSession(page);
+		const touch = (type: string, p?: { x: number; y: number }) =>
+			cdp.send('Input.dispatchTouchEvent', {
+				type: type as 'touchStart',
+				touchPoints: p ? [{ x: Math.round(p.x), y: Math.round(p.y) }] : []
+			});
+		await touch('touchStart', from);
+		for (let i = 1; i <= 10; i++)
+			await touch('touchMove', { x: from.x + (dx * i) / 10, y: from.y + (dy * i) / 10 });
+		await touch('touchEnd');
+		await cdp.detach();
+	}
+	const before = await where();
+	const center = await page.locator('.mapbox').getAttribute('data-center');
+	await drag(-30, -50);
+	await expect(page.getByText(/^Point 2 déplacé/)).toBeAttached();
+	await expect(page.getByRole('button', { name: 'Annuler le déplacement' })).toBeVisible();
+	await expect(page.locator('.mapbox')).toHaveAttribute('data-center', center!); // carte immobile
+	await expect.poll(async () => (await where()).y).toBeLessThan(before.y - 30);
+	// Annuler : le point revient à sa place ; le bouton reprend son rôle habituel
+	await page.getByRole('button', { name: 'Annuler le déplacement' }).click();
+	await expect(page.getByText('Déplacement annulé.')).toBeAttached();
+	await expect.poll(async () => Math.round((await where()).y)).toBe(Math.round(before.y));
+	await expect(page.getByRole('button', { name: 'Annuler le point' })).toBeVisible();
+	await drag(-30, -50);
+	await expect(page.getByText(/^Point 2 déplacé/)).toBeAttached();
+
+	await page.getByRole('button', { name: 'Point 1 : fermer le quai' }).click();
+	await expect(page).toHaveURL(/\/gare\/saisie\/?\?id=.*&osm=way\/-\d+/);
+	await page.goto(`/envoi/?id=${STATION}`);
+	await page.getByRole('button', { name: 'Envoyer 1 modification' }).click();
+	await expect(page.getByText('1 modification envoyée.')).toBeVisible();
+	expect([...uploads[0].matchAll(/<node id="-\d+"/g)]).toHaveLength(3);
+});

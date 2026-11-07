@@ -85,6 +85,21 @@ export const isStopSign = (t: Tags = {}) =>
 export const isLegacyStopSign = (t: Tags = {}) =>
 	(t['railway:signal:stop'] ?? '').startsWith('FR:ARRET_');
 
+/** Premier nombre d'une valeur (« -1;0 » → -1), NaN sinon. */
+const firstNumber = (v?: string) => parseFloat((v ?? '').split(';')[0].trim());
+
+/**
+ * Objet souterrain (lot 7d, légende : pointillés estompés) : tunnel (voies), couche négative,
+ * `location=underground`, niveau négatif (premier niveau d'une liste), ou couvert sous le sol.
+ */
+export const isUnderground = (t: Tags = {}) =>
+	t.tunnel === 'yes' ||
+	t.tunnel === 'building_passage' ||
+	firstNumber(t.layer) < 0 ||
+	t.location === 'underground' ||
+	firstNumber(t.level) < 0;
+// (« covered=yes » + layer<0 est déjà couvert par layer<0 ; covered seul n'est pas souterrain.)
+
 /** Découpe une valeur multiple OSM (« 1;2 ») en ensemble de valeurs nettoyées. */
 export const splitValues = (v?: string) =>
 	new Set(

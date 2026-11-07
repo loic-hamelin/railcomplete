@@ -37,7 +37,9 @@ describe('gares de référence', () => {
 					objets: f.features.length
 				})
 			);
-			expect(f.features.length).toBe(a.platforms.length + a.tracks.length + a.stopSigns.length);
+			expect(f.features.length).toBe(
+				a.platforms.length + a.tracks.length + a.otherTracks.length + a.stopSigns.length
+			);
 		});
 });
 

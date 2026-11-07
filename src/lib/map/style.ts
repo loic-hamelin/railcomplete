@@ -39,6 +39,14 @@ export const QUAI_W: Stops = [
 	[21, 2]
 ];
 
+/**
+ * Objets souterrains (lot 7d) : pointillés ET estompés, sur les cartes E5, E6, E11 et E12.
+ * Les pointillés ne signalent rien d'autre (convention cartographique : souterrain).
+ */
+export const UNDER_DASH: [number, number] = [2, 2];
+export const UNDER_LINE = 0.6;
+export const UNDER_CASING = 0.3;
+
 export const IS_SEL: ExpressionSpecification = ['boolean', ['feature-state', 'selected'], false];
 
 export const IGN_ATTRIBUTION = 'Photo © IGN – BD ORTHO';

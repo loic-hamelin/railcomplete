@@ -5,7 +5,7 @@ import { deleteCachedStation, readPref, writePref } from './cache.js';
 import { AVG_TILE_BYTES, stationTiles, tileUrl } from './core/tiles.js';
 import { current, openStation } from './current.svelte.js';
 import { server } from './osmserver.svelte.js';
-import { sendStation, type SendResult } from './send.svelte.js';
+import type { SendResult } from './send.svelte.js';
 import type { Station } from './stations.js';
 
 const TILES = 'rc-tiles';
@@ -134,6 +134,11 @@ export async function flushQueue() {
 	if (flushing || !navigator.onLine || !queue.list.length) return;
 	flushing = true;
 	try {
+		// Module d'envoi chargé à la demande : il ne pèse pas sur le démarrage de l'appli.
+		// (Précaché par le service worker : disponible aussi après un démarrage hors-ligne.)
+		const mod = await import('./send.svelte.js').catch(() => undefined);
+		if (!mod) return;
+		const { sendStation } = mod;
 		for (const q of [...queue.list]) {
 			const r = await sendStation(q.station, q.name, q.comment);
 			// Erreur temporaire (réseau, limite) : la gare reste en file pour le prochain retour.

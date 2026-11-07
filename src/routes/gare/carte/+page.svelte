@@ -14,6 +14,12 @@
 		platformShape,
 		relationsPhrase
 	} from '#lib/core/shape.js';
+	import {
+		SIGN_REASONS,
+		signDeleteSummary,
+		signRemoval,
+		signRemovalPhrase
+	} from '#lib/core/sign.js';
 	import { current, openStation } from '#lib/current.svelte.js';
 	import {
 		editsOf,
@@ -86,10 +92,11 @@
 	let selected = $state<FeatureProps | undefined>();
 	let mapRef = $state<{ locate: () => void; refreshLabels: () => void }>();
 
-	// ---------- Quai existant : forme et suppression (lot 7) ----------
+	// ---------- Quai existant : forme et suppression (lot 7) ; pancarte : suppression (7d) ----------
 	let more = $state(false);
 	let deleting = $state(false);
-	let reason = $state<'duplicate' | 'gone' | undefined>();
+	let reason = $state<'duplicate' | 'gone' | 'misplaced' | undefined>();
+	let legend = $state(false);
 	let notice = $state('');
 	let deleteError = $state('');
 	const select = (p: FeatureProps | undefined) => {
@@ -104,6 +111,7 @@
 		// La feuille grandit (menu, confirmation) : les étiquettes s'écartent d'elle.
 		void more;
 		void deleting;
+		void legend;
 		untrack(() => mapRef?.refreshLabels());
 	});
 	const quaiWay = $derived(
@@ -120,6 +128,25 @@
 		const w = view?.elements.find((e) => e.type === 'way' && e.id === quaiWay);
 		return !!w && w.type === 'way' && w.nodes.length > 3 && w.nodes[0] === w.nodes.at(-1);
 	});
+	// Pancarte existante (nœud lu sur OpenStreetMap) : comment la supprimer sans risque.
+	const signId = $derived(
+		selected?.kind === 'pancarte' && /^node\/\d+$/.test(selected.osm)
+			? Number(selected.osm.slice(5))
+			: undefined
+	);
+	const signOf = $derived.by(() => {
+		if (!ready || signId === undefined) return undefined;
+		const d = new OsmData(ready.elements);
+		const n = d.nodes.get(signId);
+		if (!n) return undefined;
+		const ways = (d.waysOfNode.get(signId) ?? [])
+			.map((w) => d.ways.get(w))
+			.filter((w) => w !== undefined);
+		const rels = [...d.relations.values()].filter((r) =>
+			r.members.some((m) => m.type === 'node' && m.ref === signId)
+		);
+		return { node: n, removal: signRemoval(n, ways, rels, (i) => d.nodes.get(i)) };
+	});
 	const replaced = $derived(
 		deleting && selected ? editsReplacedByDelete(id, selected.osm).filter((e) => !e.conflict) : []
 	);
@@ -127,7 +154,9 @@
 	async function confirmDelete() {
 		deleteError = '';
 		if (!shapeOf || !selected || !ready) return;
-		if (!reason) return (deleteError = 'Choisissez le motif de la suppression.');
+		// (« Mal placée » n'existe que pour une pancarte.)
+		if (!reason || reason === 'misplaced')
+			return (deleteError = 'Choisissez le motif de la suppression.');
 		if (reason === 'gone' && !survey)
 			return (deleteError = '« N’existe plus » se constate sur place seulement.');
 		const name = platformName(shapeOf.way.tags);
@@ -152,6 +181,36 @@
 		}
 	}
 
+	async function confirmSignDelete() {
+		deleteError = '';
+		if (!signOf || !selected || !ready) return;
+		if (!reason) return (deleteError = 'Choisissez le motif de la suppression.');
+		if (reason === 'gone' && !survey)
+			return (deleteError = '« N’existe plus » se constate sur place seulement.');
+		const { node, removal } = signOf;
+		const label = selected.label;
+		try {
+			await saveEdit({
+				kind: 'signdelete',
+				id: newEditId(),
+				station: id,
+				createdAt: Date.now(),
+				target: `node/${node.id}`,
+				version: node.version,
+				...(removal.way !== undefined ? { way: removal.way, wayVersion: removal.wayVersion } : {}),
+				reason,
+				mode: removal.mode,
+				untag: removal.untag,
+				label,
+				summary: signDeleteSummary(label, reason, removal.mode)
+			});
+			select(undefined);
+			notice = `Pancarte « ${label} » : suppression en attente d’envoi. Pour l’annuler, retirez-la dans vos contributions.`;
+		} catch {
+			deleteError = "L'enregistrement sur ce téléphone a échoué. Réessayez.";
+		}
+	}
+
 	const QUEST_TEXT: Record<string, string> = {
 		Q1: 'Numéro du quai à relever',
 		Q2: 'Numéro de la voie à relever',
@@ -167,12 +226,25 @@
 		Q7: 'alert',
 		Q6: 'clock'
 	};
+	/** Légende de la carte (lot 7d) : pointillés réservés aux objets souterrains. */
+	const LEGEND = [
+		{ k: 'quai', label: 'Quai' },
+		{ k: 'voie', label: 'Voie' },
+		{ k: 'pancarte', label: 'Pancarte d’arrêt' },
+		{ k: 'sel', label: 'Objet sélectionné' },
+		{ k: 'edited', label: 'Modifié par vous, en attente d’envoi' },
+		{ k: 'under', label: 'Souterrain (tunnel, niveau inférieur)' },
+		{ k: 'todo', label: 'À compléter' },
+		{ k: 'alert', label: 'À vérifier en priorité' }
+	] as const;
 	const filters = [
 		{ k: 'quai', label: 'Quais' },
 		{ k: 'voie', label: 'Voies' },
 		{ k: 'pancarte', label: 'Pancartes' }
 	] as const;
 </script>
+
+<svelte:window onkeydown={(e) => legend && e.key === 'Escape' && (legend = false)} />
 
 <svelte:head><title>Carte — {ready?.station.name ?? 'Gare'} — stationcomplete</title></svelte:head>
 
@@ -218,19 +290,131 @@
 				</button>
 			{/if}
 		</div>
-		<div class="filters" role="group" aria-label="Objets affichés">
-			{#each filters as f (f.k)}
-				<button
-					type="button"
-					class="chip {f.k}"
-					data-map-avoid
-					aria-pressed={visible[f.k]}
-					onclick={() => (visible[f.k] = !visible[f.k])}
-				>
-					<span class="pict" aria-hidden="true"></span>{f.label}
-				</button>
-			{/each}
+		<div class="row2">
+			<div class="filters" role="group" aria-label="Objets affichés">
+				{#each filters as f (f.k)}
+					<button
+						type="button"
+						class="chip {f.k}"
+						data-map-avoid
+						aria-pressed={visible[f.k]}
+						onclick={() => (visible[f.k] = !visible[f.k])}
+					>
+						<span class="pict" aria-hidden="true"></span>{f.label}
+					</button>
+				{/each}
+			</div>
+			<button
+				type="button"
+				class="legend-btn"
+				data-map-avoid
+				aria-label="Légende de la carte"
+				aria-expanded={legend}
+				aria-controls="legende"
+				onclick={() => (legend = !legend)}><Icon name="info" size={20} /></button
+			>
 		</div>
+		{#if legend}
+			<!-- Légende (lot 7d) : panneau flottant refermable, au-dessus des repères de la carte. -->
+			<section id="legende" class="legend float" aria-labelledby="legende-titre" data-map-avoid>
+				<div class="legend-head">
+					<h2 id="legende-titre">Légende</h2>
+					<button
+						class="icon-btn"
+						type="button"
+						aria-label="Fermer la légende"
+						onclick={() => (legend = false)}><Icon name="close" size={20} /></button
+					>
+				</div>
+				<ul>
+					{#each LEGEND as item (item.k)}
+						<li>
+							<svg class="sw" width="40" height="24" viewBox="0 0 40 24" aria-hidden="true">
+								<rect width="40" height="24" rx="3" fill="#6b665c" />
+								{#if item.k === 'quai'}
+									<rect
+										x="6"
+										y="6"
+										width="28"
+										height="12"
+										fill="#B5EDE4"
+										fill-opacity=".35"
+										stroke="#14110E"
+										stroke-width="3"
+									/>
+									<rect
+										x="6"
+										y="6"
+										width="28"
+										height="12"
+										fill="none"
+										stroke="#B5EDE4"
+										stroke-width="1.5"
+									/>
+								{:else if item.k === 'voie' || item.k === 'sel' || item.k === 'edited' || item.k === 'under'}
+									{@const c =
+										item.k === 'sel' ? '#FFF700' : item.k === 'edited' ? '#B3C8FF' : '#E4E0FF'}
+									{#if item.k === 'sel'}<path
+											d="M5 12h30"
+											stroke="#FFF700"
+											stroke-opacity=".35"
+											stroke-width="9"
+											stroke-linecap="round"
+										/>{/if}
+									<path
+										d="M5 12h30"
+										stroke="#14110E"
+										stroke-opacity={item.k === 'under' ? 0.3 : 0.7}
+										stroke-width="4.5"
+										stroke-linecap="round"
+									/>
+									<path
+										d="M5 12h30"
+										stroke={c}
+										stroke-width="2.5"
+										stroke-opacity={item.k === 'under' ? 0.6 : 1}
+										stroke-dasharray={item.k === 'under' ? '3 3' : undefined}
+									/>
+									{#if item.k === 'edited'}<circle
+											cx="20"
+											cy="12"
+											r="3.5"
+											fill="#B3C8FF"
+											stroke="#14110E"
+										/>{/if}
+								{:else if item.k === 'pancarte'}
+									<path d="M20 13v8" stroke="#14110E" stroke-width="1.5" />
+									<rect x="12" y="3" width="16" height="10" rx="1" fill="#fff" stroke="#14110E" />
+								{:else}
+									<rect x="8" y="3" width="24" height="18" rx="2" fill="rgb(31 27 23 / .86)" />
+									{#if item.k === 'todo'}
+										<text
+											x="20"
+											y="16.5"
+											text-anchor="middle"
+											fill="#ffe08a"
+											font-size="12"
+											font-weight="600">?</text
+										>
+									{:else}
+										<circle cx="20" cy="12" r="6" fill="#ff6a5c" />
+										<text
+											x="20"
+											y="16"
+											text-anchor="middle"
+											fill="#1f1b17"
+											font-size="10"
+											font-weight="600">!</text
+										>
+									{/if}
+								{/if}
+							</svg>
+							<span>{item.label}</span>
+						</li>
+					{/each}
+				</ul>
+			</section>
+		{/if}
 	</div>
 
 	{#if st.status === 'loading' || !mounted}
@@ -293,7 +477,56 @@
 					{/if}
 				</ul>
 			{/if}
-			{#if deleting && shapeOf}
+			{#if deleting && signOf}
+				<div class="confirm">
+					<h3>Supprimer cette pancarte ?</h3>
+					<fieldset>
+						<legend>Motif (visible dans la description publique de l’envoi)</legend>
+						<label class="choice">
+							<input type="radio" name="motif" value="duplicate" bind:group={reason} />
+							{SIGN_REASONS.duplicate}
+						</label>
+						<label class="choice">
+							<input type="radio" name="motif" value="misplaced" bind:group={reason} />
+							{SIGN_REASONS.misplaced}
+						</label>
+						<label class="choice" class:off={!survey}>
+							<input
+								type="radio"
+								name="motif"
+								value="gone"
+								disabled={!survey}
+								aria-describedby="gone-hint"
+								bind:group={reason}
+							/>
+							{SIGN_REASONS.gone}
+						</label>
+						<p id="gone-hint" class="hint">
+							{#if survey}Constaté sur place.{:else}<Icon name="lock" size={14} /> Sur place seulement
+								: la photo aérienne peut être ancienne.{/if}
+						</p>
+					</fieldset>
+					<ul class="facts">
+						<li class="info">
+							<Icon name="info" size={18} />{signRemovalPhrase(signOf.removal)}
+						</li>
+						{#if replaced.length}
+							<li class="alert">
+								<Icon name="alert" size={18} />Vos saisies sur cette pancarte seront retirées : {replaced
+									.map((e) => `« ${e.summary} »`)
+									.join(', ')}.
+							</li>
+						{/if}
+					</ul>
+					{#if deleteError}<p class="banner err" role="alert">{deleteError}</p>{/if}
+					<div class="actions">
+						<button class="btn-sm" type="button" onclick={() => (deleting = false)}>Annuler</button>
+						<button class="btn-sm danger" type="button" onclick={confirmSignDelete}
+							><Icon name="trash" size={18} />Supprimer la pancarte</button
+						>
+					</div>
+				</div>
+			{:else if deleting && shapeOf}
 				{@const lost = shapeOf.nodes.filter((n) => !isLinked(n)).length}
 				{@const kept = shapeOf.nodes.length - lost}
 				<div class="confirm">
@@ -365,6 +598,11 @@
 				<div class="actions">
 					{#if isLocal(selected.osm)}
 						<a class="btn-sm" href={resolve('/contributions')}>Voir mes contributions</a>
+					{:else if selected.away}
+						<!-- Voie qui ne longe aucun quai (lot 7d) : fiche simple, jamais supprimable. -->
+						<a class="btn-quiet osm" href={`${srv().web}/${selected.osm}`} rel="external">
+							Voir sur OpenStreetMap<Icon name="ext" size={16} />
+						</a>
 					{:else}
 						<a
 							class="btn-sm renseigner"
@@ -391,7 +629,16 @@
 								type="button"
 								aria-label="Plus d’actions"
 								aria-expanded={more}
-								aria-controls="quai-more"
+								aria-controls="more-menu"
+								onclick={() => (more = !more)}><Icon name="more" size={20} /></button
+							>
+						{:else if selected.kind === 'pancarte'}
+							<button
+								class="icon-btn more"
+								type="button"
+								aria-label="Plus d’actions"
+								aria-expanded={more}
+								aria-controls="more-menu"
 								onclick={() => (more = !more)}><Icon name="more" size={20} /></button
 							>
 						{:else}
@@ -401,8 +648,24 @@
 						{/if}
 					{/if}
 				</div>
+				{#if more && selected.kind === 'pancarte'}
+					<ul class="menu" id="more-menu">
+						{#if signOf}
+							<li>
+								<button class="btn-quiet danger" type="button" onclick={() => (deleting = true)}
+									><Icon name="trash" size={18} />Supprimer cette pancarte…</button
+								>
+							</li>
+						{/if}
+						<li>
+							<a class="btn-quiet osm" href={`${srv().web}/${selected.osm}`} rel="external">
+								Voir sur OpenStreetMap<Icon name="ext" size={16} />
+							</a>
+						</li>
+					</ul>
+				{/if}
 				{#if more && selected.kind === 'quai'}
-					<ul class="menu" id="quai-more">
+					<ul class="menu" id="more-menu">
 						{#if shapeOf?.refused || !shapeOf}
 							<li class="note">
 								<Icon name="info" size={18} />{shapeOf?.refused ??
@@ -487,12 +750,81 @@
 		border-radius: 50%;
 		background: currentColor;
 	}
+	.row2 {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 6px;
+		pointer-events: none;
+	}
 	.filters {
 		display: flex;
 		gap: 6px;
 		flex-wrap: wrap;
 		align-self: flex-start;
 		pointer-events: none;
+	}
+	/* Bouton de légende : visuel rond de 32 px, zone tactile de 44 px. */
+	.legend-btn {
+		flex-shrink: 0;
+		position: relative;
+		isolation: isolate;
+		width: 44px;
+		height: 44px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0;
+		border: 0;
+		background: none;
+		color: var(--text);
+		cursor: pointer;
+		pointer-events: auto;
+	}
+	.legend-btn::before {
+		content: '';
+		position: absolute;
+		inset: 6px;
+		z-index: -1;
+		border: 1px solid var(--overlay-line);
+		border-radius: 50%;
+		background: var(--overlay);
+		box-shadow: var(--shadow-float);
+	}
+	.legend-btn[aria-expanded='true']::before {
+		border-color: var(--primary);
+	}
+	.legend {
+		align-self: flex-end;
+		width: min(300px, 100%);
+		margin-top: 2px;
+		padding: 4px 4px 8px 12px;
+	}
+	.legend-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+	.legend h2 {
+		font-size: 1rem;
+	}
+	.legend ul {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+	.legend li {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		font-size: 0.9375rem;
+		line-height: 1.3;
+	}
+	.sw {
+		flex-shrink: 0;
 	}
 	/* Puce : visuel 32 px, zone tactile 44 px (marge transparente). */
 	.chip {

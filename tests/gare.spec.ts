@@ -62,7 +62,9 @@ test('chercher une gare, voir ce qui manque, ouvrir la carte', async ({ page }) 
 	// E5 — carte, ouverte depuis une quête : elle se centre sur l'objet et ouvre sa fiche
 	await page.getByRole('link', { name: /Deux voies portent le numéro 2/ }).click();
 	await expect(page.locator('.maplibregl-canvas')).toBeVisible();
-	await expect(page.locator('.rc-badge')).toHaveCount(12);
+	// 12 objets des quêtes, plus 11 voies numérotées qui ne longent aucun quai (lot 7d :
+	// toutes les voies sont dessinées, étiquette seulement si elles portent un numéro)
+	await expect(page.locator('.rc-badge')).toHaveCount(23);
 	const sheet = page.getByRole('region', { name: 'Objet sélectionné' });
 	await expect(sheet).toContainText('Voie 2');
 	await expect(sheet).toContainText('Numéro de voie en double');

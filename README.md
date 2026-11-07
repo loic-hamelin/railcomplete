@@ -16,6 +16,7 @@ Site : <https://stationcomplete.org>
 - Lot 4 : hors-ligne — téléchargement d'une gare (données + photos aériennes, taille affichée), consultation et saisie sans réseau, envoi programmé qui part tout seul au retour du réseau, gestion des gares téléchargées.
 - Lot 5 : dessin d'un quai absent d'OSM (polygone au réticule, accrochage parallèle à 1,5 m de l'axe de la voie, contrôles de forme), puis numérotation et envoi.
 - Lot 7 : modifier un quai existant — forme (déplacer, ajouter, retirer des sommets ; un point partagé avec d'autres objets peut être déplacé, ils suivent, et l'appli le dit avant ; jamais supprimé), quai tracé en ligne redessiné en surface (même way), suppression d'un quai avec motif et retrait de sa zone d'arrêt.
+- Lot 7d : suppression d'une pancarte d'arrêt existante (nœud retiré de la voie seulement si c'est sans risque, sinon tags retirés ; la géométrie des voies ne change jamais), pointillés estompés réservés aux objets souterrains et légende de la carte, accrochage limité à 12 px de la croix et sommets glissés au doigt.
 
 ## Développer sur son ordinateur
 

@@ -13,6 +13,9 @@
 		MAP,
 		OSM_ATTRIBUTION,
 		QUAI_W,
+		UNDER_CASING,
+		UNDER_DASH,
+		UNDER_LINE,
 		VOIE_W,
 		W,
 		alongLine,
@@ -64,7 +67,10 @@
 
 	type Expr = import('maplibre-gl').ExpressionSpecification;
 	const isEdited: Expr = ['==', ['get', 'edited'], true];
-	const todo: Expr = ['all', ['==', ['get', 'status'], 'missing'], ['!', isEdited]];
+	// Pointillés réservés aux objets souterrains (lot 7d) ; « à compléter » se lit sur l'étiquette.
+	const under: Expr = ['==', ['get', 'under'], true];
+	// Voie qui ne longe aucun quai (lot 7d) : même style, plus discrète.
+	const away: Expr = ['==', ['get', 'away'], true];
 	const kindIs = (k: Kind): Expr => ['==', ['get', 'kind'], k];
 
 	function ringOf(f: F): [number, number][] {
@@ -153,6 +159,8 @@
 		labels = [];
 		for (const f of data.features) {
 			const p = f.properties;
+			// Voie sans numéro qui ne longe aucun quai : pas d'étiquette (touchable sur son trait).
+			if (!p.label) continue;
 			const el = document.createElement('button');
 			el.type = 'button';
 			const state = p.status === 'missing' ? 'todo' : p.status;
@@ -183,8 +191,8 @@
 	function applyVisibility() {
 		if (!map?.getLayer('pancarte')) return;
 		const layers: Record<Kind, string[]> = {
-			quai: ['quai-sel', 'quai-fill', 'quai-casing', 'quai-line', 'quai-line-todo'],
-			voie: ['voie-sel', 'voie-casing', 'voie-line', 'voie-line-todo'],
+			quai: ['quai-sel', 'quai-fill', 'quai-casing', 'quai-line', 'quai-line-under'],
+			voie: ['voie-sel', 'voie-casing', 'voie-line', 'voie-line-under'],
 			pancarte: ['pancarte']
 		};
 		for (const k of Object.keys(layers) as Kind[])
@@ -281,9 +289,9 @@
 									'fill-opacity': [
 										'step',
 										['zoom'],
-										['case', IS_SEL, 0.18, 0.16],
+										['case', IS_SEL, 0.18, under, 0.08, 0.16],
 										18,
-										['case', IS_SEL, 0.18, 0.1]
+										['case', IS_SEL, 0.18, under, 0.05, 0.1]
 									]
 								}
 							},
@@ -295,7 +303,7 @@
 								layout: line,
 								paint: {
 									'line-color': MAP.casing,
-									'line-opacity': 0.7,
+									'line-opacity': ['case', under, UNDER_CASING, 0.7],
 									'line-width': W(plus(QUAI_W, 1.5))
 								}
 							},
@@ -303,25 +311,27 @@
 								id: 'quai-line',
 								type: 'line',
 								source: 'gare',
-								filter: ['all', kindIs('quai'), ['!', todo]],
+								filter: ['all', kindIs('quai'), ['!', under]],
 								layout: line,
 								paint: {
 									'line-color': ['case', IS_SEL, MAP.sel, isEdited, MAP.edited, MAP.quai],
 									'line-width': W(QUAI_W)
 								}
 							},
+							// Souterrain : pointillés estompés (sélection et « modifié » restent lisibles).
 							{
-								id: 'quai-line-todo',
+								id: 'quai-line-under',
 								type: 'line',
 								source: 'gare',
-								filter: ['all', kindIs('quai'), todo],
+								filter: ['all', kindIs('quai'), under],
 								paint: {
-									'line-color': ['case', IS_SEL, MAP.sel, MAP.quai],
+									'line-color': ['case', IS_SEL, MAP.sel, isEdited, MAP.edited, MAP.quai],
+									'line-opacity': ['case', IS_SEL, 1, UNDER_LINE],
 									'line-width': W(QUAI_W),
-									'line-dasharray': [4, 3]
+									'line-dasharray': UNDER_DASH
 								}
 							},
-							// Voies : trait clair sur liseré sombre ; tirets = numéro à relever.
+							// Voies : trait clair sur liseré sombre ; pointillés estompés = souterrain.
 							{
 								id: 'voie-sel',
 								type: 'line',
@@ -342,7 +352,7 @@
 								layout: line,
 								paint: {
 									'line-color': MAP.casing,
-									'line-opacity': 0.7,
+									'line-opacity': ['case', under, UNDER_CASING, away, 0.4, 0.7],
 									'line-width': W(plus(VOIE_W, 1.5))
 								}
 							},
@@ -350,22 +360,24 @@
 								id: 'voie-line',
 								type: 'line',
 								source: 'gare',
-								filter: ['all', kindIs('voie'), ['!', todo]],
+								filter: ['all', kindIs('voie'), ['!', under]],
 								layout: line,
 								paint: {
+									'line-opacity': ['case', IS_SEL, 1, away, 0.55, 1],
 									'line-color': ['case', IS_SEL, MAP.sel, isEdited, MAP.edited, MAP.voie],
 									'line-width': W(VOIE_W)
 								}
 							},
 							{
-								id: 'voie-line-todo',
+								id: 'voie-line-under',
 								type: 'line',
 								source: 'gare',
-								filter: ['all', kindIs('voie'), todo],
+								filter: ['all', kindIs('voie'), under],
 								paint: {
-									'line-color': ['case', IS_SEL, MAP.sel, MAP.voie],
+									'line-color': ['case', IS_SEL, MAP.sel, isEdited, MAP.edited, MAP.voie],
+									'line-opacity': ['case', IS_SEL, 1, UNDER_LINE],
 									'line-width': W(VOIE_W),
-									'line-dasharray': [5, 3]
+									'line-dasharray': UNDER_DASH
 								}
 							},
 							// Pancartes sous z18,5 : petit rond blanc (la plaque est un marqueur DOM au-delà).
@@ -422,9 +434,9 @@
 							layers: [
 								'pancarte',
 								'voie-line',
-								'voie-line-todo',
+								'voie-line-under',
 								'quai-line',
-								'quai-line-todo',
+								'quai-line-under',
 								'quai-fill'
 							].filter((id) => map!.getLayoutProperty(id, 'visibility') !== 'none')
 						}

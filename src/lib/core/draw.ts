@@ -11,6 +11,7 @@ import {
 	type Pt
 } from './geo';
 import type { OsmNode, OsmWay } from './osm';
+import { THRESHOLDS, platformTracks, trackGapM } from './quests';
 
 /** Recul du bord du quai par rapport à l'axe de la voie (m). */
 export const EDGE_OFFSET_M = 1.5;
@@ -66,6 +67,43 @@ export function snapToEdge(
 	const { d: _d, ...snap } = best;
 	void _d;
 	return snap;
+}
+
+/** Seuil d'accrochage à l'écran (lot 7d) : le point accroché doit être à moins de 12 px. */
+export const SNAP_PX = 12;
+
+/**
+ * Mètres par pixel CSS d'une carte MapLibre (monde de 512 px au zoom 0) au zoom et à la
+ * latitude donnés : 0,10 m à z20 et 46° N, 0,42 m à z18.
+ */
+export function metersPerPixel(zoom: number, lat: number) {
+	return (40_075_016.686 * Math.cos((lat * Math.PI) / 180)) / (512 * 2 ** zoom);
+}
+
+/**
+ * Accrochage au bord de voie limité à l'écran (lot 7d) : comme snapToEdge (axe à moins de
+ * 4 m), mais seulement si le point accroché est à moins de `px` pixels du point visé au zoom
+ * courant. En zoomant, on n'est plus happé loin de la croix. Parmi les voies possibles, le
+ * point accroché le plus proche du point visé.
+ */
+export function snapNear(
+	p: LonLat,
+	tracks: OsmWay[],
+	nodeOf: (id: number) => OsmNode | undefined,
+	zoom: number,
+	px = SNAP_PX
+): EdgeSnap | undefined {
+	const maxM = px * metersPerPixel(zoom, p[1]);
+	const proj = new LocalProjection(p[0], p[1]);
+	let best: { s: EdgeSnap; d: number } | undefined;
+	for (const w of tracks) {
+		const s = snapToEdge(p, [w], nodeOf);
+		if (!s) continue;
+		const q = proj.project(s.point[0], s.point[1]);
+		const d = Math.hypot(q.x, q.y);
+		if (d <= maxM && (!best || d < best.d)) best = { s, d };
+	}
+	return best?.s;
 }
 
 export interface ShapeCheck {
@@ -129,4 +167,69 @@ export function checkShape(ring: LonLat[], tracks: LonLat[][], platforms: LonLat
 		errors.push('Le quai chevauche un quai déjà cartographié.');
 
 	return { ok: errors.length === 0, lengthM, sidesM, errors };
+}
+
+// ---------- Voies longées par le quai (lot 7d) ----------
+
+/** Voie, en coordonnées [lon, lat], pour le contrôle de l'adjacence. */
+export interface TrackLine {
+	id: number;
+	ref?: string;
+	coords: LonLat[];
+}
+
+/**
+ * Voies que longe un contour de quai (même règle que les quêtes, `platformTracks`) : fermé
+ * (`closed`, bord à 6 m au plus) ou tracé en ligne (axe à 12 m au plus).
+ */
+export function ringTracks(ring: LonLat[], closed: boolean, tracks: TrackLine[]): Set<number> {
+	if (ring.length < 2) return new Set();
+	const proj = new LocalProjection(ring[0][0], ring[0][1]);
+	const P = (c: LonLat[]) => c.map(([lon, lat]) => proj.project(lon, lat));
+	const contour = closed ? [[...P(ring), P([ring[0]])[0]]] : [P(ring)];
+	const { tracks: side } = platformTracks(
+		contour,
+		closed,
+		tracks.map((t) => ({ id: t.id, pts: P(t.coords), trackRef: t.ref }))
+	);
+	return new Set(side.map((t) => t.way));
+}
+
+/**
+ * Voies longées avant (`before`) et plus par le nouveau contour fermé `after`, avec l'écart
+ * (m) entre la voie et le nouveau bord. Sert à l'avertissement de E11/E12 (non bloquant).
+ */
+export function lostTracks(before: Iterable<number>, after: LonLat[], tracks: TrackLine[]) {
+	const now = ringTracks(after, true, tracks);
+	const byId = new Map(tracks.map((t) => [t.id, t]));
+	const out: { way: number; ref?: string; gapM: number }[] = [];
+	if (after.length < 3) return out;
+	const proj = new LocalProjection(after[0][0], after[0][1]);
+	const P = (c: LonLat[]) => c.map(([lon, lat]) => proj.project(lon, lat));
+	const ring = P([...after, after[0]]);
+	for (const id of new Set(before)) {
+		const t = byId.get(id);
+		if (!t || now.has(id)) continue;
+		out.push({ way: id, ref: t.ref, gapM: trackGapM([ring], P(t.coords)) });
+	}
+	return out;
+}
+
+/**
+ * « Le quai ne longe plus la voie 2 (bord à 9 m). Vérifiez la forme : … ». Si le bord reste
+ * proche (6 m au plus), c'est l'orientation qui a changé : « bord plus parallèle à la voie ».
+ */
+export function lostTracksMessage(lost: { ref?: string; gapM: number }[]) {
+	if (!lost.length) return '';
+	const one = (l: { ref?: string; gapM: number }) =>
+		`${l.ref ? `la voie ${l.ref}` : 'une voie sans numéro'} (${
+			l.gapM > THRESHOLDS.polygonEdgeDistM
+				? `bord à ${Math.round(l.gapM)} m`
+				: 'bord plus parallèle à la voie'
+		})`;
+	const list =
+		lost.length === 1
+			? one(lost[0])
+			: `${lost.slice(0, -1).map(one).join(', ')} et ${one(lost.at(-1)!)}`;
+	return `Le quai ne longe plus ${list}. Vérifiez la forme : le bord du quai doit suivre la voie.`;
 }

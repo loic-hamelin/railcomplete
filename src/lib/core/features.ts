@@ -2,7 +2,15 @@
 // Code pur : aucune dépendance à MapLibre ni au navigateur.
 
 import { LocalProjection, projectOnSegment, type Pt } from './geo';
-import { OsmData, isPlatform, type BBox, type OsmElement, type OsmNode, type OsmWay } from './osm';
+import {
+	OsmData,
+	isPlatform,
+	isUnderground,
+	type BBox,
+	type OsmElement,
+	type OsmNode,
+	type OsmWay
+} from './osm';
 import type { QuestId, StationAnalysis } from './quests';
 
 /** État d'un objet sur la carte : renseigné, manquant (quête « à faire ») ou en alerte. */
@@ -21,6 +29,13 @@ export interface FeatureProps {
 	quests: string;
 	/** Modifié sur ce téléphone, pas encore envoyé. */
 	edited?: boolean;
+	/** Objet souterrain (tunnel, couche ou niveau négatif) : pointillés estompés (lot 7d). */
+	under?: boolean;
+	/**
+	 * Voie qui ne longe aucun quai cartographié (lot 7d) : dessinée plus discrète, sans quête ;
+	 * étiquette seulement si elle porte un numéro (`label` vide sinon).
+	 */
+	away?: boolean;
 }
 
 type Geometry =
@@ -139,6 +154,7 @@ export function buildFeatures(
 	for (const p of a.platforms) {
 		const k = `${p.ref.type}/${p.ref.id}`;
 		let geometry: Geometry | undefined;
+		let under = isUnderground(p.tags);
 		if (p.ref.type === 'way') {
 			const w = data.ways.get(p.ref.id);
 			if (!w) continue;
@@ -156,6 +172,7 @@ export function buildFeatures(
 			const first = outer?.[0];
 			if (!first) continue;
 			geometry = { type: 'Polygon', coordinates: [coords(first)] };
+			under ||= isUnderground(first.tags);
 		}
 		const t = p.tags;
 		const label = t.local_ref ?? (t.ref ? t.ref.replaceAll(';', '-') : '?');
@@ -175,7 +192,8 @@ export function buildFeatures(
 					: t.ref
 						? `Voies ${t.ref.replaceAll(';', ' et ')} · ${Math.round(p.lengthM)} m`
 						: `${Math.round(p.lengthM)} m · numéros des voies à relever sur place`,
-				quests: (questsOf.get(k) ?? []).join(',')
+				quests: (questsOf.get(k) ?? []).join(','),
+				...(under ? { under } : {})
 			}
 		});
 	}
@@ -198,7 +216,32 @@ export function buildFeatures(
 				label: ref ?? '?',
 				title: ref ? `Voie ${ref}` : 'Voie sans numéro',
 				detail: ref ? 'Numéro de voie renseigné' : 'Numéro affiché en gare à relever sur place',
-				quests: (questsOf.get(k) ?? []).join(',')
+				quests: (questsOf.get(k) ?? []).join(','),
+				...(isUnderground(w.tags) ? { under: true } : {})
+			}
+		});
+	}
+
+	// Autres voies de la gare (lot 7d) : rien ne disparaît de la carte quand un quai change de
+	// forme ; elles ne comptent pas dans les jauges et n'ont pas de quête.
+	for (const id of a.otherTracks ?? []) {
+		const w = data.ways.get(id);
+		if (!w) continue;
+		const ref = w.tags?.['railway:track_ref'];
+		features.push({
+			type: 'Feature',
+			id: fid++,
+			geometry: { type: 'LineString', coordinates: coords(w) },
+			properties: {
+				kind: 'voie',
+				osm: `way/${w.id}`,
+				status: 'ok',
+				label: ref ?? '',
+				title: ref ? `Voie ${ref}` : 'Voie sans numéro',
+				detail: 'Ne longe aucun quai cartographié',
+				quests: '',
+				away: true,
+				...(isUnderground(w.tags) ? { under: true } : {})
 			}
 		});
 	}

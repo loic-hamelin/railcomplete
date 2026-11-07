@@ -11,6 +11,7 @@ import {
 	type NewWayEdit,
 	type OrigNode,
 	type ShapeEdit,
+	type SignDeleteEdit,
 	type TagEdit
 } from './edits';
 import type { BBox, OsmElement, OsmNode, OsmRelation, OsmWay, Tags } from './osm';
@@ -23,6 +24,7 @@ import {
 	isLinked,
 	shapeDiff
 } from './shape';
+import { SIGN_REASONS, signRemoval, withoutSign } from './sign';
 
 export interface Plan {
 	/** Objets à créer : nœuds d'abord, puis ways (quais dessinés). */
@@ -88,12 +90,25 @@ export function usageToCheck(edits: Edit[]) {
 	return out;
 }
 
+/**
+ * Pancartes à supprimer (lot 7d) : avant l'envoi on relit la voie complète (way et nœuds :
+ * versions et alignement), puis tous les ways et relations du nœud (usage à jour).
+ */
+export const signsToCheck = (edits: Edit[]) =>
+	edits
+		.filter((e): e is SignDeleteEdit => e.kind === 'signdelete')
+		.map((e) => ({ node: Number(e.target.split('/')[1]), way: e.way }));
+
 /** Ways quais supprimés (leurs relations sont relues explicitement avant l'envoi). */
 export const deletedWays = (edits: Edit[]) =>
 	edits.filter((e): e is DeleteEdit => e.kind === 'delete').map((e) => wayId(e.target));
 
 const CHANGED =
 	'Le quai a été modifié entre-temps sur OpenStreetMap : rien n’a été envoyé pour lui. Refaites la modification sur la carte à jour.';
+const SIGN_CHANGED =
+	'La pancarte ou sa voie a été modifiée entre-temps sur OpenStreetMap : rien n’a été envoyé pour elle. Refaites la suppression sur la carte à jour.';
+const SIGN_LINKED =
+	'La pancarte a été reliée à un autre objet entre-temps sur OpenStreetMap : rien n’a été envoyé pour elle. Refaites la suppression sur la carte à jour.';
 const NODE_CHANGED =
 	'Un point du quai a été modifié ou relié à un autre objet entre-temps sur OpenStreetMap : rien n’a été envoyé pour lui. Refaites la modification sur la carte à jour.';
 
@@ -109,6 +124,8 @@ export function planUpload(edits: Edit[], fresh: OsmElement[]): Plan {
 	const modified = new Set<string>();
 	const plan: Plan = { create: [], modify: [], delete: [], sent: [], conflicts: [], touched: {} };
 
+	// Données relues telles quelles (les décisions de suppression de pancarte s'y fondent).
+	const raw = new Map(fresh.map((e) => [key(e), e]));
 	// Usage à jour des nœuds (d'après les données relues, avant toute modification).
 	const waysOf = new Map<number, Set<number>>();
 	const relationsOf = new Map<string, OsmRelation[]>();
@@ -321,6 +338,63 @@ export function planUpload(edits: Edit[], fresh: OsmElement[]): Plan {
 		sent(ed.id, [ed.target, ...parents.map(key), ...drops.map(key)]);
 	}
 
+	// Pancartes supprimées (lot 7d) : nœud retiré de la voie puis supprimé, ou tags retirés.
+	// La géométrie de la voie ne change jamais (écart < 0,3 m, sinon le nœud est gardé).
+	for (const ed of edits.filter((e): e is SignDeleteEdit => e.kind === 'signdelete')) {
+		const n = raw.get(ed.target) as OsmNode | undefined;
+		const now = byKey.get(ed.target) as OsmNode | undefined;
+		if (!n || !now) {
+			conflict(ed.id, 'Pancarte déjà supprimée sur OpenStreetMap.');
+			continue;
+		}
+		if (ed.version !== undefined && n.version !== ed.version) {
+			conflict(ed.id, SIGN_CHANGED);
+			continue;
+		}
+		if (ed.way !== undefined) {
+			const w = raw.get(`way/${ed.way}`) as OsmWay | undefined;
+			if (!w || !w.nodes.includes(n.id)) {
+				conflict(ed.id, 'La voie de la pancarte a été supprimée ou redessinée entre-temps.');
+				continue;
+			}
+			if (ed.wayVersion !== undefined && w.version !== ed.wayVersion) {
+				conflict(ed.id, SIGN_CHANGED);
+				continue;
+			}
+		}
+		const ways = [...(waysOf.get(n.id) ?? [])]
+			.map((id) => raw.get(`way/${id}`) as OsmWay | undefined)
+			.filter((w): w is OsmWay => !!w);
+		const r = signRemoval(
+			n,
+			ways,
+			relationsOf.get(ed.target) ?? [],
+			(id) => raw.get(`node/${id}`) as OsmNode | undefined
+		);
+		if (ed.mode === 'remove' && r.mode !== 'remove') {
+			// Annoncé « retiré de la voie » : on ne décide pas autre chose à l'aveugle.
+			conflict(ed.id, SIGN_LINKED);
+			continue;
+		}
+		if (ed.mode === 'remove') {
+			const touched: string[] = [ed.target];
+			if (r.way !== undefined) {
+				const w = byKey.get(`way/${r.way}`) as OsmWay;
+				w.nodes = w.nodes.filter((x) => x !== n.id);
+				modified.add(key(w));
+				touched.unshift(key(w));
+			}
+			deleteNodes.push(now);
+			sent(ed.id, touched);
+		} else {
+			// Nœud gardé : seuls les tags de la pancarte partent (relus : la version est la même).
+			const keys = Object.keys(n.tags ?? {}).filter((k) => ed.untag.includes(k));
+			now.tags = withoutSign(now.tags, keys);
+			modified.add(ed.target);
+			sent(ed.id, [ed.target]);
+		}
+	}
+
 	// Quais dessinés : nœuds puis way fermé, tous nouveaux.
 	const newWays: OsmWay[] = [];
 	for (const ed of edits.filter((e): e is NewWayEdit => e.kind === 'way')) {
@@ -365,6 +439,10 @@ export function proposedComment(stationName: string, edits: Edit[]) {
 	}
 	for (const e of edits)
 		if (e.kind === 'delete') parts.push(`${e.name} supprimé (${REASONS[e.reason].toLowerCase()})`);
+		else if (e.kind === 'signdelete')
+			parts.push(
+				`pancarte d’arrêt « ${e.label} » supprimée (${SIGN_REASONS[e.reason].toLowerCase()}${e.mode === 'untag' ? ', point gardé dans la voie' : ''})`
+			);
 	if (!parts.length) parts.push('numéros de quais et de voies, pancartes d’arrêt');
 	return `Gare de ${stationName} : ${parts.join(' ; ')}`;
 }

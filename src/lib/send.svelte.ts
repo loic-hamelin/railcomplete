@@ -18,6 +18,7 @@ import {
 	osmChangeXml,
 	planUpload,
 	proposedComment,
+	signsToCheck,
 	usageToCheck
 } from './core/upload.js';
 import { uploadBlock } from './core/remote.js';
@@ -143,6 +144,24 @@ async function readFresh(edits: Edit[]): Promise<OsmElement[]> {
 		)
 	);
 	out.push(...rels.flat());
+	// Pancartes à supprimer (lot 7d) : voie complète (versions, alignement des voisins), puis
+	// tous les ways et relations du nœud. Un objet disparu (404/410) manque : « à revoir ».
+	const gone = async (path: string) => {
+		try {
+			return elementsOf((await call(path)).body);
+		} catch (e) {
+			if (!(e instanceof HttpError) || ![404, 410].includes(e.status)) throw e;
+			return [];
+		}
+	};
+	const signs = await pool(
+		signsToCheck(edits).flatMap((s) => [
+			...(s.way !== undefined ? [() => gone(`/api/0.6/way/${s.way}/full.json`)] : []),
+			() => gone(`/api/0.6/node/${s.node}/ways.json`),
+			() => gone(`/api/0.6/node/${s.node}/relations.json`)
+		])
+	);
+	out.push(...signs.flat());
 	return out;
 }
 
@@ -231,10 +250,12 @@ export async function sendStation(
 					e.kind === 'node' ||
 					(e.kind === 'tags' && read(e.tags)) ||
 					(e.kind === 'shape' && read(e.tags)) ||
-					(e.kind === 'delete' && e.reason === 'gone')
+					((e.kind === 'delete' || e.kind === 'signdelete') && e.reason === 'gone')
 			),
 			imagery: sentEdits.some(
-				(e) => e.kind !== 'tags' && !(e.kind === 'delete' && e.reason === 'gone')
+				(e) =>
+					e.kind !== 'tags' &&
+					!((e.kind === 'delete' || e.kind === 'signdelete') && e.reason === 'gone')
 			)
 		});
 

@@ -4,7 +4,14 @@
 	import { page } from '$app/state';
 	import Icon from '#lib/Icon.svelte';
 	import { account, configured, login, signedIn } from '#lib/auth.svelte.js';
-	import { editFamily, editIcon, editKey, editLabel, type Edit } from '#lib/core/edits.js';
+	import {
+		editFamily,
+		editIcon,
+		editKey,
+		editLabel,
+		isRemoval,
+		type Edit
+	} from '#lib/core/edits.js';
 	import { openStation } from '#lib/current.svelte.js';
 	import { editsOf, loadEdits, pending, removeEdit, updateEdits } from '#lib/edits.svelte.js';
 	import {
@@ -85,8 +92,8 @@
 	}
 	async function retry(e: Edit) {
 		// Sans version de référence, la saisie s'appliquera telle quelle à la version à jour.
-		// (Jamais pour une forme ou une suppression de quai : elles se refont sur la carte.)
-		if (e.kind === 'shape' || e.kind === 'delete') return;
+		// (Jamais pour une forme ou une suppression : elles se refont sur la carte.)
+		if (e.kind === 'shape' || isRemoval(e)) return;
 		await updateEdits([
 			e.kind === 'tags'
 				? { ...e, conflict: undefined, version: undefined, base: undefined }
@@ -202,7 +209,7 @@
 								><span class="sum">{e.summary}</span><span class="meta">{e.conflict}</span></span
 							>
 							<span class="acts">
-								{#if e.kind === 'shape' || e.kind === 'delete'}
+								{#if e.kind === 'shape' || isRemoval(e)}
 									<!-- Forme ou suppression : jamais renvoyée telle quelle, on la refait sur la carte à jour. -->
 									<a
 										class="btn-sm"
@@ -227,7 +234,7 @@
 				</ul>
 				<p class="hint">
 					« Garder » renvoie votre saisie telle quelle : vérifiez d’abord sur place qu’elle est
-					juste. Une forme ou une suppression de quai se refait sur la carte à jour.
+					juste. Une forme de quai ou une suppression se refait sur la carte à jour.
 				</p>
 			{/if}
 

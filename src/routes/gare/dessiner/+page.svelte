@@ -1,17 +1,27 @@
 <script lang="ts">
 	// E11 — Dessiner un quai absent d'OpenStreetMap (polygone libre, lot 5).
-	// Les points proches d'une voie sont ramenés sur une ligne parallèle à 1,5 m de son axe.
+	// Les points proches d'une voie sont ramenés sur une ligne parallèle à 1,5 m de son axe,
+	// seulement à moins de 12 px de la croix (lot 7d) ; les points posés se glissent au doigt.
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import Icon from '#lib/Icon.svelte';
-	import { checkShape, snapToEdge, type LonLat } from '#lib/core/draw.js';
+	import {
+		EDGE_OFFSET_M,
+		checkShape,
+		lostTracks,
+		lostTracksMessage,
+		snapNear,
+		snapToEdge,
+		type LonLat
+	} from '#lib/core/draw.js';
 	import { newEditId } from '#lib/core/edits.js';
-	import { isPlatform, isRail, type OsmNode, type OsmWay } from '#lib/core/osm.js';
+	import { isPlatform, isRail, isUnderground, type OsmNode, type OsmWay } from '#lib/core/osm.js';
 	import { current, openStation } from '#lib/current.svelte.js';
 	import { editsOf, loadEdits, nextTempId, pending, saveEdit } from '#lib/edits.svelte.js';
 	import DrawMap from '#lib/map/DrawMap.svelte';
 	import NudgePad from '#lib/map/NudgePad.svelte';
+	import { loadSnapPref, setSnapPref, snapPref } from '#lib/snap.svelte.js';
 	import { stationView } from '#lib/view.js';
 	import { onMount, untrack } from 'svelte';
 
@@ -19,6 +29,7 @@
 	onMount(() => {
 		mounted = true;
 		loadEdits();
+		loadSnapPref();
 	});
 	const id = $derived(mounted ? (page.url.searchParams.get('id') ?? '') : '');
 	$effect(() => {
@@ -47,38 +58,74 @@
 		(view?.elements ?? []).filter((e): e is OsmWay => e.type === 'way' && isRail(e.tags))
 	);
 	const trackLines = $derived(railWays.map(coords));
-	const platformRings = $derived(
-		(view?.elements ?? [])
-			.filter((e): e is OsmWay => e.type === 'way' && isPlatform(e.tags))
-			.map(coords)
+	const tracksUnder = $derived(railWays.map((w) => isUnderground(w.tags)));
+	const platformWays = $derived(
+		(view?.elements ?? []).filter((e): e is OsmWay => e.type === 'way' && isPlatform(e.tags))
 	);
+	const platformRings = $derived(platformWays.map(coords));
+	const platformsUnder = $derived(platformWays.map((w) => isUnderground(w.tags)));
 
 	let points = $state<LonLat[]>([]);
 	let selected = $state<number | undefined>();
 	let centerNow = $state<LonLat | undefined>();
+	let zoomNow = $state<number | undefined>();
+	/** Contours précédents (annuler un point ajouté ou un déplacement) et leur nature. */
+	let history = $state<{ points: LonLat[]; what: 'add' | 'move' }[]>([]);
+	let said = $state('');
 	let errors = $state<string[]>([]);
 	let saving = $state(false);
 	let mapRef = $state<{ nudge: (dx: number, dy: number) => void; zoom: (d: number) => void }>();
 
-	const snap = $derived(
-		centerNow ? snapToEdge(centerNow, railWays, (i) => nodes.get(i)) : undefined
-	);
+	// Accrochage au bord de voie : à moins de 12 px de la croix au zoom courant (lot 7d).
+	const snapAt = (p: LonLat) =>
+		snapPref.on && zoomNow !== undefined
+			? snapNear(p, railWays, (i) => nodes.get(i), zoomNow)
+			: undefined;
+	const snap = $derived(centerNow ? snapAt(centerNow) : undefined);
 	const preview = $derived(centerNow ? (snap?.point ?? centerNow) : undefined);
 	const check = $derived(checkShape(points, trackLines, platformRings));
 	const m = (v: number) => `${Math.round(v)} m`;
 
+	/** Avertissement non bloquant (lot 7d) : le quai ne longe plus une voie où il était accroché. */
+	let lostWarn = $state('');
+	let saveAnyway = false;
+	const keep = (what: 'add' | 'move') => {
+		lostWarn = '';
+		history = [...history, { points: $state.snapshot(points) as LonLat[], what }];
+	};
 	function add() {
 		if (!preview) return;
 		errors = [];
 		if (selected !== undefined) {
+			keep('move');
 			points[selected] = preview;
+			said = `Point ${selected + 1} déplacé.`;
 			selected = undefined;
-		} else points = [...points, preview];
+		} else {
+			keep('add');
+			points = [...points, preview];
+			said = `Point ${points.length} ajouté.`;
+		}
 	}
 	function undo() {
 		errors = [];
 		selected = undefined;
-		points = points.slice(0, -1);
+		lostWarn = '';
+		const prev = history.at(-1);
+		if (!prev) return;
+		history = history.slice(0, -1);
+		points = prev.points;
+		said = prev.what === 'move' ? 'Déplacement annulé.' : 'Dernier point retiré.';
+	}
+	/** Point déjà posé, glissé au doigt puis relâché : même accrochage (lot 7d). */
+	function dragPoint(i: number, at: LonLat) {
+		if (!points[i]) return;
+		errors = [];
+		keep('move');
+		const s = snapAt(at);
+		points[i] = s?.point ?? at;
+		selected = undefined;
+		said = `Point ${i + 1} déplacé${s ? ', accroché au bord de la voie' : ''}.`;
 	}
 	function vertex(i: number) {
 		if (i === 0 && points.length >= 3 && selected === undefined) return close();
@@ -90,6 +137,30 @@
 			errors = check.errors;
 			return;
 		}
+		// Voies longées « avant » : celles au bord desquelles un point a été accroché (à 1,5 m
+		// de l'axe). Si la forme finale ne les longe plus (règle des quêtes), on le dit.
+		if (!saveAnyway) {
+			const lines = railWays.map((w) => ({
+				id: w.id,
+				ref: w.tags?.['railway:track_ref'],
+				coords: coords(w)
+			}));
+			const along = railWays
+				.filter((w) =>
+					points.some((p) => {
+						const s = snapToEdge(p, [w], (i) => nodes.get(i));
+						return !!s && Math.abs(s.fromAxisM - EDGE_OFFSET_M) < 0.05;
+					})
+				)
+				.map((w) => w.id);
+			const lost = lostTracks(along, points, lines);
+			if (lost.length) {
+				lostWarn = lostTracksMessage(lost);
+				said = lostWarn;
+				return;
+			}
+		}
+		saveAnyway = false;
 		saving = true;
 		try {
 			const tempId = nextTempId();
@@ -125,12 +196,18 @@
 				center={[ready.station.lon, ready.station.lat]}
 				tracks={trackLines}
 				platforms={platformRings}
+				{tracksUnder}
+				{platformsUnder}
 				{points}
 				{selected}
 				{preview}
 				snapped={!!snap}
-				onmove={(c) => (centerNow = c)}
+				onmove={(c, z) => {
+					centerNow = c;
+					zoomNow = z;
+				}}
 				onvertex={vertex}
+				ondragpoint={dragPoint}
 			/>
 		{:else}
 			<p class="status float" role="status">Chargement…</p>
@@ -152,7 +229,8 @@
 				{#if selected !== undefined}
 					Placez la croix au nouvel emplacement du <strong>point {selected + 1}</strong>.
 				{:else if points.length < 3}
-					Faites le tour du quai, coin après coin, en restant sur son bord.
+					Faites le tour du quai, coin après coin, en restant sur son bord. Un point posé se glisse
+					au doigt.
 				{:else}
 					Continuez, ou touchez le <strong>point 1</strong> (le plus gros) pour fermer le quai.
 				{/if}
@@ -174,24 +252,55 @@
 	</div>
 
 	<section class="panel float" aria-label="Tracé du quai">
-		<div class="info" class:ok={!!snap} role="status" aria-live="polite">
-			<Icon name={snap ? 'check' : 'locate'} size={20} />
-			<span>
-				{#if snap}<strong>Accroché au bord de la voie</strong> (à 1,5 m de son axe){:else}Point
-					libre (aucune voie à moins de 4 m){/if}
-				{#if points.length >= 2}
-					· longueur {m(check.lengthM)}{/if}
-			</span>
+		<div class="inforow">
+			<div class="info" class:ok={!!snap} role="status" aria-live="polite">
+				<Icon name={snap ? 'check' : 'locate'} size={20} />
+				<span>
+					{#if snap}<strong>Accroché au bord de la voie</strong> (à 1,5 m de son axe){:else}Point
+						sous la croix{/if}
+					{#if points.length >= 2}
+						· longueur {m(check.lengthM)}{/if}
+				</span>
+			</div>
+			<label class="snapopt">
+				<input
+					type="checkbox"
+					role="switch"
+					checked={snapPref.on}
+					onchange={(e) => setSnapPref(e.currentTarget.checked)}
+				/>Accrocher à la voie
+			</label>
 		</div>
+		<p class="visually-hidden" aria-live="polite">{said}</p>
 		{#if errors.length}
 			<ul class="errors banner err" role="alert">
 				{#each errors as e (e)}<li>{e}</li>{/each}
 			</ul>
 		{/if}
+		{#if lostWarn}
+			<div class="lost banner warn" role="alert">
+				<p><Icon name="alert" size={18} /><span>{lostWarn}</span></p>
+				<div class="two">
+					<button class="btn-sm" type="button" onclick={() => (lostWarn = '')}>Corriger</button>
+					<button
+						class="btn-sm"
+						type="button"
+						disabled={saving}
+						onclick={() => {
+							saveAnyway = true;
+							lostWarn = '';
+							close();
+						}}>Enregistrer quand même</button
+					>
+				</div>
+			</div>
+		{/if}
 
 		<div class="two">
-			<button class="btn btn-secondary" type="button" disabled={!points.length} onclick={undo}>
-				<Icon name="undo" size={20} />Annuler le point
+			<button class="btn btn-secondary" type="button" disabled={!history.length} onclick={undo}>
+				<Icon name="undo" size={20} />{history.at(-1)?.what === 'move'
+					? 'Annuler le déplacement'
+					: 'Annuler le point'}
 			</button>
 			<button class="btn" type="button" disabled={!preview} onclick={add}>
 				{selected !== undefined ? `Déplacer le point ${selected + 1} ici` : 'Ajouter un point'}
@@ -307,6 +416,29 @@
 		flex-direction: column;
 		gap: 8px;
 	}
+	.inforow {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0 8px;
+	}
+	.snapopt {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		min-height: 44px;
+		padding: 0 6px;
+		font-size: 0.875rem;
+		color: var(--text-2);
+		cursor: pointer;
+	}
+	.snapopt input {
+		width: 18px;
+		height: 18px;
+		margin: 0;
+		accent-color: var(--primary);
+	}
 	.info {
 		display: flex;
 		align-items: center;
@@ -324,6 +456,20 @@
 	.errors {
 		display: block;
 		padding-left: 2em;
+	}
+	.lost {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+	.lost p {
+		display: flex;
+		gap: 6px;
+		margin: 0;
+	}
+	.lost :global(svg) {
+		flex-shrink: 0;
+		margin-top: 2px;
 	}
 	.two {
 		display: grid;

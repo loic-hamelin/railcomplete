@@ -2,7 +2,7 @@
 // Stockées dans IndexedDB : elles survivent à la fermeture de l'appli et au mode avion.
 
 import { deleteEdit, getAllEdits, putEdit, readPref, writePref } from './cache.js';
-import { mergeEdit, type Edit } from './core/edits.js';
+import { mergeEdit, targets, type Edit } from './core/edits.js';
 import { server } from './osmserver.svelte.js';
 
 export const pending = $state<{ list: Edit[]; loaded: boolean }>({ list: [], loaded: false });
@@ -20,11 +20,9 @@ export function loadEdits() {
 export const mine = () => pending.list.filter((e) => (e.server ?? 'prod') === server.id);
 export const editsOf = (station: string) => mine().filter((e) => e.station === station);
 
-/** Autres saisies qui seraient retirées par la suppression de ce quai (à annoncer avant). */
+/** Autres saisies qui seraient retirées par la suppression de ce quai ou de cette pancarte. */
 export const editsReplacedByDelete = (station: string, target: string) =>
-	editsOf(station).filter(
-		(e) => (e.kind === 'tags' || e.kind === 'shape' || e.kind === 'delete') && e.target === target
-	);
+	editsOf(station).filter((e) => targets(e) && e.target === target);
 
 /** Enregistre une saisie ; la fusionne avec les saisies précédentes sur le même objet. */
 export async function saveEdit(edit: Edit) {

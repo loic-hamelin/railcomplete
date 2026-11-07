@@ -12,7 +12,7 @@ L'utilisateur choisit une gare. L'appli lit les données de la gare par l'API OS
 
 * Les numéros ne peuvent être saisis '''que sur place''' (position vérifiée sur le téléphone, jamais envoyée). À distance, on peut seulement placer ou vérifier des objets, dessiner un quai absent ou corriger la forme d'un quai sur la photo aérienne.
 * Fond de carte : BD ORTHO de l'IGN (Licence Ouverte 2.0), précision visée de l'ordre du mètre.
-* L'appli ne modifie que les clés listées ci-dessous. Elle peut aussi corriger la '''forme''' d'un quai et '''supprimer''' un quai (en double, ou disparu constaté sur place), selon les règles décrites plus bas ; elle ne supprime aucun autre type d'objet.
+* L'appli ne modifie que les clés listées ci-dessous. Elle peut aussi corriger la '''forme''' d'un quai, '''supprimer''' un quai (en double, ou disparu constaté sur place) et '''supprimer''' une pancarte d'arrêt (en double, mal placée, ou disparue constatée sur place), selon les règles décrites plus bas ; elle ne supprime aucun autre type d'objet, et '''jamais une voie'''.
 
 == Ce que l'appli modifie ==
 {| class="wikitable"
@@ -31,6 +31,8 @@ L'utilisateur choisit une gare. L'appli lit les données de la gare par l'API OS
 | Quai tracé en ligne, redessiné en surface || liste de nœuds (contour fermé), <code>area=yes</code> ajouté || même way, autres tags conservés ; les nœuds reliés à d'autres objets sont repris dans le contour
 |-
 | Suppression d'un quai (way) || suppression du way et de ses nœuds devenus orphelins ; retrait du quai des relations qui le contenaient (zone d'arrêt <code>public_transport=stop_area</code>, lignes) || motif obligatoire, écrit dans le commentaire du changeset : « en double avec un autre quai » (possible à distance) ou « n'existe plus » (sur place seulement, la photo pouvant être ancienne)
+|-
+| Suppression d'une pancarte d'arrêt (nœud de la voie) || si c'est sans risque : retrait du nœud de la voie (même liste de nœuds sans lui) puis suppression du nœud ; sinon : nœud gardé, seuls les tags de la pancarte sont retirés || motif obligatoire, écrit dans le commentaire du changeset : « en double » ou « mal placée » (possible à distance), « n'existe plus » (sur place seulement). La géométrie de la voie ne change jamais
 |-
 | Vérification || <code>check_date</code> || quand l'utilisateur confirme sur place qu'une donnée est juste
 |}
@@ -54,6 +56,10 @@ L'utilisateur choisit une gare. L'appli lit les données de la gare par l'API OS
 ** les quais décrits par un multipolygone ne sont pas modifiables dans l'appli (renvoi vers iD ou JOSM), de même qu'une suppression qui viderait une relation ;
 ** juste avant l'envoi, l'appli relit sur l'API la version du way, celle de chaque nœud déplacé, et les ways et relations des nœuds du quai : si le way ou un nœud déplacé a changé, rien n'est envoyé pour ce quai (« à revoir ») ; un nœud retiré qui n'est plus orphelin ou porte désormais des tags est gardé au lieu d'être supprimé ;
 ** pas de <code>if-unused</code> : un refus de l'API (412) met la saisie « à revoir », sans échec silencieux.
+* Suppression d'une pancarte d'arrêt (seul autre type d'objet supprimable ; les voies ne le sont jamais, leur géométrie sert notamment à OSRD et à OpenRailwayMap) :
+** le nœud de la pancarte est retiré de la voie puis supprimé '''seulement''' s'il n'est utilisé que par cette voie, ne porte que des tags de pancarte (<code>railway=signal</code>, <code>railway:signal:*</code>, <code>ref</code>, <code>note</code>, <code>source</code>, <code>check_date</code>…, liste explicite), n'est dans aucune relation, et si son retrait déplace la voie de moins de 0,3 m (nœud quasi aligné avec ses voisins) ;
+** sinon le nœud reste dans la voie et seuls les tags de la pancarte sont retirés (s'il porte d'autres tags, seuls <code>railway=signal</code> et <code>railway:signal:*</code> partent) : '''la géométrie de la voie ne change jamais''' ; l'utilisateur voit lequel des deux cas s'applique avant de confirmer, et le récapitulatif le dit ;
+** juste avant l'envoi, l'appli relit la version du nœud, la voie complète (<code>way/{id}/full</code>) et les ways et relations du nœud : si le nœud ou la voie a changé, ou si un nœud annoncé « retiré de la voie » est devenu partagé ou membre d'une relation, rien n'est envoyé pour cette pancarte (« à revoir »).
 * Respect de la [https://operations.osmfoundation.org/policies/api/ politique d'usage de l'API] : 2 requêtes simultanées au maximum, cache local, en-tête Referer (stationcomplete.org) transmis par le navigateur.
 
 == Phase pilote ==

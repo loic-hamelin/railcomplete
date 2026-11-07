@@ -8,9 +8,23 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import Icon from '#lib/Icon.svelte';
-	import { checkShape, snapToEdge, type LonLat } from '#lib/core/draw.js';
+	import {
+		checkShape,
+		lostTracks,
+		lostTracksMessage,
+		ringTracks,
+		snapNear,
+		type LonLat
+	} from '#lib/core/draw.js';
 	import { newEditId, type RingNode, type ShapeEdit } from '#lib/core/edits.js';
-	import { OsmData, isPlatform, isRail, type OsmNode, type OsmWay } from '#lib/core/osm.js';
+	import {
+		OsmData,
+		isPlatform,
+		isRail,
+		isUnderground,
+		type OsmNode,
+		type OsmWay
+	} from '#lib/core/osm.js';
 	import {
 		checkLocks,
 		followers,
@@ -31,6 +45,7 @@
 	import DrawMap from '#lib/map/DrawMap.svelte';
 	import NudgePad from '#lib/map/NudgePad.svelte';
 	import { srv } from '#lib/osmserver.svelte.js';
+	import { loadSnapPref, setSnapPref, snapPref } from '#lib/snap.svelte.js';
 	import { stationView } from '#lib/view.js';
 	import { onMount, untrack } from 'svelte';
 
@@ -38,6 +53,7 @@
 	onMount(() => {
 		mounted = true;
 		loadEdits();
+		loadSnapPref();
 	});
 	const id = $derived(mounted ? (page.url.searchParams.get('id') ?? '') : '');
 	const osm = $derived(mounted ? (page.url.searchParams.get('osm') ?? '') : '');
@@ -102,12 +118,15 @@
 		(view?.elements ?? []).filter((e): e is OsmWay => e.type === 'way' && isRail(e.tags))
 	);
 	const trackLines = $derived(railWays.map(coords));
+	const tracksUnder = $derived(railWays.map((w) => isUnderground(w.tags)));
 	// Le quai lui-même est exclu du contrôle de chevauchement.
-	const platformRings = $derived(
-		(view?.elements ?? [])
-			.filter((e): e is OsmWay => e.type === 'way' && isPlatform(e.tags) && e.id !== wayId)
-			.map(coords)
+	const platformWays = $derived(
+		(view?.elements ?? []).filter(
+			(e): e is OsmWay => e.type === 'way' && isPlatform(e.tags) && e.id !== wayId
+		)
 	);
+	const platformRings = $derived(platformWays.map(coords));
+	const platformsUnder = $derived(platformWays.map((w) => isUnderground(w.tags)));
 
 	// ---------- Contour en cours ----------
 	let pts = $state<RingNode[]>([]);
@@ -168,9 +187,15 @@
 				? `Point ${i + 1} : ${sharedLabel(orig.get(pts[i].id)!)}, le sélectionner`
 				: `Point ${i + 1} : le sélectionner`;
 	const ring = $derived(pts.map((p) => [p.lon, p.lat] as LonLat));
-	const snap = $derived(
-		centerNow ? snapToEdge(centerNow, railWays, (i) => nodes.get(i)) : undefined
-	);
+	/**
+	 * Accrochage au bord de voie (lot 7d) : seulement si le point accroché est à moins de 12 px
+	 * de la croix au zoom courant (et l'axe à moins de 4 m), et si l'accrochage est activé.
+	 */
+	const snapAt = (p: LonLat) =>
+		snapPref.on && zoomNow !== undefined
+			? snapNear(p, railWays, (i) => nodes.get(i), zoomNow)
+			: undefined;
+	const snap = $derived(centerNow ? snapAt(centerNow) : undefined);
 	const preview = $derived(centerNow ? (snap?.point ?? centerNow) : undefined);
 	const check = $derived(checkShape(ring, trackLines, platformRings));
 	const bounds = $derived.by((): [LonLat, LonLat] | undefined => {
@@ -210,14 +235,18 @@
 	const PICK_PX = 24;
 	const m = (v: number) => `${Math.round(v)} m`;
 
+	/** Avertissement non bloquant (lot 7d) : le quai ne longe plus une voie qu'il longeait. */
+	let lostWarn = $state('');
+	let saveAnyway = false;
 	function commit(next: RingNode[], message: string) {
 		history = [...history, $state.snapshot(pts) as RingNode[]];
 		pts = next;
 		errors = [];
+		lostWarn = '';
 		said = message;
 		lastNote = '';
 	}
-	const snapped = (p: LonLat) => snapToEdge(p, railWays, (i) => nodes.get(i))?.point ?? p;
+	const snapped = (p: LonLat) => snapAt(p)?.point ?? p;
 
 	function vertex(i: number) {
 		errors = [];
@@ -318,6 +347,23 @@
 		if (also) lastNote = `Point ${i + 1} déplacé : ${also}.`;
 		selected = undefined;
 	}
+	/** Sommet glissé au doigt puis relâché (lot 7d) : même accrochage, même historique. */
+	function dragPoint(i: number, at: LonLat) {
+		if (locked[i] || !pts[i]) return;
+		errors = [];
+		const s = snapAt(at);
+		const [lon, lat] = s?.point ?? at;
+		const next = [...pts];
+		next[i] = { ...next[i], lon, lat };
+		const o = orig.get(next[i].id);
+		const also = o && isLinked(o) ? followersPhrase(followers([o], [next[i]])) : '';
+		commit(
+			next,
+			`Point ${i + 1} déplacé${s ? ', accroché au bord de la voie' : ''}${also ? ` : ${also}` : ''}.`
+		);
+		if (also) lastNote = `Point ${i + 1} déplacé : ${also}.`;
+		selected = undefined;
+	}
 	function removePoint() {
 		if (selected === undefined || selLocked || selEdge || pts.length <= 3) return;
 		const i = selected;
@@ -345,6 +391,7 @@
 		);
 	}
 	function undo() {
+		lostWarn = '';
 		const prev = history.at(-1);
 		if (!prev) return;
 		history = history.slice(0, -1);
@@ -371,6 +418,27 @@
 			said = all.join(' ');
 			return;
 		}
+		// Voies longées par le quai d'origine et plus par la nouvelle forme (même règle que les
+		// quêtes) : on le dit, sans bloquer (« Corriger » ou « Enregistrer quand même »).
+		if (!saveAnyway) {
+			const lines = railWays.map((w) => ({
+				id: w.id,
+				ref: w.tags?.['railway:track_ref'],
+				coords: coords(w)
+			}));
+			const before = ringTracks(
+				info.nodes.map((n) => [n.lon, n.lat] as LonLat),
+				info.closed,
+				lines
+			);
+			const lost = lostTracks(before, ring, lines);
+			if (lost.length) {
+				lostWarn = lostTracksMessage(lost);
+				said = lostWarn;
+				return;
+			}
+		}
+		saveAnyway = false;
 		saving = true;
 		try {
 			// Objets qui suivent les points partagés déplacés : dits dans le résumé (E8, E9).
@@ -420,6 +488,8 @@
 				view={startView}
 				tracks={trackLines}
 				platforms={platformRings}
+				{tracksUnder}
+				{platformsUnder}
 				points={ring}
 				{selected}
 				{preview}
@@ -438,6 +508,7 @@
 				onvertex={vertex}
 				onmidpoint={midpoint}
 				onanchor={anchor}
+				ondragpoint={dragPoint}
 			/>
 		{/if}
 	</div>
@@ -479,10 +550,11 @@
 							>point {selected! + 1}</strong
 						>.
 					{:else if mode === 'area'}
-						Faites le tour du quai, coin après coin ; l’ancienne ligne est en pointillés.
+						Faites le tour du quai, coin après coin ; l’ancienne ligne est en trait pâle.
 						{#if anchorNodes.length}Touchez ses points carrés pour les reprendre.{/if}
 					{:else}
-						Placez la croix sur un point (ou touchez-le), ou sur un côté pour en ajouter un.
+						Placez la croix sur un point (ou touchez-le, ou faites-le glisser), ou sur un côté pour
+						en ajouter un.
 						{#if info.nodes.some(isLinked)}Les points à cœur sombre sont partagés avec d’autres
 							objets.{/if}
 					{/if}
@@ -524,20 +596,48 @@
 
 	{#if view && info && isQuai && !info.refused}
 		<section class="panel float" aria-label="Forme du quai" data-map-avoid>
-			<div class="info" class:ok={!!snap} role="status">
-				<Icon name={snap ? 'check' : 'locate'} size={20} />
-				<span>
-					{#if snap}<strong>Croix accrochée au bord de la voie</strong> (1,5 m de l’axe){:else}Croix
-						libre (aucune voie à moins de 4 m){/if}
-					{#if pts.length >= 2}
-						· longueur {m(check.lengthM)}{/if}
-				</span>
+			<div class="inforow">
+				<div class="info" class:ok={!!snap} role="status">
+					<Icon name={snap ? 'check' : 'locate'} size={20} />
+					<span>
+						{#if snap}<strong>Accroché au bord de la voie</strong> (1,5 m de l’axe){:else}Point sous
+							la croix{/if}
+						{#if pts.length >= 2}
+							· longueur {m(check.lengthM)}{/if}
+					</span>
+				</div>
+				<label class="snapopt">
+					<input
+						type="checkbox"
+						role="switch"
+						checked={snapPref.on}
+						onchange={(e) => setSnapPref(e.currentTarget.checked)}
+					/>Accrocher à la voie
+				</label>
 			</div>
 			<p class="visually-hidden" aria-live="polite">{said}</p>
 			{#if errors.length}
 				<ul class="errors banner err" role="alert">
 					{#each errors as e (e)}<li>{e}</li>{/each}
 				</ul>
+			{/if}
+			{#if lostWarn}
+				<div class="lost banner warn" role="alert">
+					<p><Icon name="alert" size={18} /><span>{lostWarn}</span></p>
+					<div class="two">
+						<button class="btn-sm" type="button" onclick={() => (lostWarn = '')}>Corriger</button>
+						<button
+							class="btn-sm"
+							type="button"
+							disabled={saving}
+							onclick={() => {
+								saveAnyway = true;
+								lostWarn = '';
+								finish();
+							}}>Enregistrer quand même</button
+						>
+					</div>
+				</div>
 			{/if}
 
 			{#if !sel}
@@ -708,6 +808,29 @@
 		flex-direction: column;
 		gap: 8px;
 	}
+	.inforow {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0 8px;
+	}
+	.snapopt {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		min-height: 44px;
+		padding: 0 6px;
+		font-size: 0.875rem;
+		color: var(--text-2);
+		cursor: pointer;
+	}
+	.snapopt input {
+		width: 18px;
+		height: 18px;
+		margin: 0;
+		accent-color: var(--primary);
+	}
 	.info {
 		display: flex;
 		align-items: center;
@@ -725,6 +848,20 @@
 	.errors {
 		display: block;
 		padding-left: 2em;
+	}
+	.lost {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+	.lost p {
+		display: flex;
+		gap: 6px;
+		margin: 0;
+	}
+	.lost :global(svg) {
+		flex-shrink: 0;
+		margin-top: 2px;
 	}
 	.two {
 		display: grid;

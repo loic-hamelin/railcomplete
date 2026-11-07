@@ -73,10 +73,81 @@ export interface PlatformInfo {
 	stopSigns: number[];
 }
 
+/**
+ * Voies qui longent un quai (même règle partout : quêtes, carte, avertissement de E11/E12) :
+ * segments à moins de 20° de l'axe du quai, à moins de 6 m de son contour (12 m de l'axe pour
+ * un quai tracé en ligne), recouvrant au moins min(20 m, moitié du quai) le long de son axe.
+ * Contour et voies en coordonnées locales (mètres).
+ */
+export function platformTracks(
+	contour: Pt[][],
+	polygon: boolean,
+	rails: { id: number; pts: Pt[]; trackRef?: string }[]
+) {
+	const pts = contour.flat();
+	const axis = principalAxis(pts);
+	const maxDist = polygon ? THRESHOLDS.polygonEdgeDistM : THRESHOLDS.lineAxisDistM;
+	const tracks: TrackSide[] = [];
+	for (const w of rails) {
+		const line = w.pts;
+		let overlap = 0;
+		let sideSum = 0;
+		for (let i = 0; i + 1 < line.length; i++) {
+			const a = line[i],
+				b = line[i + 1];
+			if (lineAngleDeg(sub(b, a), axis.u) > THRESHOLDS.maxAngleDeg) continue;
+			const d = Math.min(...contour.map((ring) => segmentToPolyline(a, b, ring)));
+			if (d > maxDist) continue;
+			const sa = dot(sub(a, axis.center), axis.u);
+			const sb = dot(sub(b, axis.center), axis.u);
+			const lo = Math.max(Math.min(sa, sb), axis.min);
+			const hi = Math.min(Math.max(sa, sb), axis.max);
+			if (hi <= lo) continue;
+			overlap += hi - lo;
+			const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+			sideSum += Math.sign(cross(axis.u, sub(mid, axis.center))) * (hi - lo);
+		}
+		const needed = Math.min(THRESHOLDS.minOverlapM, THRESHOLDS.minOverlapRatio * axis.length);
+		if (overlap >= needed && overlap > 0)
+			tracks.push({
+				way: w.id,
+				side: sideSum >= 0 ? 'left' : 'right',
+				overlapM: Math.round(overlap),
+				trackRef: w.trackRef
+			});
+	}
+	return { axis, tracks };
+}
+
+/**
+ * Distance (m) entre une voie et le contour d'un quai, sur la partie de la voie qui fait face
+ * au quai (projection sur son axe) ; sur toute la voie si aucune partie ne lui fait face.
+ */
+export function trackGapM(contour: Pt[][], line: Pt[]) {
+	const axis = principalAxis(contour.flat());
+	let facing = Infinity,
+		any = Infinity;
+	for (let i = 0; i + 1 < line.length; i++) {
+		const a = line[i],
+			b = line[i + 1];
+		const d = Math.min(...contour.map((ring) => segmentToPolyline(a, b, ring)));
+		any = Math.min(any, d);
+		const sa = dot(sub(a, axis.center), axis.u),
+			sb = dot(sub(b, axis.center), axis.u);
+		if (Math.max(sa, sb) >= axis.min && Math.min(sa, sb) <= axis.max) facing = Math.min(facing, d);
+	}
+	return Number.isFinite(facing) ? facing : any;
+}
+
 export interface StationAnalysis {
 	platforms: PlatformInfo[];
 	/** Voies adjacentes à au moins un quai. */
 	tracks: { way: number; trackRef?: string }[];
+	/**
+	 * Voies ferrées de la gare (emprise + 50 m) qui ne longent aucun quai (lot 7d) : dessinées
+	 * sur la carte, plus discrètes, sans quête ni compteur.
+	 */
+	otherTracks: number[];
 	stopSigns: OsmNode[];
 	quests: Quest[];
 	completeness: {
@@ -154,39 +225,13 @@ export function analyzeStation(
 	const stopSignWays = new Map(stopSigns.map((n) => [n.id, data.waysOfNode.get(n.id) ?? []]));
 
 	// ---- Adjacence quai ↔ voie ----
+	const railList = rails.map((w) => ({
+		id: w.id,
+		pts: railPts.get(w.id)!,
+		trackRef: w.tags?.['railway:track_ref']
+	}));
 	const platforms: PlatformInfo[] = raw.map((p) => {
-		const pts = p.contour.flat();
-		const axis = principalAxis(pts);
-		const maxDist = p.polygon ? THRESHOLDS.polygonEdgeDistM : THRESHOLDS.lineAxisDistM;
-		const tracks: TrackSide[] = [];
-		for (const w of rails) {
-			const line = railPts.get(w.id)!;
-			let overlap = 0;
-			let sideSum = 0;
-			for (let i = 0; i + 1 < line.length; i++) {
-				const a = line[i],
-					b = line[i + 1];
-				if (lineAngleDeg(sub(b, a), axis.u) > THRESHOLDS.maxAngleDeg) continue;
-				const d = Math.min(...p.contour.map((ring) => segmentToPolyline(a, b, ring)));
-				if (d > maxDist) continue;
-				const sa = dot(sub(a, axis.center), axis.u);
-				const sb = dot(sub(b, axis.center), axis.u);
-				const lo = Math.max(Math.min(sa, sb), axis.min);
-				const hi = Math.min(Math.max(sa, sb), axis.max);
-				if (hi <= lo) continue;
-				overlap += hi - lo;
-				const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-				sideSum += Math.sign(cross(axis.u, sub(mid, axis.center))) * (hi - lo);
-			}
-			const needed = Math.min(THRESHOLDS.minOverlapM, THRESHOLDS.minOverlapRatio * axis.length);
-			if (overlap >= needed && overlap > 0)
-				tracks.push({
-					way: w.id,
-					side: sideSum >= 0 ? 'left' : 'right',
-					overlapM: Math.round(overlap),
-					trackRef: w.tags?.['railway:track_ref']
-				});
-		}
+		const { axis, tracks } = platformTracks(p.contour, p.polygon, railList);
 		// Pancartes sur une voie adjacente, dans l'intervalle du quai élargi de 50 m.
 		const adjacent = new Set(tracks.map((t) => t.way));
 		const signs = stopSigns
@@ -324,6 +369,14 @@ export function analyzeStation(
 	return {
 		platforms,
 		tracks: [...adjacentWays].map(([way, trackRef]) => ({ way, trackRef })),
+		otherTracks: [...data.ways.values()]
+			.filter(
+				(w) =>
+					isRail(w.tags) &&
+					!adjacentWays.has(w.id) &&
+					nodePts(w).some((n) => inBBox(wide, n.lon, n.lat))
+			)
+			.map((w) => w.id),
 		stopSigns,
 		quests,
 		completeness: {
