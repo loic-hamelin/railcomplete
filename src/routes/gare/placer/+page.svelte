@@ -5,7 +5,8 @@
 	import { page } from '$app/state';
 	import Icon from '#lib/Icon.svelte';
 	import type { Snap } from '#lib/core/edits.js';
-	import { isRail, isStopSign, type OsmNode, type OsmWay } from '#lib/core/osm.js';
+	import { countryConfig, imageryOf } from '#lib/core/countries.js';
+	import { isRail, type OsmNode, type OsmWay } from '#lib/core/osm.js';
 	import { current, openStation } from '#lib/current.svelte.js';
 	import { editsOf, loadEdits, pending } from '#lib/edits.svelte.js';
 	import NudgePad from '#lib/map/NudgePad.svelte';
@@ -31,6 +32,8 @@
 	const view = $derived(
 		ready && pending.loaded ? stationView(ready.station, ready.elements, editsOf(id)) : undefined
 	);
+	// Pancartes reconnues selon le schéma du pays de la gare.
+	const signs = $derived(ready ? countryConfig(ready.station.country).stopSigns : null);
 	// Voies candidates : toutes les voies ferrées chargées pour la gare.
 	const tracks = $derived(
 		(view?.elements ?? []).filter((e): e is OsmWay => e.type === 'way' && isRail(e.tags))
@@ -55,7 +58,7 @@
 		const existing = view.elements.find(
 			(e): e is OsmNode =>
 				e.type === 'node' &&
-				isStopSign(e.tags) &&
+				!!signs?.isStopSign(e.tags) &&
 				w.nodes.includes(e.id) &&
 				distanceM(e.lat, e.lon, snap!.lat, snap!.lon) < 10
 		);
@@ -84,9 +87,10 @@
 <!-- Carte plein écran ; en-tête, contrôles et actions flottent au-dessus (décision 6). -->
 <div class="screen">
 	<div class="mapbox">
-		{#if view && start}
+		{#if view && start && ready}
 			<PlacementMap
 				bind:this={mapRef}
+				imagery={imageryOf(ready.station.country)}
 				center={start}
 				{tracks}
 				elements={view.elements}

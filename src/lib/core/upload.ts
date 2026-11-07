@@ -14,6 +14,7 @@ import {
 	type SignDeleteEdit,
 	type TagEdit
 } from './edits';
+import { DEFAULT_COUNTRY, imageryOf, type CountryCode } from './countries';
 import type { BBox, OsmElement, OsmNode, OsmRelation, OsmWay, Tags } from './osm';
 import {
 	COMPLEX,
@@ -664,13 +665,17 @@ export function conflictTarget(message: string) {
 	return m ? `${m[1].toLowerCase()}/${m[2]}` : undefined;
 }
 
-/** Tags du changeset d'une gare (rapport tags § 6 : un changeset par gare). */
+/**
+ * Tags du changeset d'une gare (rapport tags § 6 : un changeset par gare). `imagery_used` est
+ * la valeur de la photo aérienne du pays de la gare ; `locale` est la langue de l'interface.
+ */
 export function changesetTags(o: {
 	comment: string;
 	version: string;
 	survey: boolean;
 	imagery: boolean;
 	locale?: string;
+	country?: CountryCode;
 }): Tags {
 	const t: Tags = {
 		created_by: `stationcomplete ${o.version}`,
@@ -679,6 +684,6 @@ export function changesetTags(o: {
 		locale: o.locale ?? 'fr'
 	};
 	if (o.survey) t.source = 'survey';
-	if (o.imagery) t.imagery_used = 'BDOrtho IGN';
+	if (o.imagery) t.imagery_used = imageryOf(o.country ?? DEFAULT_COUNTRY).imageryUsed;
 	return t;
 }

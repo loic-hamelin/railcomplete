@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import Icon from '#lib/Icon.svelte';
+	import { imageryOf } from '#lib/core/countries.js';
 	import { newEditId } from '#lib/core/edits.js';
 	import type { FeatureProps } from '#lib/core/features.js';
 	import { OsmData } from '#lib/core/osm.js';
@@ -165,6 +166,7 @@
 				kind: 'delete',
 				id: newEditId(),
 				station: id,
+				country: ready.station.country,
 				createdAt: Date.now(),
 				target: `way/${shapeOf.way.id}`,
 				version: shapeOf.way.version,
@@ -194,6 +196,7 @@
 				kind: 'signdelete',
 				id: newEditId(),
 				station: id,
+				country: ready.station.country,
 				createdAt: Date.now(),
 				target: `node/${node.id}`,
 				version: node.version,
@@ -253,6 +256,7 @@
 	{#if ready && data}
 		<StationMap
 			bind:this={mapRef}
+			imagery={imageryOf(ready.station.country)}
 			bbox={ready.station.bbox}
 			{data}
 			{visible}

@@ -6,6 +6,7 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import Icon from '#lib/Icon.svelte';
+	import { imageryOf } from '#lib/core/countries.js';
 	import {
 		EDGE_OFFSET_M,
 		checkShape,
@@ -133,6 +134,7 @@
 	}
 
 	async function close() {
+		if (!ready) return;
 		if (!check.ok) {
 			errors = check.errors;
 			return;
@@ -168,6 +170,7 @@
 				kind: 'way',
 				id: newEditId(),
 				station: id,
+				country: ready.station.country,
 				createdAt: Date.now(),
 				tempId,
 				nodes: points.map(([lon, lat]) => ({ id: nextTempId(), lon, lat })),
@@ -193,6 +196,7 @@
 		{#if view && ready}
 			<DrawMap
 				bind:this={mapRef}
+				imagery={imageryOf(ready.station.country)}
 				center={[ready.station.lon, ready.station.lat]}
 				tracks={trackLines}
 				platforms={platformRings}

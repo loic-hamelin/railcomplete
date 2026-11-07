@@ -3,6 +3,7 @@
 	import Logo from '#lib/Logo.svelte';
 	import { wipeAll } from '#lib/cache.js';
 	import { CONTACT_EMAIL } from '#lib/config.js';
+	import { photoCredits } from '#lib/core/countries.js';
 	import { loadEdits, pending } from '#lib/edits.svelte.js';
 	import { onMount } from 'svelte';
 
@@ -80,9 +81,11 @@
 				<strong>OpenStreetMap</strong> (Fondation OpenStreetMap, Royaume-Uni) : lecture des données des
 				gares, connexion et envoi des contributions.
 			</li>
-			<li>
-				<strong>IGN – Géoplateforme</strong> (France) : photos aériennes.
-			</li>
+			{#each photoCredits() as c (c.operator)}
+				<li>
+					<strong>{c.operator}</strong> ({c.operatorSeat}) : photos aériennes.
+				</li>
+			{/each}
 		</ul>
 	</section>
 

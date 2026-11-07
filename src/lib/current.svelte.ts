@@ -3,12 +3,15 @@
 import { getCachedStation, putCachedStation, readPref, writePref } from './cache.js';
 import { analyzeStation, type StationAnalysis } from './core/quests.js';
 import type { OsmElement } from './core/osm.js';
+import { stationCacheKey } from './core/storage.js';
 import { fetchStationData, OsmApiError } from './osmapi.js';
 import { server } from './osmserver.svelte.js';
-import { loadStations, type Station } from './stations.js';
+import { country } from './country.svelte.js';
+import { findStation, type Station } from './stations.js';
 
-// Clé du cache local : une gare chargée depuis le serveur de test ne se mélange pas à la vraie.
-const cacheKey = (id: string) => (server.id === 'prod' ? id : `${server.id}:${id}`);
+// Clé du cache local : une gare chargée depuis le serveur de test ne se mélange pas à la vraie
+// (sans le pays : clé inchangée par le lot P1, voir core/storage.ts).
+const cacheKey = (id: string) => stationCacheKey(server.id, id);
 
 type State =
 	| { status: 'idle' }
@@ -35,7 +38,7 @@ export async function openStation(id: string, { force = false } = {}) {
 	current.value = { status: 'loading' };
 	let station: Station | undefined;
 	try {
-		station = (await loadStations()).stations.find((s) => s.id === id);
+		station = await findStation(id, country.code);
 	} catch (e) {
 		current.value = { status: 'error', message: (e as Error).message };
 		return;
@@ -77,7 +80,7 @@ function ready(station: Station, elements: OsmElement[], fetchedAt: number, from
 		status: 'ready',
 		station,
 		elements,
-		analysis: analyzeStation(elements, station.bbox),
+		analysis: analyzeStation(elements, station.bbox, undefined, station.country),
 		fetchedAt,
 		fromCache,
 		server: server.id

@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import Logo from '#lib/Logo.svelte';
 	import { CONTACT_EMAIL, REPO_URL } from '#lib/config.js';
+	import { photoCredits } from '#lib/core/countries.js';
 </script>
 
 <svelte:head>
@@ -39,7 +40,9 @@
 				<a href="https://opendatacommons.org/licenses/odbl/">ODbL</a>. © les contributeurs
 				OpenStreetMap.
 			</li>
-			<li>Photographies aériennes : IGN – BD ORTHO, sous Licence Ouverte 2.0.</li>
+			{#each photoCredits() as c (c.product)}
+				<li>Photographies aériennes : {c.product}, sous {c.licence}.</li>
+			{/each}
 			<li>
 				Le code de stationcomplete est libre, sous licence GPL-3.0 ou ultérieure :
 				<a href={REPO_URL} rel="external">voir le code source</a>.

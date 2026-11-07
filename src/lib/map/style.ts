@@ -1,9 +1,10 @@
 // Style de carte partagé par StationMap (E5), PlacementMap (E6) et DrawMap (E11) — refonte v1.
-// Principe : la photo IGN reste intacte ; chaque objet = trait clair + liseré sombre (≥ 3:1 sur
+// Principe : la photo aérienne reste intacte ; chaque objet = trait clair + liseré sombre (≥ 3:1 sur
 // béton comme sur ballast). La carte ne change pas avec le thème : seuls les contrôles flottants
 // passent en sombre. Valeurs : docs/ux-spec.md § 5.3 (spécification de la refonte, § 3).
 
-import type { ExpressionSpecification } from 'maplibre-gl';
+import type { ExpressionSpecification, RasterSourceSpecification } from 'maplibre-gl';
+import type { Imagery } from '#lib/core/countries.js';
 
 export const MAP = {
 	voie: '#E4E0FF', // lavande très pâle (famille voie)
@@ -49,7 +50,14 @@ export const UNDER_CASING = 0.3;
 
 export const IS_SEL: ExpressionSpecification = ['boolean', ['feature-state', 'selected'], false];
 
-export const IGN_ATTRIBUTION = 'Photo © IGN – BD ORTHO';
+/** Source MapLibre de la photo aérienne du pays de la gare (configuration des pays). */
+export const photoSource = (im: Imagery): RasterSourceSpecification => ({
+	type: 'raster',
+	tiles: [im.tileUrl],
+	tileSize: im.tileSize,
+	maxzoom: im.maxZoom,
+	attribution: im.attribution
+});
 export const OSM_ATTRIBUTION = '© contributeurs OpenStreetMap';
 
 /** Rectangle à l'écran, en px relatifs au conteneur de la carte. */

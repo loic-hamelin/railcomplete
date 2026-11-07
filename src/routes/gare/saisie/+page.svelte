@@ -5,21 +5,19 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import Icon from '#lib/Icon.svelte';
+	import { countryConfig } from '#lib/core/countries.js';
 	import {
 		bearingName,
-		checkSign,
 		cleanTrackRef,
 		joinRefs,
 		newEditId,
-		signSummary,
-		signTags,
 		today,
-		type ElementKey,
-		type SignInput,
-		type SignType
+		type ElementKey
 	} from '#lib/core/edits.js';
 	import { platformTitle } from '#lib/core/features.js';
-	import { isPlatform, isRail, isStopSign, splitValues, type OsmWay } from '#lib/core/osm.js';
+	import { isPlatform, isRail, splitValues, type OsmWay } from '#lib/core/osm.js';
+	import type { SignInput } from '#lib/core/stopsigns/fr.js';
+	import type { SignInputBase } from '#lib/core/stopsigns/types.js';
 	import { current, openStation } from '#lib/current.svelte.js';
 	import { editsOf, loadEdits, nextTempId, pending, saveEdit } from '#lib/edits.svelte.js';
 	import { canSurvey, checkOnSite, where } from '#lib/onsite.svelte.js';
@@ -56,6 +54,8 @@
 	const view = $derived(
 		ready && pending.loaded ? stationView(ready.station, ready.elements, editsOf(id)) : undefined
 	);
+	// Schéma des pancartes du pays de la gare (grille de choix, tags, contrôles).
+	const signs = $derived(ready ? countryConfig(ready.station.country).stopSigns : null);
 	const el = $derived(
 		view && osm ? view.elements.find((e) => `${e.type}/${e.id}` === osm) : undefined
 	);
@@ -64,7 +64,7 @@
 			? 'pancarte'
 			: !el
 				? undefined
-				: isStopSign(el.tags)
+				: signs?.isStopSign(el.tags)
 					? 'pancarte'
 					: isPlatform(el.tags)
 						? 'quai'
@@ -116,20 +116,10 @@
 
 	// ---------------- Pancarte ----------------
 	let correcting = $state(false);
-	const sign = $state<Partial<SignInput>>({});
-	const TYPES: { t: SignType; label: string; plate?: boolean }[] = [
-		{ t: 'TT', label: 'TT', plate: true },
-		{ t: 'nV', label: 'n V', plate: true },
-		{ t: 'L', label: 'L 220', plate: true },
-		{ t: 'Z57', label: 'Z57', plate: true },
-		{ t: 'Z50', label: 'Z50', plate: true },
-		{ t: 'TGV', label: 'TGV', plate: true },
-		{ t: 'UFR', label: 'UFR', plate: true },
-		{ t: 'long', label: 'Train long' },
-		{ t: 'short', label: 'Train court' },
-		{ t: 'all', label: 'Tous trains' },
-		{ t: 'other', label: 'Autre / illisible' }
-	];
+	// Saisie en cours. Les précisions dépendent du schéma du pays (sous-formulaires plus bas) ;
+	// `fr` la lit avec les types du schéma français.
+	const sign = $state<Partial<SignInputBase>>({});
+	const fr = sign as Partial<SignInput>;
 	// Cap de la voie au point de la pancarte, pour nommer les deux sens.
 	const bearing = $derived(placed?.bearing ?? wayBearingAt());
 	function wayBearingAt() {
@@ -160,7 +150,7 @@
 	let saving = $state(false);
 
 	async function save(tags: Record<string, string | null>, summary: string) {
-		if (!el) return;
+		if (!el || !ready) return;
 		const orig = ready?.elements.find((e) => `${e.type}/${e.id}` === osm);
 		saving = true;
 		try {
@@ -168,6 +158,7 @@
 				kind: 'tags',
 				id: newEditId(),
 				station: id,
+				country: ready.station.country,
 				createdAt: Date.now(),
 				target: osm as ElementKey,
 				// Version et valeurs d'origine (avant toute saisie locale) : servent à détecter, à
@@ -230,11 +221,12 @@
 
 	async function saveSign() {
 		error = '';
-		const msg = checkSign(sign);
+		if (!signs || !ready) return;
+		const msg = signs.check(sign);
 		if (msg) return (error = msg);
-		const input = $state.snapshot(sign) as SignInput;
-		const tags = { ...signTags(input), check_date: today() };
-		const summary = `Pancarte « ${signSummary(input)} »`;
+		const input = $state.snapshot(sign) as SignInputBase;
+		const tags = { ...signs.toTags(input), check_date: today() };
+		const summary = `Pancarte « ${signs.summary(input)} »`;
 		if (placed) {
 			saving = true;
 			try {
@@ -243,6 +235,7 @@
 					kind: 'node',
 					id: newEditId(),
 					station: id,
+					country: ready.station.country,
 					createdAt: Date.now(),
 					tempId,
 					lon: placed.lon,
@@ -265,17 +258,17 @@
 			}
 			return;
 		}
-		// Correction d'une pancarte existante : on remplace toutes les clés railway:signal:stop*.
+		// Correction d'une pancarte existante : on remplace toutes les clés de la pancarte
+		// (railway:signal:stop* en France).
 		const old = el?.tags ?? {};
 		const replace: Record<string, string | null> = {};
-		for (const k of Object.keys(old))
-			if (k.startsWith('railway:signal:stop') && !(k in tags)) replace[k] = null;
+		for (const k of Object.keys(old)) if (signs.ownsKey(k) && !(k in tags)) replace[k] = null;
 		save({ ...replace, ...tags }, summary);
 	}
 
-	const choose = (t: SignType) => {
-		for (const k of Object.keys(sign) as (keyof SignInput)[])
-			if (k !== 'direction' && k !== 'position') delete sign[k];
+	const choose = (t: string) => {
+		const s = sign as Record<string, unknown>;
+		for (const k of Object.keys(s)) if (k !== 'direction' && k !== 'position') delete s[k];
 		sign.type = t;
 	};
 </script>
@@ -418,118 +411,116 @@
 					<fieldset>
 						<legend>Quel panneau voyez-vous ?</legend>
 						<div class="grid">
-							{#each TYPES as ty (ty.t)}
-								<button
-									type="button"
-									class:wide={ty.t === 'other' || !ty.plate}
-									aria-pressed={sign.type === ty.t}
-									onclick={() => choose(ty.t)}
-								>
-									{#if ty.plate}<span class="plate">{ty.label}</span>{:else}{ty.label}{/if}
-								</button>
+							{#each signs?.types ?? [] as ty (ty.t)}
+								{#if ty.disabled}
+									<button type="button" class="wide" disabled title={ty.disabled}>
+										{ty.label}
+									</button>
+								{:else}
+									<button
+										type="button"
+										class:wide={ty.t === 'other' || !ty.plate}
+										aria-pressed={sign.type === ty.t}
+										onclick={() => choose(ty.t)}
+									>
+										{#if ty.plate}<span class="plate">{ty.label}</span>{:else}{ty.label}{/if}
+									</button>
+								{/if}
 							{/each}
-							<button
-								type="button"
-								class="wide"
-								disabled
-								title="En attente de validation du schéma OSM"
-							>
-								US / UM (bientôt)
-							</button>
 						</div>
 					</fieldset>
 
-					{#if sign.type === 'nV'}
-						<fieldset>
-							<legend>Nombre de véhicules écrit sur le panneau</legend>
-							<div class="chips">
-								{#each ['3', '4', '5', '6', '8', '10'] as v (v)}
-									<button
-										type="button"
-										aria-pressed={sign.number === v}
-										onclick={() => (sign.number = v)}>{v}</button
-									>
-								{/each}
-								<label class="mini">
-									<span class="visually-hidden">Autre nombre</span>
-									<input
-										class="input"
-										inputmode="numeric"
-										placeholder="Autre"
-										maxlength="2"
-										bind:value={sign.number}
-									/>
-								</label>
-							</div>
-						</fieldset>
-					{:else if sign.type === 'L'}
-						<fieldset>
-							<legend>Longueur écrite sur le panneau (m)</legend>
-							<div class="chips">
-								{#each ['110', '160', '220', '300', '400'] as v (v)}
-									<button
-										type="button"
-										aria-pressed={sign.number === v}
-										onclick={() => (sign.number = v)}>{v}</button
-									>
-								{/each}
-							</div>
-						</fieldset>
-					{:else if sign.type === 'Z57' || sign.type === 'Z50' || sign.type === 'TGV'}
-						<fieldset>
-							<legend>Texte sous « {sign.type} »</legend>
-							<div class="chips">
-								{#if sign.type === 'Z57'}
-									{#each [['1', 'single_unit', '1'], ['1-2', undefined, '1;2'], ['2', 'multiple_unit', '2'], ['2-3', 'multiple_unit', '2;3'], ['3', 'multiple_unit', '3']] as [lab, unit, num] (lab)}
+					<!-- Précisions propres aux pancartes françaises (schéma « fr »). -->
+					{#if signs?.id === 'fr'}
+						{#if fr.type === 'nV'}
+							<fieldset>
+								<legend>Nombre de véhicules écrit sur le panneau</legend>
+								<div class="chips">
+									{#each ['3', '4', '5', '6', '8', '10'] as v (v)}
 										<button
 											type="button"
-											aria-pressed={sign.number === num}
-											onclick={() => ((sign.number = num), (sign.unit = unit as SignInput['unit']))}
-											>{lab}</button
+											aria-pressed={fr.number === v}
+											onclick={() => (fr.number = v)}>{v}</button
 										>
 									{/each}
-								{:else}
-									{#each [['1', 'single_unit'], ['2', 'multiple_unit'], ['1-2', undefined]] as [lab, unit] (lab)}
+									<label class="mini">
+										<span class="visually-hidden">Autre nombre</span>
+										<input
+											class="input"
+											inputmode="numeric"
+											placeholder="Autre"
+											maxlength="2"
+											bind:value={fr.number}
+										/>
+									</label>
+								</div>
+							</fieldset>
+						{:else if fr.type === 'L'}
+							<fieldset>
+								<legend>Longueur écrite sur le panneau (m)</legend>
+								<div class="chips">
+									{#each ['110', '160', '220', '300', '400'] as v (v)}
 										<button
 											type="button"
-											aria-pressed={sign.unit === unit && (sign.type !== 'TGV' || !sign.duplex)}
-											onclick={() => (
-												(sign.unit = unit as SignInput['unit']),
-												(sign.duplex = false)
-											)}>{lab}</button
+											aria-pressed={fr.number === v}
+											onclick={() => (fr.number = v)}>{v}</button
 										>
 									{/each}
-									{#if sign.type === 'TGV'}
+								</div>
+							</fieldset>
+						{:else if fr.type === 'Z57' || fr.type === 'Z50' || fr.type === 'TGV'}
+							<fieldset>
+								<legend>Texte sous « {fr.type} »</legend>
+								<div class="chips">
+									{#if fr.type === 'Z57'}
+										{#each [['1', 'single_unit', '1'], ['1-2', undefined, '1;2'], ['2', 'multiple_unit', '2'], ['2-3', 'multiple_unit', '2;3'], ['3', 'multiple_unit', '3']] as [lab, unit, num] (lab)}
+											<button
+												type="button"
+												aria-pressed={fr.number === num}
+												onclick={() => ((fr.number = num), (fr.unit = unit as SignInput['unit']))}
+												>{lab}</button
+											>
+										{/each}
+									{:else}
+										{#each [['1', 'single_unit'], ['2', 'multiple_unit'], ['1-2', undefined]] as [lab, unit] (lab)}
+											<button
+												type="button"
+												aria-pressed={fr.unit === unit && (fr.type !== 'TGV' || !fr.duplex)}
+												onclick={() => ((fr.unit = unit as SignInput['unit']), (fr.duplex = false))}
+												>{lab}</button
+											>
+										{/each}
+										{#if fr.type === 'TGV'}
+											<button
+												type="button"
+												aria-pressed={!!fr.duplex}
+												onclick={() => ((fr.unit = 'multiple_unit'), (fr.duplex = true))}>2D</button
+											>
+										{/if}
+									{/if}
+									{#if fr.type !== 'Z50'}
 										<button
 											type="button"
-											aria-pressed={!!sign.duplex}
-											onclick={() => ((sign.unit = 'multiple_unit'), (sign.duplex = true))}
-											>2D</button
+											aria-pressed={!!fr.reversal}
+											onclick={() => (fr.reversal = !fr.reversal)}>RBT</button
 										>
 									{/if}
-								{/if}
-								{#if sign.type !== 'Z50'}
-									<button
-										type="button"
-										aria-pressed={!!sign.reversal}
-										onclick={() => (sign.reversal = !sign.reversal)}>RBT</button
-									>
-								{/if}
-							</div>
-						</fieldset>
-					{:else if sign.type === 'other'}
-						<fieldset>
-							<legend>Texte de la pancarte</legend>
-							<label class="field">
-								<span class="visually-hidden">Texte lu sur la pancarte</span>
-								<input
-									class="input"
-									bind:value={sign.caption}
-									maxlength="40"
-									placeholder="Recopiez le texte"
-								/>
-							</label>
-						</fieldset>
+								</div>
+							</fieldset>
+						{:else if fr.type === 'other'}
+							<fieldset>
+								<legend>Texte de la pancarte</legend>
+								<label class="field">
+									<span class="visually-hidden">Texte lu sur la pancarte</span>
+									<input
+										class="input"
+										bind:value={fr.caption}
+										maxlength="40"
+										placeholder="Recopiez le texte"
+									/>
+								</label>
+							</fieldset>
+						{/if}
 					{/if}
 
 					<fieldset>
@@ -554,7 +545,7 @@
 								<button
 									type="button"
 									aria-pressed={sign.position === v}
-									onclick={() => (sign.position = v as SignInput['position'])}>{lab}</button
+									onclick={() => (sign.position = v as SignInputBase['position'])}>{lab}</button
 								>
 							{/each}
 						</div>

@@ -1,0 +1,9 @@
+{"type": "Feature", "id": "n1", "geometry": {"type": "Point", "coordinates": [5.0, 46.0]}, "properties": {"railway": "station", "name": "Gare d’Essai", "uic_ref": "87000001", "addr:city": "Essaiville", "train": "yes"}}
+{"type": "Feature", "id": "w2", "geometry": {"type": "Polygon", "coordinates": [[[4.9996, 46.0002], [5.0004, 46.0002], [5.0004, 46.0003], [4.9996, 46.0003], [4.9996, 46.0002]]]}, "properties": {"railway": "platform", "public_transport": "platform", "ref": "1;2"}}
+{"type": "Feature", "id": "w5", "geometry": {"type": "Polygon", "coordinates": [[[5.0001, 45.9999], [5.0005, 45.9999], [5.0005, 46.0002], [5.0001, 46.0002], [5.0001, 45.9999]]]}, "properties": {"railway": "station", "name": "Gare d'Essai"}}
+{"type": "Feature", "id": "n3", "geometry": {"type": "Point", "coordinates": [5.1, 46.1]}, "properties": {"railway": "halt", "name": "Halte du Sud"}}
+{"type": "Feature", "id": "n4", "geometry": {"type": "Point", "coordinates": [5.01, 46.01]}, "properties": {"railway": "station", "station": "subway", "name": "Métro Essai"}}
+{"type": "Feature", "id": "n9", "geometry": {"type": "Point", "coordinates": [5.02, 46.02]}, "properties": {"railway": "station", "name": "Train touristique", "usage": "tourism"}}
+{"type": "Feature", "id": "n6", "geometry": {"type": "Point", "coordinates": [5.0003, 46.0002]}, "properties": {"railway": "signal", "railway:signal:stop": "FR:ARRET_TETE"}}
+{"type": "Feature", "id": "n7", "geometry": {"type": "Point", "coordinates": [5.1001, 46.1]}, "properties": {"railway": "signal", "railway:signal:stop": "FR:ARRET"}}
+{"type": "Feature", "id": "n8", "geometry": {"type": "Point", "coordinates": [12.0, 47.0]}, "properties": {"railway": "station", "name": "Gare Lointaine"}}

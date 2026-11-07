@@ -32,6 +32,7 @@ _Version 1.1, 5 novembre 2026 : révisée après les décisions de Loïc (ci-des
 10. Structure du dépôt et licences
 11. Plan de développement en lots
 12. Risques, points ouverts et décisions
+13. Pays (organisation par pays, lot P1)
 
 ---
 
@@ -264,6 +265,8 @@ Le pipeline tourne sur **GitHub Actions** (D1). Les machines Linux standard sont
 ### 4.1 Index des gares (recherche sur E3)
 
 #### 4.1.1 Génération
+
+> **Depuis le lot P1** : une tâche par pays activé, paramétrée par la configuration des pays (extrait, fichiers, géocodage) ; voir § 13. Le texte ci-dessous décrit la France, premier pays.
 
 Une **tâche GitHub Actions hebdomadaire** (D4 : sans Overpass) part de l'**extrait Geofabrik de la France**. Ces extraits sont mis à jour presque tous les jours, et sous licence ODbL ([Geofabrik — download server](https://geofabrik.de/data/download.html)). Les étapes :
 
@@ -894,6 +897,8 @@ L'hébergement statique mutualisé est négligeable. L'essentiel de l'énergie s
 
 **Stratégie après D1 (GitHub Pages, sans en-têtes HTTP) : CSP en balise `<meta http-equiv>`, produite par SvelteKit lui-même.**
 
+> **Depuis le lot P1** : les directives sont générées par `src/lib/core/csp.ts` (appelé par `vite.config.ts`) ; les origines des photos aériennes viennent de la configuration des pays activés (§ 13). Le bloc ci-dessous est la conception d'origine ; la politique en vigueur est vérifiée par `src/lib/core/countries.test.ts`.
+
 1. **Toutes les pages sont prérendues**, sans page de repli : les routes n'ont pas de segment dynamique (`/gare?id=n123` plutôt que `/gare/n123`). Ainsi chaque page HTML porte sa propre balise CSP, et GitHub Pages ne renvoie jamais son `404.html` à la place d'une route de l'appli.
 2. Configuration dans `vite.config.ts` :
 
@@ -1120,6 +1125,66 @@ Chaque lot est **court** (1 à 3 semaines à temps partiel ; les lots 0 et 3 ont
 | **D5** | Mesurer la fréquentation du site ? | Rien / Matomo exempté                                | Rien                                    | **Aucune mesure d'audience** ; on compte les changesets `created_by=stationcomplete` |
 
 Aucune décision ne reste à trancher dans ce dossier. Les sujets à suivre sont les risques R1 à R13 et les points non vérifiés du § 12.2.
+
+---
+
+## 13. Pays (organisation par pays, lot P1)
+
+_Ajouté le 7 novembre 2026 (lot P1). Décision de Loïc : l'appli devient multi-pays (France, puis la Suisse entière, d'autres plus tard) et multilingue (fr, en, de, it, es : lot suivant). Le lot P1 prépare l'architecture sans rien changer de visible pour la France. Étude préalable : `docs/pays/etude-suisse.md` (§ 6)._
+
+### 13.1 Principe
+
+- **Un pays = une entrée de configuration typée** dans `src/lib/core/countries.ts`, plus, s'il a un schéma de pancartes établi, **un module de schéma** dans `src/lib/core/stopsigns/<cc>.ts`. Rien de propre à un pays ne doit se trouver ailleurs (exceptions au § 13.4).
+- **Une gare appartient au pays de l'index d'où elle vient** (`static/data/stations-<cc>.json`, champ `Station.country` ajouté au chargement). L'appli ne devine jamais le pays d'après la position. Toutes les pages d'une gare (E4 à E12, envoi) suivent la configuration **du pays de la gare ouverte**, pas celle du pays courant.
+- **Le pays courant** (`src/lib/country.svelte.ts`, préférence `rc:country`, France par défaut) ne sert qu'à choisir l'index de la recherche (E3). Une valeur inconnue ou un pays désactivé est ignoré (`resolveCountry`).
+- **Un pays désactivé** (`enabled: false`) est décrit mais jamais chargé, ni sélectionnable, ni présent dans la CSP ou le service worker. Un pays marqué activé mais incomplet (`countryProblems`) est ignoré par l'appli et fait échouer la CI.
+- `DEFAULT_COUNTRY = 'fr'` : pays des données enregistrées avant le lot P1 et des fonctions pures appelées sans pays (les tests d'avant le lot P1 tournent sans changement).
+
+### 13.2 Ce que décrit la configuration d'un pays
+
+| Champ                    | France                                                                                                                                                                                          | Utilisé par                                                                                                                                                                  |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `code`, `name`, `ofName` | `fr`, « France », « de France »                                                                                                                                                                 | E3 (« gares et haltes de France »)                                                                                                                                           |
+| `enabled`                | `true`                                                                                                                                                                                          | tout (pays chargés, CSP, service worker, CI)                                                                                                                                 |
+| `bounds`                 | métropole et Corse                                                                                                                                                                              | contrôle de l'index (tests, statistiques de la CI)                                                                                                                           |
+| `index`                  | `data/stations-fr.json`, extrait `europe/france`, géocodage `geo.api.gouv.fr`, cache et statistiques (noms d'avant P1)                                                                          | `stations.ts`, `scripts/build-stations.mjs`, `scripts/countries.mjs`, `stations.yml`                                                                                         |
+| `imagery`                | WMTS IGN BD ORTHO : URL, `tileSize` 256, zoom max 19, 16 ko par tuile, 4 téléchargements simultanés, origine `https://data.geopf.fr`, attribution, `imagery_used=BDOrtho IGN`, mentions légales | cartes E5, E6, E11, E12 (`photoSource` de `map/style.ts`), téléchargement hors-ligne, service worker, CSP, changeset, pages À propos, Mentions légales, Données personnelles |
+| `stopSigns`              | schéma `FR:passenger_stop` (`stopsigns/fr.ts`) ; `null` = pas de quêtes de pancartes                                                                                                            | quêtes Q4/Q5/Q6 des pancartes, libellés de la carte, E6 (pancarte proche), E7 (grille, tags, contrôle, résumé)                                                               |
+| `subdivision`            | département                                                                                                                                                                                     | index (colonne `admin`, ex-`dep`)                                                                                                                                            |
+| `quests`                 | Q7 : motif « Voie 1 » dans `name`/`ref`                                                                                                                                                         | moteur de quêtes                                                                                                                                                             |
+| `languages`              | `['fr']`                                                                                                                                                                                        | lot traduction (langue proposée par défaut)                                                                                                                                  |
+
+La Suisse est déclarée (`enabled: false`) avec seulement les valeurs établies ; les champs non vérifiés sont vides ou `null`, avec un `TODO` qui renvoie à l'étude (index : lot P2, photo : lot P3, pancartes : lot P5).
+
+**Chargés par Node sans outil.** `countries.ts`, `stopsigns/*.ts` et `csp.ts` sont importés aussi par `vite.config.ts` et par les scripts de la CI : leurs imports portent l'extension `.ts` et ils n'utilisent que du TypeScript « effaçable » (pas d'`enum` ni de `namespace`), que Node 22.18 et plus exécute directement. Une seule source de vérité, sans copie dans un fichier JSON ou dans le workflow.
+
+### 13.3 Données déjà sur les téléphones
+
+- **Clés inchangées.** Les gares en cache (IndexedDB `stations`, clé `n123` ou `dev:n123`, `core/storage.ts`), les saisies en attente (`edits`), les téléchargements (`rc:offline:<serveur>`) et la file d'envoi gardent leurs clés : l'identifiant OSM d'une gare est unique dans le monde et une gare frontalière n'est que dans un index (découpage par pays en CI, lot P2). Aucune migration n'est donc nécessaire.
+- **Pays des enregistrements.** Les nouvelles saisies et les nouveaux téléchargements notent le pays de la gare (`country`). Ceux d'avant le lot P1 n'en ont pas : `recordCountry()` les lit comme français. Le changeset d'une saisie cite donc la photo de son pays (`imagery_used`), et la suppression d'un téléchargement efface les tuiles de son fournisseur. Testé dans `countries.test.ts`.
+
+### 13.4 Ce qui reste propre à la France hors configuration, et pourquoi
+
+| Où                                                                                                                                                                    | Quoi                                                                     | Pourquoi / quand                                                                                                                                       |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/routes/+page.svelte`                                                                                                                                             | « Explorez les gares de France »                                         | Page d'accueil, chargée au démarrage : y importer la configuration alourdirait le démarrage. Texte à traiter avec la traduction (étude § 6.2, point 9) |
+| `mentions-legales`                                                                                                                                                    | « pas un service de la SNCF… »                                           | Texte juridique, à rendre générique avec la traduction                                                                                                 |
+| `gare/saisie/+page.svelte`                                                                                                                                            | sous-formulaires des pancartes françaises (n V, L, Z57, Z50, TGV, autre) | Branche `signs.id === 'fr'` : ils partagent les styles de la page. Un nouveau schéma ajoute sa branche (§ 13.5, étape 4)                               |
+| `core/edits.ts` (`cleanTrackRef`, `bearingName`, `joinRefs`), `toLocaleString('fr-FR')`, `locale: 'fr'` du changeset, `note:fr` des clés de pancarte (`core/sign.ts`) | mots « voie », points cardinaux, formats de date et de nombre            | Dépendent de la **langue de l'interface**, pas du pays : lot traduction                                                                                |
+| `scripts/fetch-fixtures.mjs`, `tests/`                                                                                                                                | gares de référence françaises                                            | Données de test ; gares suisses au lot P6                                                                                                              |
+| `scripts/build-stations.mjs`                                                                                                                                          | géocodeur `geo.api.gouv.fr`                                              | Implémentation d'une source, choisie par la configuration (`index.geocoder`) ; chaque pays ajoute la sienne                                            |
+
+### 13.5 Ajouter un pays : check-list
+
+1. **Étude** (modèle : `docs/pays/etude-suisse.md`) : photo aérienne utilisable pour tracer dans OSM (licence, CORS, zoom maximal en Web Mercator, poids moyen d'une tuile mesuré, valeur `imagery_used` de l'editor-layer-index, attribution), extrait et polygone Geofabrik, source commune + subdivision, balisage des quais et voies, schéma de pancartes (ou aucun), motifs de la quête Q7, langues, avis de la communauté OSM du pays.
+2. **Configuration** : ajouter le code à `CountryCode` et l'entrée dans `COUNTRIES` (`src/lib/core/countries.ts`) avec `enabled: false`. Ne remplir que des valeurs vérifiées ; laisser vide ou `null`, avec un `TODO` vers l'étude, le reste.
+3. **Index des gares** : si besoin, un géocodeur dans `GEOCODERS` (`scripts/build-stations.mjs`) et son nom dans le type `geocoder`. Découper l'extrait au polygone du pays pour les gares frontalières (une gare dans un seul index). Lancer le workflow « Index des gares » à la main avec `pays: <cc>` : l'index est publié sans que le pays soit visible.
+4. **Pancartes** (si un schéma est établi et accepté par la communauté) : `src/lib/core/stopsigns/<cc>.ts` qui implémente `StopSignSchema` (reconnaissance, ancien balisage, libellé, tags, contrôle, résumé, clés remplacées, grille E7), ses tests unitaires, et la branche de ses sous-formulaires dans `gare/saisie/+page.svelte` si ses types demandent des précisions. Sans schéma : `stopSigns: null` (pas de quêtes de pancartes).
+5. **Tests** : une gare de référence du pays en fixture, un parcours e2e sur cette gare (tuiles de son fournisseur simulées).
+6. **Activation** : `enabled: true`. Sans autre modification, la CSP (`csp.ts`), le cache des photos du service worker, les mentions des pages légales et la matrice de la CI suivent. `countries.test.ts` vérifie que le pays est complet et que son index existe ; `node scripts/countries.mjs check` échoue sinon.
+7. **Choix du pays** : dès que deux pays sont activés, ajouter le sélecteur du pays courant (E3 ou Réglages, `setCountry`), et rendre génériques les textes du § 13.4.
+8. **Batterie complète** : `npm run check`, `npm run lint`, `npx vitest run`, `npm run build`, `npm run budget`, `npx playwright test`.
+9. **Documentation** : périmètre du README, ce § 13, mentions légales relues.
 
 ---
 

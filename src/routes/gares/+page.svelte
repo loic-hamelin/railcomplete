@@ -3,8 +3,17 @@
 	import { resolve } from '$app/paths';
 	import BottomNav from '#lib/BottomNav.svelte';
 	import Icon from '#lib/Icon.svelte';
+	import { countryConfig } from '#lib/core/countries.js';
+	import { country } from '#lib/country.svelte.js';
 	import { recentIds } from '#lib/current.svelte.js';
-	import { formatDistance, loadStations, nearby, search, type Station } from '#lib/stations.js';
+	import {
+		formatDistance,
+		loadAllStations,
+		loadStations,
+		nearby,
+		search,
+		type Station
+	} from '#lib/stations.js';
 	import { onMount } from 'svelte';
 
 	let stations = $state<Station[]>([]);
@@ -19,8 +28,9 @@
 
 	onMount(async () => {
 		try {
-			stations = (await loadStations()).stations;
-			const byId = new Map(stations.map((s) => [s.id, s]));
+			// Recherche et « autour de moi » : gares du pays courant ; récentes : tous pays.
+			stations = (await loadStations(country.code)).stations;
+			const byId = new Map((await loadAllStations(country.code)).map((s) => [s.id, s]));
 			recent = recentIds()
 				.map((id) => byId.get(id))
 				.filter((s): s is Station => !!s);
@@ -51,7 +61,7 @@
 	}
 
 	const sub = (s: Station) =>
-		[s.commune && s.commune !== s.name ? s.commune : '', s.dep, s.halt ? 'halte' : '']
+		[s.commune && s.commune !== s.name ? s.commune : '', s.admin, s.halt ? 'halte' : '']
 			.filter(Boolean)
 			.join(' · ');
 </script>
@@ -122,7 +132,8 @@
 				)}{/if}
 			{#if !around.length && !recent.length && stations.length}
 				<p class="note">
-					{stations.length.toLocaleString('fr-FR')} gares et haltes de France. Tapez au moins deux lettres.
+					{stations.length.toLocaleString('fr-FR')} gares et haltes {countryConfig(country.code)
+						.ofName}. Tapez au moins deux lettres.
 				</p>
 			{/if}
 		{/if}

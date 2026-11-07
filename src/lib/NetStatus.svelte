@@ -2,7 +2,7 @@
 	// Bandeau hors-ligne et compte rendu des envois partis tout seuls au retour du réseau.
 	import { resolve } from '$app/paths';
 	import Icon from './Icon.svelte';
-	import { net, queue, watchNetwork } from './offline.svelte.js';
+	import { net, queue, watchNetwork } from './queue.svelte.js';
 	import { onMount } from 'svelte';
 
 	onMount(() => watchNetwork());

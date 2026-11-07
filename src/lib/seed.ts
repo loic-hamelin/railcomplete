@@ -23,7 +23,9 @@ export async function seedTestStation(station: Station) {
 	const elements = (await r.json()).elements as OsmElement[];
 	// Seulement les voies qui longent un quai, coupées à l'emprise et simplifiées : le serveur
 	// limite le nombre de modifications par heure pour les comptes récents.
-	const rails = new Set(analyzeStation(elements, station.bbox).tracks.map((t) => t.way));
+	const rails = new Set(
+		analyzeStation(elements, station.bbox, undefined, station.country).tracks.map((t) => t.way)
+	);
 	const copy = copyForTest(elements, station.bbox, { rails });
 	if (!copy.length) throw new Error('Aucun quai ni voie à recopier pour cette gare.');
 	if (copy.length > 2000) throw new Error('Gare trop grande pour une copie de test.');

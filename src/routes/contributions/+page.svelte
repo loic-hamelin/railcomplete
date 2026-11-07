@@ -6,7 +6,7 @@
 	import { editFamily, editIcon, editLabel, type Edit } from '#lib/core/edits.js';
 	import { loadEdits, mine, pending, removeEdit } from '#lib/edits.svelte.js';
 	import { srv } from '#lib/osmserver.svelte.js';
-	import { loadStations, type Station } from '#lib/stations.js';
+	import { loadAllStations, type Station } from '#lib/stations.js';
 	import { onMount } from 'svelte';
 
 	let names = $state<Record<string, Station>>({});
@@ -16,7 +16,7 @@
 		try {
 			const wanted = new Set(mine().map((e) => e.station));
 			names = Object.fromEntries(
-				(await loadStations()).stations.filter((s) => wanted.has(s.id)).map((s) => [s.id, s])
+				(await loadAllStations()).filter((s) => wanted.has(s.id)).map((s) => [s.id, s])
 			);
 		} catch {
 			/* noms des gares indisponibles : on affiche l'identifiant */

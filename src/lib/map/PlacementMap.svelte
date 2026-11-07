@@ -11,10 +11,9 @@
 		type OsmNode,
 		type OsmWay
 	} from '#lib/core/osm.js';
-	import { IGN_MAX_ZOOM, IGN_TILE_URL } from '#lib/core/tiles.js';
+	import type { Imagery } from '#lib/core/countries.js';
 	import Reticle from './Reticle.svelte';
 	import {
-		IGN_ATTRIBUTION,
 		IS_SEL,
 		MAP,
 		OSM_ATTRIBUTION,
@@ -24,16 +23,20 @@
 		UNDER_LINE,
 		VOIE_W,
 		W,
+		photoSource,
 		plus
 	} from './style.js';
 	import { onMount } from 'svelte';
 
 	let {
+		imagery,
 		center,
 		tracks,
 		elements,
 		onsnap
 	}: {
+		/** Photo aérienne du pays de la gare. */
+		imagery: Imagery;
 		center: [number, number];
 		tracks: OsmWay[];
 		elements: OsmElement[];
@@ -133,13 +136,7 @@
 					style: {
 						version: 8,
 						sources: {
-							ign: {
-								type: 'raster',
-								tiles: [IGN_TILE_URL],
-								tileSize: 256,
-								maxzoom: IGN_MAX_ZOOM,
-								attribution: IGN_ATTRIBUTION
-							},
+							photo: photoSource(imagery),
 							objets: {
 								type: 'geojson',
 								data: geojson(),
@@ -148,7 +145,7 @@
 						},
 						layers: [
 							{ id: 'fond', type: 'background', paint: { 'background-color': MAP.ground } },
-							{ id: 'ign', type: 'raster', source: 'ign' },
+							{ id: 'photo', type: 'raster', source: 'photo' },
 							{
 								id: 'quai-casing',
 								type: 'line',

@@ -1,11 +1,12 @@
-// Lot 4 — Hors-ligne : téléchargement d'une gare (données OSM + photos aériennes IGN),
-// liste des gares téléchargées, et file d'envoi qui part toute seule au retour du réseau.
+// Lot 4 — Hors-ligne : téléchargement d'une gare (données OSM + photos aériennes du pays de la
+// gare) et liste des gares téléchargées. (File d'envoi et état du réseau : queue.svelte.ts.)
 
 import { deleteCachedStation, readPref, writePref } from './cache.js';
-import { AVG_TILE_BYTES, stationTiles, tileUrl } from './core/tiles.js';
+import { imageryOf, recordCountry, type CountryCode } from './core/countries.js';
+import { stationCacheKey } from './core/storage.js';
+import { stationTiles, tileUrl } from './core/tiles.js';
 import { current, openStation } from './current.svelte.js';
 import { server } from './osmserver.svelte.js';
-import type { SendResult } from './send.svelte.js';
 import type { Station } from './stations.js';
 
 const TILES = 'rc-tiles';
@@ -16,6 +17,8 @@ export interface Download {
 	at: number;
 	tiles: number;
 	bytes: number;
+	/** Pays de la gare (photos). Absent dans les téléchargements d'avant le lot P1 : France. */
+	country?: CountryCode;
 }
 
 const regKey = () => `offline:${server.id}`;
@@ -26,8 +29,9 @@ export const isDownloaded = (id: string) => downloads.list.some((d) => d.id === 
 
 /** Taille estimée avant téléchargement (photos ; les données OSM sont déjà sur le téléphone). */
 export const estimate = (s: Station) => {
-	const n = stationTiles(s.bbox).length;
-	return { tiles: n, bytes: n * AVG_TILE_BYTES };
+	const imagery = imageryOf(s.country);
+	const n = stationTiles(s.bbox, imagery).length;
+	return { tiles: n, bytes: n * imagery.avgTileBytes };
 };
 
 export const progress = $state<{ station?: string; done: number; total: number; error?: string }>({
@@ -37,7 +41,8 @@ export const progress = $state<{ station?: string; done: number; total: number; 
 
 export async function downloadStation(s: Station) {
 	if (progress.station) return;
-	const tiles = stationTiles(s.bbox);
+	const imagery = imageryOf(s.country);
+	const tiles = stationTiles(s.bbox, imagery);
 	progress.station = s.id;
 	progress.done = 0;
 	progress.total = tiles.length;
@@ -48,7 +53,7 @@ export async function downloadStation(s: Station) {
 		// 1. Données OSM à jour (rangées dans IndexedDB par openStation).
 		await openStation(s.id, { force: true });
 		if (current.value.status === 'error') throw new Error(current.value.message);
-		// 2. Photos aériennes, 4 à la fois (service gratuit de l'IGN : on reste raisonnable).
+		// 2. Photos aériennes, quelques-unes à la fois (services gratuits : on reste raisonnable).
 		const cache = await caches.open(TILES);
 		let bytes = 0,
 			failed = 0,
@@ -56,7 +61,7 @@ export async function downloadStation(s: Station) {
 		const worker = async () => {
 			while (i < tiles.length) {
 				const t = tiles[i++];
-				const url = tileUrl(t.z, t.x, t.y);
+				const url = tileUrl(t.z, t.x, t.y, imagery);
 				try {
 					let r = await cache.match(url);
 					if (!r) {
@@ -74,12 +79,12 @@ export async function downloadStation(s: Station) {
 				progress.done++;
 			}
 		};
-		await Promise.all([worker(), worker(), worker(), worker()]);
+		await Promise.all(Array.from({ length: imagery.maxParallel }, worker));
 		if (failed > tiles.length / 4)
 			throw new Error('Trop de photos n’ont pas pu être téléchargées.');
 		downloads.list = [
 			...downloads.list.filter((d) => d.id !== s.id),
-			{ id: s.id, name: s.name, at: Date.now(), tiles: tiles.length, bytes }
+			{ id: s.id, name: s.name, at: Date.now(), tiles: tiles.length, bytes, country: s.country }
 		];
 		save();
 	} catch (e) {
@@ -93,78 +98,11 @@ export async function removeDownload(d: Download, bbox?: Station['bbox']) {
 	if (bbox && 'caches' in globalThis) {
 		const cache = await caches.open(TILES);
 		// Les rares tuiles communes à deux gares voisines seront retéléchargées au besoin.
-		for (const t of stationTiles(bbox)) await cache.delete(tileUrl(t.z, t.x, t.y));
+		const imagery = imageryOf(recordCountry(d));
+		for (const t of stationTiles(bbox, imagery))
+			await cache.delete(tileUrl(t.z, t.x, t.y, imagery));
 	}
-	await deleteCachedStation(server.id === 'prod' ? d.id : `${server.id}:${d.id}`);
+	await deleteCachedStation(stationCacheKey(server.id, d.id));
 	downloads.list = downloads.list.filter((x) => x.id !== d.id);
 	save();
-}
-
-// ---------------- File d'envoi ----------------
-// L'utilisateur a relu et validé l'envoi d'une gare sans réseau : on l'envoie au retour du réseau.
-
-interface Queued {
-	station: string;
-	name: string;
-	comment: string;
-	at: number;
-}
-const queueKey = () => `queue:${server.id}`;
-export const queue = $state<{ list: Queued[]; last?: SendResult & { name: string } }>({
-	list: readPref<Queued[]>(queueKey(), [])
-});
-const saveQueue = () => writePref(queueKey(), $state.snapshot(queue.list));
-export const isQueued = (id: string) => queue.list.some((q) => q.station === id);
-
-export function enqueue(station: string, name: string, comment: string) {
-	queue.list = [
-		...queue.list.filter((q) => q.station !== station),
-		{ station, name, comment, at: Date.now() }
-	];
-	saveQueue();
-}
-export function dequeue(station: string) {
-	queue.list = queue.list.filter((q) => q.station !== station);
-	saveQueue();
-}
-
-let flushing = false;
-/** Envoie les gares en attente, une à une. Appelé au démarrage et au retour du réseau. */
-export async function flushQueue() {
-	if (flushing || !navigator.onLine || !queue.list.length) return;
-	flushing = true;
-	try {
-		// Module d'envoi chargé à la demande : il ne pèse pas sur le démarrage de l'appli.
-		// (Précaché par le service worker : disponible aussi après un démarrage hors-ligne.)
-		const mod = await import('./send.svelte.js').catch(() => undefined);
-		if (!mod) return;
-		const { sendStation } = mod;
-		for (const q of [...queue.list]) {
-			const r = await sendStation(q.station, q.name, q.comment);
-			// Erreur temporaire (réseau, limite) : la gare reste en file pour le prochain retour.
-			if (r.error && !r.changeset) {
-				queue.last = { ...r, name: q.name };
-				break;
-			}
-			dequeue(q.station);
-			queue.last = { ...r, name: q.name };
-		}
-	} finally {
-		flushing = false;
-	}
-}
-
-export const net = $state({ online: true });
-let listening = false;
-/** À appeler une fois (layout) : suit l'état du réseau et vide la file quand il revient. */
-export function watchNetwork() {
-	net.online = navigator.onLine;
-	if (listening) return;
-	listening = true;
-	addEventListener('online', () => {
-		net.online = true;
-		flushQueue();
-	});
-	addEventListener('offline', () => (net.online = false));
-	flushQueue();
 }

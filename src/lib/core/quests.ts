@@ -17,10 +17,8 @@ import {
 	OsmData,
 	inBBox,
 	isClosed,
-	isLegacyStopSign,
 	isPlatform,
 	isRail,
-	isStopSign,
 	splitValues,
 	type BBox,
 	type OsmElement,
@@ -28,6 +26,7 @@ import {
 	type OsmWay,
 	type Tags
 } from './osm';
+import { DEFAULT_COUNTRY, countryConfig, type CountryCode } from './countries';
 
 // Seuils (heuristiques à régler sur les gares de référence).
 export const THRESHOLDS = {
@@ -140,6 +139,8 @@ export function trackGapM(contour: Pt[][], line: Pt[]) {
 }
 
 export interface StationAnalysis {
+	/** Pays de la gare : schéma des pancartes et règles de quêtes appliqués. */
+	country: CountryCode;
 	platforms: PlatformInfo[];
 	/** Voies adjacentes à au moins un quai. */
 	tracks: { way: number; trackRef?: string }[];
@@ -172,8 +173,14 @@ const ON_SITE: Record<QuestId, boolean> = {
 export function analyzeStation(
 	elements: OsmElement[],
 	bbox: BBox,
-	now: Date = new Date()
+	now: Date = new Date(),
+	country: CountryCode = DEFAULT_COUNTRY
 ): StationAnalysis {
+	const config = countryConfig(country);
+	// Pays sans schéma de pancartes établi : aucune pancarte reconnue, pas de quêtes Q4 et Q5.
+	const signs = config.stopSigns;
+	const isStopSign = (t?: Tags) => !!signs?.isStopSign(t);
+	const isLegacyStopSign = (t?: Tags) => !!signs?.isLegacy(t);
 	const data = new OsmData(elements);
 	const proj = new LocalProjection((bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2);
 	const P = (n: OsmNode) => proj.project(n.lon, n.lat);
@@ -277,20 +284,21 @@ export function analyzeStation(
 				});
 		}
 		// Q4 : un côté de quai bordé d'une voie, sans aucune pancarte sur ce côté.
-		for (const side of ['left', 'right'] as const) {
-			const ways = new Set(p.tracks.filter((t) => t.side === side).map((t) => t.way));
-			if (!ways.size) continue;
-			const hasSign = p.stopSigns.some((id) =>
-				(stopSignWays.get(id) ?? []).some((w) => ways.has(w))
-			);
-			if (!hasSign)
-				push({
-					id: 'Q4',
-					platform: p.ref,
-					target: { type: 'way', id: [...ways][0] },
-					details: { side }
-				});
-		}
+		if (signs)
+			for (const side of ['left', 'right'] as const) {
+				const ways = new Set(p.tracks.filter((t) => t.side === side).map((t) => t.way));
+				if (!ways.size) continue;
+				const hasSign = p.stopSigns.some((id) =>
+					(stopSignWays.get(id) ?? []).some((w) => ways.has(w))
+				);
+				if (!hasSign)
+					push({
+						id: 'Q4',
+						platform: p.ref,
+						target: { type: 'way', id: [...ways][0] },
+						details: { side }
+					});
+			}
 	}
 
 	for (const [wayId, trackRef] of adjacentWays) {
@@ -344,7 +352,7 @@ export function analyzeStation(
 	}
 	for (const wayId of adjacentWays.keys()) {
 		const t = data.ways.get(wayId)!.tags ?? {};
-		const bad = [t.name, t.ref].find((v) => v && /^\s*(voie|v)\s*\w+/i.test(v));
+		const bad = [t.name, t.ref].find((v) => v && config.quests.misplacedTrackRef.test(v));
 		if (bad)
 			push({
 				id: 'Q7',
@@ -356,7 +364,7 @@ export function analyzeStation(
 	quests.sort((a, b) => PRIORITY.indexOf(a.id) - PRIORITY.indexOf(b.id));
 
 	// ---- Jauges ----
-	const sides = platforms.flatMap((p) =>
+	const sides = (signs ? platforms : []).flatMap((p) =>
 		(['left', 'right'] as const)
 			.filter((s) => p.tracks.some((t) => t.side === s))
 			.map((s) => ({ p, s }))
@@ -367,6 +375,7 @@ export function analyzeStation(
 	}).length;
 
 	return {
+		country: config.code,
 		platforms,
 		tracks: [...adjacentWays].map(([way, trackRef]) => ({ way, trackRef })),
 		otherTracks: [...data.ways.values()]

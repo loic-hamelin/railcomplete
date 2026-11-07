@@ -1,5 +1,7 @@
-# Régénère chaque semaine l'index des gares (static/data/stations-fr.json) depuis l'extrait
-# OpenStreetMap France de Geofabrik, puis relance la publication du site.
+# Régénère chaque semaine l'index des gares de chaque pays activé (static/data/stations-<cc>.json)
+# depuis l'extrait OpenStreetMap Geofabrik du pays, puis relance la publication du site.
+# Pays, extraits et fichiers : configuration des pays (src/lib/core/countries.ts).
+# Un pays en échec n'empêche pas les autres d'être mis à jour.
 # Lancement manuel possible (onglet Actions), avec en option le téléchargement des gares de référence.
 name: Index des gares
 
@@ -12,6 +14,10 @@ on:
         description: 'Télécharger aussi les gares de référence (tests)'
         type: boolean
         default: false
+      pays:
+        description: 'Seulement ces pays (codes séparés par des espaces, même désactivés ; vide = pays activés)'
+        type: string
+        default: ''
 
 permissions:
   contents: write
@@ -22,9 +28,37 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  pays:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.liste.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Pays à construire
+        id: liste
+        env:
+          PAYS: ${{ inputs.pays }}
+        run: |
+          node scripts/countries.mjs check
+          # Codes séparés par des espaces : découpage voulu ($PAYS sans guillemets, sans jokers).
+          set -f
+          echo "matrix=$(node scripts/countries.mjs matrix $PAYS)" >> "$GITHUB_OUTPUT"
+
   index:
+    needs: pays
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        pays: ${{ fromJSON(needs.pays.outputs.matrix) }}
+    name: Index ${{ matrix.pays.code }}
+    env:
+      CC: ${{ matrix.pays.code }}
+      GEOFABRIK: ${{ matrix.pays.geofabrik }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -32,25 +66,52 @@ jobs:
           node-version: 22
       - name: Outil osmium
         run: sudo apt-get update -q && sudo apt-get install -y -q osmium-tool
-      - name: Extrait France (Geofabrik)
+      - name: Extrait du pays (Geofabrik)
         run: |
           curl -fsSL -A "stationcomplete-stations (+https://stationcomplete.org)" \
-            -o france.osm.pbf https://download.geofabrik.de/europe/france-latest.osm.pbf
-          ls -lh france.osm.pbf
+            -o "pays-$CC.osm.pbf" "https://download.geofabrik.de/$GEOFABRIK-latest.osm.pbf"
+          ls -lh "pays-$CC.osm.pbf"
       - name: Filtrage ferroviaire et export
         run: |
-          osmium tags-filter france.osm.pbf \
+          osmium tags-filter "pays-$CC.osm.pbf" \
             nwr/railway=station,halt,platform n/railway=signal nwr/public_transport=platform \
-            -o rail-fr.osm.pbf
-          rm france.osm.pbf
-          osmium export rail-fr.osm.pbf -f geojsonseq --add-unique-id=type_id -o rail-fr.geojsonseq
-          ls -lh rail-fr.osm.pbf rail-fr.geojsonseq
+            -o "rail-$CC.osm.pbf"
+          rm "pays-$CC.osm.pbf"
+          osmium export "rail-$CC.osm.pbf" -f geojsonseq --add-unique-id=type_id -o "rail-$CC.geojsonseq"
+          ls -lh "rail-$CC.osm.pbf" "rail-$CC.geojsonseq"
       - name: Construction de l'index
-        run: node scripts/build-stations.mjs rail-fr.geojsonseq
+        run: node scripts/build-stations.mjs "rail-$CC.geojsonseq" --country "$CC"
       - name: Taille de l'index
         run: |
-          echo "brut : $(stat -c %s static/data/stations-fr.json) octets"
-          echo "gzip : $(gzip -9 -c static/data/stations-fr.json | wc -c) octets"
+          echo "brut : $(stat -c %s '${{ matrix.pays.file }}') octets"
+          echo "gzip : $(gzip -9 -c '${{ matrix.pays.file }}' | wc -c) octets"
+      # Les fichiers gardent leur chemin dans le dépôt (racine commune : le dépôt).
+      - uses: actions/upload-artifact@v4
+        with:
+          name: index-${{ matrix.pays.code }}
+          path: |
+            ${{ matrix.pays.file }}
+            ${{ matrix.pays.cache }}
+            ${{ matrix.pays.stats }}
+          if-no-files-found: error
+          retention-days: 7
+
+  publication:
+    needs: [pays, index]
+    # Même si un pays a échoué : les index réussis sont enregistrés.
+    if: ${{ !cancelled() && needs.pays.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Index construits
+        uses: actions/download-artifact@v4
+        with:
+          pattern: index-*
+          merge-multiple: true
+          path: .
       - name: Gares de référence
         if: inputs.fixtures
         run: node scripts/fetch-fixtures.mjs

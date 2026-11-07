@@ -8,6 +8,7 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import Icon from '#lib/Icon.svelte';
+	import { imageryOf } from '#lib/core/countries.js';
 	import {
 		checkShape,
 		lostTracks,
@@ -402,7 +403,7 @@
 	}
 
 	async function finish() {
-		if (!info) return;
+		if (!info || !ready) return;
 		const unchanged =
 			mode === 'reshape' &&
 			pts.length === info.nodes.length &&
@@ -448,6 +449,7 @@
 				kind: 'shape',
 				id: newEditId(),
 				station: id,
+				country: ready.station.country,
 				createdAt: Date.now(),
 				target: `way/${info.way.id}`,
 				version: info.way.version,
@@ -483,6 +485,7 @@
 		{#if view && ready && info && isQuai && !info.refused}
 			<DrawMap
 				bind:this={mapRef}
+				imagery={imageryOf(ready.station.country)}
 				center={[ready.station.lon, ready.station.lat]}
 				{bounds}
 				view={startView}

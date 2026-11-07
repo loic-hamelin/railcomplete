@@ -1,15 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-	applyEdits,
-	bearingName,
-	checkSign,
-	cleanTrackRef,
-	joinRefs,
-	signSummary,
-	signTags,
-	snapToTracks,
-	type Edit
-} from './edits';
+import { applyEdits, bearingName, cleanTrackRef, joinRefs, snapToTracks, type Edit } from './edits';
+import { checkSign, signSummary, signTags } from './stopsigns/fr';
 import type { OsmElement, OsmNode, OsmWay } from './osm';
 
 const n = (id: number, lon: number, lat: number, tags?: Record<string, string>): OsmNode => ({

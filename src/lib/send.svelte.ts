@@ -7,6 +7,7 @@
 // - un envoi coupé peut encore aboutir côté serveur : on attend 5 minutes avant de réessayer.
 
 import { readPref, writePref } from './cache.js';
+import { recordCountry } from './core/countries.js';
 import type { Edit } from './core/edits.js';
 import type { OsmElement } from './core/osm.js';
 import {
@@ -245,6 +246,8 @@ export async function sendStation(
 		const tags = changesetTags({
 			comment: comment || proposedComment(stationName, sentEdits),
 			version: APP_VERSION,
+			// Pays de la gare, noté dans chaque saisie (France pour les saisies d'avant le lot P1).
+			country: recordCountry(sentEdits[0]),
 			survey: sentEdits.some(
 				(e) =>
 					e.kind === 'node' ||

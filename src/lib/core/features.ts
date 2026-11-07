@@ -11,6 +11,7 @@ import {
 	type OsmNode,
 	type OsmWay
 } from './osm';
+import { countryConfig } from './countries';
 import type { QuestId, StationAnalysis } from './quests';
 
 /** État d'un objet sur la carte : renseigné, manquant (quête « à faire ») ou en alerte. */
@@ -68,37 +69,6 @@ export interface FeatureCollection {
 
 const ALERT: QuestId[] = ['Q7', 'Q3'];
 
-/** Libellé d'une pancarte pour la carte, à partir des tags du schéma FR:passenger_stop. */
-// Rapport tags § 3.5 : railway:signal:stop=FR:passenger_stop + une sous-clé de catégorie.
-export function stopSignLabel(t: Record<string, string> = {}) {
-	const k = 'railway:signal:stop';
-	const v = t[k] ?? '';
-	if (v === 'FR:ARRET') return 'Arrêt';
-	if (v.startsWith('FR:ARRET_'))
-		return (t[`${k}:caption`] ?? v.slice('FR:ARRET_'.length).replace(/_/g, ' ')).slice(0, 8);
-	const conv = t[`${k}:conventional`];
-	if (conv === 'FR:TT') return 'TT';
-	if (conv === 'FR:vehicle_number') return `${t[`${k}:conventional:number`] ?? 'n'} V`;
-	if (t[`${k}:any`] === 'FR:train_length') return `L ${t[`${k}:any:length`] ?? ''}`.trim();
-	if (t[`${k}:regional`] === 'FR:Z57') {
-		const n = t[`${k}:regional:unit_number`];
-		return n ? `Z57 ${n.replace(';', '-')}` : 'Z57';
-	}
-	if (t[`${k}:suburban`] === 'FR:Z50')
-		return t[`${k}:suburban:for`] === 'multiple_unit' ? 'Z50-2' : 'Z50-1';
-	const sub = t[`${k}:suburban`];
-	if (sub === 'FR:long_train') return 'TL';
-	if (sub === 'FR:short_train') return 'TC';
-	if (sub === 'FR:all_trains') return 'Tous';
-	if (t[`${k}:accessibility`] === 'FR:UFR') return 'UFR';
-	if (t[`${k}:highspeed`] === 'FR:TGV') {
-		const f = t[`${k}:highspeed:for`];
-		const d = t[`${k}:highspeed:type`] === 'duplex' ? 'D' : '';
-		return `TGV ${f === 'single_unit' ? '1' : f === 'multiple_unit' ? '2' : '1-2'}${d}`;
-	}
-	return 'Arrêt';
-}
-
 export function buildFeatures(
 	elements: OsmElement[],
 	a: StationAnalysis,
@@ -106,6 +76,8 @@ export function buildFeatures(
 ): FeatureCollection {
 	const data = new OsmData(elements);
 	const coords = (w: OsmWay) => data.coords(w);
+	// Pancartes : schéma du pays de la gare, le même que celui de l'analyse.
+	const signs = countryConfig(a.country).stopSigns;
 	// Même projection locale que l'analyse (centre de l'emprise).
 	const proj = new LocalProjection((bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2);
 
@@ -247,10 +219,11 @@ export function buildFeatures(
 	}
 
 	// Pancartes d'arrêt
+	// (Sans schéma, l'analyse ne contient aucune pancarte.)
 	for (const n of a.stopSigns as OsmNode[]) {
 		const k = `node/${n.id}`;
-		const legacy = (n.tags?.['railway:signal:stop'] ?? '').startsWith('FR:ARRET_');
-		const label = stopSignLabel(n.tags);
+		const legacy = !!signs?.isLegacy(n.tags);
+		const label = signs?.label(n.tags) ?? '';
 		features.push({
 			type: 'Feature',
 			id: fid++,

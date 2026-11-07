@@ -2,6 +2,7 @@
 // Stockées dans IndexedDB : elles survivent à la fermeture de l'appli et au mode avion.
 
 import { deleteEdit, getAllEdits, putEdit, readPref, writePref } from './cache.js';
+import type { CountryCode } from './core/countries.js';
 import { mergeEdit, targets, type Edit } from './core/edits.js';
 import { server } from './osmserver.svelte.js';
 
@@ -24,8 +25,11 @@ export const editsOf = (station: string) => mine().filter((e) => e.station === s
 export const editsReplacedByDelete = (station: string, target: string) =>
 	editsOf(station).filter((e) => targets(e) && e.target === target);
 
-/** Enregistre une saisie ; la fusionne avec les saisies précédentes sur le même objet. */
-export async function saveEdit(edit: Edit) {
+/**
+ * Enregistre une saisie ; la fusionne avec les saisies précédentes sur le même objet.
+ * Le pays de la gare est obligatoire : il choisit la photo citée dans le changeset.
+ */
+export async function saveEdit(edit: Edit & { country: CountryCode }) {
 	await loadEdits();
 	const merged = mergeEdit(mine(), {
 		...edit,

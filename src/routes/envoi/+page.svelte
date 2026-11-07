@@ -25,8 +25,8 @@
 	import { uploadBlock } from '#lib/core/remote.js';
 	import { proposedComment } from '#lib/core/upload.js';
 	import { refreshConfig, remote } from '#lib/remote.svelte.js';
-	import { dequeue, enqueue, isQueued } from '#lib/offline.svelte.js';
-	import { loadStations, type Station } from '#lib/stations.js';
+	import { dequeue, enqueue, isQueued } from '#lib/queue.svelte.js';
+	import { findStation, type Station } from '#lib/stations.js';
 	import { onMount } from 'svelte';
 
 	let mounted = $state(false);
@@ -52,9 +52,7 @@
 		addEventListener('offline', up);
 		loadEdits();
 		refreshConfig();
-		loadStations().then((d) => {
-			station = d.stations.find((s) => s.id === page.url.searchParams.get('id'));
-		});
+		findStation(page.url.searchParams.get('id') ?? '').then((s) => (station = s));
 		return () => {
 			removeEventListener('online', up);
 			removeEventListener('offline', up);

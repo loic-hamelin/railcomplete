@@ -75,15 +75,7 @@ export const isPlatform = (t: Tags = {}) =>
 
 export const isRail = (t: Tags = {}) => t.railway === 'rail';
 
-/** Pancarte d'arrêt : nouveau schéma (railway:signal:stop=FR:passenger_stop…) ou ancien (FR:ARRET_*). */
-export const isStopSign = (t: Tags = {}) =>
-	t.railway === 'signal' &&
-	(t['railway:signal:stop'] === 'FR:passenger_stop' ||
-		(t['railway:signal:stop'] ?? '').startsWith('FR:ARRET_'));
-// « FR:ARRET » seul est un arrêt réglementaire (ordre verbal), pas une pancarte d'arrêt voyageurs.
-
-export const isLegacyStopSign = (t: Tags = {}) =>
-	(t['railway:signal:stop'] ?? '').startsWith('FR:ARRET_');
+// Pancartes d'arrêt : propres à chaque pays (schéma dans stopsigns/, choisi par countries.ts).
 
 /** Premier nombre d'une valeur (« -1;0 » → -1), NaN sinon. */
 const firstNumber = (v?: string) => parseFloat((v ?? '').split(';')[0].trim());

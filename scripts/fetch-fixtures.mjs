@@ -7,10 +7,13 @@
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
+import { COUNTRIES } from '../src/lib/core/countries.ts';
 
+// Gares de référence françaises (les tests du moteur de quêtes les citent par leur nom).
+const { index: source } = COUNTRIES.fr;
 const UA = { 'User-Agent': 'stationcomplete-fixtures (+https://stationcomplete.org)' };
-const index = JSON.parse(readFileSync('static/data/stations-fr.json', 'utf8')).s;
-const stats = JSON.parse(readFileSync('data/stations-stats.json', 'utf8'));
+const index = JSON.parse(readFileSync(`static/${source.file}`, 'utf8')).s;
+const stats = JSON.parse(readFileSync(source.stats, 'utf8'));
 
 const byName = (name) => index.find((r) => r[1] === name);
 const firstHalt =

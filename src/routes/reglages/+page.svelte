@@ -9,7 +9,7 @@
 	import { setDemo, settings } from '#lib/edits.svelte.js';
 	import { SERVERS, server, setServer, type ServerId } from '#lib/osmserver.svelte.js';
 	import { downloads, reloadDownloads, removeDownload } from '#lib/offline.svelte.js';
-	import { loadStations, type Station } from '#lib/stations.js';
+	import { loadAllStations, type Station } from '#lib/stations.js';
 	import { onMount } from 'svelte';
 
 	let mounted = $state(false);
@@ -19,7 +19,7 @@
 		try {
 			const ids = new Set(downloads.list.map((d) => d.id));
 			bboxes = Object.fromEntries(
-				(await loadStations()).stations.filter((s) => ids.has(s.id)).map((s) => [s.id, s.bbox])
+				(await loadAllStations()).filter((s) => ids.has(s.id)).map((s) => [s.id, s.bbox])
 			);
 		} catch {
 			/* index indisponible : suppression des données seulement */

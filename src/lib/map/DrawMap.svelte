@@ -12,10 +12,9 @@
 	// Pointillés estompés : objets souterrains seulement.
 	import 'maplibre-gl/dist/maplibre-gl.css';
 	import type { LonLat } from '#lib/core/draw.js';
-	import { IGN_MAX_ZOOM, IGN_TILE_URL } from '#lib/core/tiles.js';
+	import type { Imagery } from '#lib/core/countries.js';
 	import Reticle from './Reticle.svelte';
 	import {
-		IGN_ATTRIBUTION,
 		MAP,
 		OSM_ATTRIBUTION,
 		QUAI_W,
@@ -24,6 +23,7 @@
 		UNDER_LINE,
 		VOIE_W,
 		W,
+		photoSource,
 		avoidBoxes,
 		plus
 	} from './style.js';
@@ -31,6 +31,7 @@
 	import { onMount } from 'svelte';
 
 	let {
+		imagery,
 		center,
 		tracks,
 		platforms,
@@ -55,6 +56,8 @@
 		onanchor,
 		ondragpoint
 	}: {
+		/** Photo aérienne du pays de la gare. */
+		imagery: Imagery;
 		center: LonLat;
 		tracks: LonLat[][];
 		platforms: LonLat[][];
@@ -384,13 +387,7 @@
 					style: {
 						version: 8,
 						sources: {
-							ign: {
-								type: 'raster',
-								tiles: [IGN_TILE_URL],
-								tileSize: 256,
-								maxzoom: IGN_MAX_ZOOM,
-								attribution: IGN_ATTRIBUTION
-							},
+							photo: photoSource(imagery),
 							existant: {
 								type: 'geojson',
 								data: fc([
@@ -409,7 +406,7 @@
 						},
 						layers: [
 							{ id: 'fond', type: 'background', paint: { 'background-color': MAP.ground } },
-							{ id: 'ign', type: 'raster', source: 'ign' },
+							{ id: 'photo', type: 'raster', source: 'photo' },
 							// Quais voisins : style normal (contour clair sur liseré, remplissage léger).
 							{
 								id: 'quai-existant',

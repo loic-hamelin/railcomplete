@@ -1,14 +1,13 @@
 <script lang="ts">
-	// Carte d'une gare sur la photo aérienne IGN (MapLibre), style de la refonte v1.
+	// Carte d'une gare sur la photo aérienne du pays de la gare (MapLibre), style de la refonte v1.
 	// Sobriété : MapLibre est chargé à la demande, rendu uniquement quand la vue change,
 	// densité de pixels limitée à 2, aucune animation. Les étiquettes sont des boutons DOM
 	// (accessibles au clavier et au lecteur d'écran), placées sans chevauchement à chaque moveend.
 	import 'maplibre-gl/dist/maplibre-gl.css';
 	import type { FeatureCollection, FeatureProps } from '#lib/core/features.js';
 	import type { BBox } from '#lib/core/osm.js';
-	import { IGN_MAX_ZOOM, IGN_TILE_URL } from '#lib/core/tiles.js';
+	import type { Imagery } from '#lib/core/countries.js';
 	import {
-		IGN_ATTRIBUTION,
 		IS_SEL,
 		MAP,
 		OSM_ATTRIBUTION,
@@ -18,6 +17,7 @@
 		UNDER_LINE,
 		VOIE_W,
 		W,
+		photoSource,
 		alongLine,
 		avoidBoxes,
 		placeLabels,
@@ -29,6 +29,7 @@
 	type Kind = FeatureProps['kind'];
 	type F = FeatureCollection['features'][number];
 	let {
+		imagery,
 		bbox,
 		data,
 		visible,
@@ -38,6 +39,8 @@
 		onselect,
 		onview
 	}: {
+		/** Photo aérienne du pays de la gare. */
+		imagery: Imagery;
 		bbox: BBox;
 		data: FeatureCollection;
 		visible: Record<Kind, boolean>;
@@ -250,13 +253,7 @@
 					style: {
 						version: 8,
 						sources: {
-							ign: {
-								type: 'raster',
-								tiles: [IGN_TILE_URL],
-								tileSize: 256,
-								maxzoom: IGN_MAX_ZOOM,
-								attribution: IGN_ATTRIBUTION
-							},
+							photo: photoSource(imagery),
 							gare: {
 								type: 'geojson',
 								data: data as unknown as import('maplibre-gl').GeoJSONSourceSpecification['data'],
@@ -265,7 +262,7 @@
 						},
 						layers: [
 							{ id: 'fond', type: 'background', paint: { 'background-color': MAP.ground } },
-							{ id: 'ign', type: 'raster', source: 'ign' },
+							{ id: 'photo', type: 'raster', source: 'photo' },
 							// Quais : contour fin clair sur liseré sombre, remplissage léger.
 							{
 								id: 'quai-sel',

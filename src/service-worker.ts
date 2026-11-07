@@ -5,15 +5,18 @@
 
 // Service worker de stationcomplete : met en cache l'« enveloppe » de l'appli (pages, scripts,
 // styles, polices, icônes) pour qu'elle s'ouvre sans réseau (lot 0b), et sert les photos
-// aériennes IGN des gares téléchargées (lot 4). Les données OSM sont dans IndexedDB.
+// aériennes des gares téléchargées (lot 4). Les données OSM sont dans IndexedDB.
 
 import { assets, immutable, prerendered } from '$app/manifest';
 import { version } from '$app/env';
+import { imageryOrigins } from '#lib/core/countries.js';
 
 const sw = self as unknown as ServiceWorkerGlobalScope;
 const CACHE = `app-${version}`;
-/** Tuiles IGN des gares téléchargées : conservées d'une version de l'appli à l'autre. */
+/** Tuiles des gares téléchargées : conservées d'une version de l'appli à l'autre. */
 const TILES = 'rc-tiles';
+/** Fournisseurs de photos aériennes des pays activés (configuration des pays). */
+const PHOTOS = new Set(imageryOrigins());
 // Les chemins du manifeste sont relatifs à la racine du site : on les rend absolus (« /… »).
 const toPath = (p: string) => new URL(p, sw.location.origin + '/').pathname;
 const ASSETS = [...immutable, ...assets, ...prerendered]
@@ -56,7 +59,7 @@ sw.addEventListener('fetch', (event) => {
 	const url = new URL(request.url);
 	// Photo aérienne : depuis les gares téléchargées si possible, sinon le réseau (sans stocker,
 	// pour que le cache ne grossisse pas en simple consultation).
-	if (url.origin === 'https://data.geopf.fr') {
+	if (PHOTOS.has(url.origin)) {
 		event.respondWith(
 			(async () => {
 				const hit = await (await caches.open(TILES)).match(request.url);

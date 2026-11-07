@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import Logo from '#lib/Logo.svelte';
 	import { CONTACT_EMAIL, REPO_URL } from '#lib/config.js';
+	import { photoCredits } from '#lib/core/countries.js';
 </script>
 
 <svelte:head>
@@ -37,12 +38,12 @@
 				Données cartographiques : © les contributeurs OpenStreetMap, sous licence
 				<a href="https://opendatacommons.org/licenses/odbl/" rel="external">ODbL</a>.
 			</li>
-			<li>
-				Photographies aériennes : IGN – BD ORTHO, sous
-				<a href="https://www.etalab.gouv.fr/licence-ouverte-open-licence/" rel="external"
-					>Licence Ouverte 2.0</a
-				>.
-			</li>
+			{#each photoCredits() as c (c.product)}
+				<li>
+					Photographies aériennes : {c.product}, sous
+					<a href={c.licenceUrl} rel="external">{c.licence}</a>.
+				</li>
+			{/each}
 			<li>
 				Code de l’appli : licence GPL-3.0 ou ultérieure,
 				<a href={REPO_URL} rel="external">code source sur GitHub</a>.

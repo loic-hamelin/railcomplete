@@ -1,20 +1,20 @@
-// Construit l'index des gares françaises (static/data/stations-fr.json) à partir d'un export
-// GeoJSON (séquence) de l'extrait OSM filtré par osmium. Lancé chaque semaine par la CI.
+// Construit l'index des gares d'un pays (static/data/stations-<cc>.json) à partir d'un export
+// GeoJSON (séquence) de l'extrait OSM filtré par osmium. Lancé chaque semaine par la CI, une
+// fois par pays activé (workflow « Index des gares »).
 //
-// Usage : node scripts/build-stations.mjs rail-fr.geojsonseq [--communes data/communes-cache.json]
+// Usage : node scripts/build-stations.mjs rail-fr.geojsonseq [--country fr]
+//           [--out …] [--communes …] [--stats …] [--offline]
+// Fichiers par défaut, extrait Geofabrik, géocodage et pancartes : configuration du pays
+// (src/lib/core/countries.ts, chargée directement par Node).
 //
-// Pour chaque gare : identifiant OSM, nom, nom normalisé, commune, département, UIC, position,
-// type (S = gare, H = halte) et emprise serrée (quais + marge) à demander à l'API OSM.
+// Pour chaque gare : identifiant OSM, nom, nom normalisé, commune, subdivision (département,
+// canton…), UIC, position, type (S = gare, H = halte) et emprise serrée (quais + marge) à
+// demander à l'API OSM.
 
 import { createReadStream, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createInterface } from 'node:readline';
 import { dirname } from 'node:path';
-
-const input = process.argv[2];
-const communesPath = argValue('--communes') ?? 'data/communes-cache.json';
-const outPath = argValue('--out') ?? 'static/data/stations-fr.json';
-const statsPath = argValue('--stats') ?? 'data/stations-stats.json';
-const offline = process.argv.includes('--offline'); // pas de géocodage (tests)
+import { COUNTRIES, DEFAULT_COUNTRY, isCountryCode } from '../src/lib/core/countries.ts';
 
 function argValue(name) {
 	const i = process.argv.indexOf(name);
@@ -98,8 +98,9 @@ export function isTrainPlatform(t) {
 		return true;
 	return false;
 }
-const isLegacyStopSign = (t) =>
-	t.railway === 'signal' && /^FR:ARRET/.test(t['railway:signal:stop'] ?? '');
+/** Ancienne pancarte d'arrêt, selon le schéma du pays (statistiques seulement). */
+const legacyStopSign = (country) => (t) =>
+	t.railway === 'signal' && !!country.stopSigns?.isLegacy(t);
 
 // Rayon de rattachement d'un quai à une gare, marge de l'emprise, emprise sans quai.
 const PLATFORM_RADIUS_M = 400;
@@ -107,7 +108,8 @@ const MARGIN_M = 60;
 const NO_PLATFORM_HALF_M = 200;
 
 // ---------- Lecture ----------
-async function read(file) {
+export async function read(file, country = COUNTRIES[DEFAULT_COUNTRY]) {
+	const isLegacyStopSign = legacyStopSign(country);
 	const stations = [];
 	const platforms = [];
 	const legacy = [];
@@ -170,20 +172,32 @@ function dedupe(stations) {
 }
 
 // ---------- Communes (géocodage inverse, mis en cache dans le dépôt) ----------
-async function communes(stations) {
-	const cache = existsSync(communesPath) ? JSON.parse(readFileSync(communesPath, 'utf8')) : {};
+// Un géocodeur par source déclarée dans la configuration du pays (`index.geocoder`) :
+// renvoie [commune, subdivision] pour une position, ou undefined.
+const UA = { 'User-Agent': 'stationcomplete-stations (+https://stationcomplete.org)' };
+const GEOCODERS = {
+	// API Géo (France) : commune et code du département ; limite de 50 requêtes par seconde.
+	'geo.api.gouv.fr': async ([lon, lat]) => {
+		const url = `https://geo.api.gouv.fr/communes?lat=${lat}&lon=${lon}&fields=nom,codeDepartement&format=json`;
+		const r = await fetch(url, { headers: UA });
+		const j = r.ok ? await r.json() : [];
+		return j[0] ? [j[0].nom, j[0].codeDepartement] : undefined;
+	}
+};
+
+async function communes(stations, { geocoder, cachePath, offline }) {
+	const cache = existsSync(cachePath) ? JSON.parse(readFileSync(cachePath, 'utf8')) : {};
 	const todo = stations.filter((s) => !cache[s.id]);
-	if (!offline && todo.length) {
+	const locate = GEOCODERS[geocoder];
+	if (geocoder && !locate) throw new Error(`Géocodeur inconnu : « ${geocoder} ».`);
+	if (!offline && locate && todo.length) {
 		console.log(`Géocodage de ${todo.length} gares nouvelles…`);
-		const ua = { 'User-Agent': 'stationcomplete-stations (+https://stationcomplete.org)' };
 		for (let i = 0; i < todo.length; i += 5) {
 			await Promise.all(
 				todo.slice(i, i + 5).map(async (s) => {
 					try {
-						const url = `https://geo.api.gouv.fr/communes?lat=${s.pos[1]}&lon=${s.pos[0]}&fields=nom,codeDepartement&format=json`;
-						const r = await fetch(url, { headers: ua });
-						const j = r.ok ? await r.json() : [];
-						if (j[0]) cache[s.id] = [j[0].nom, j[0].codeDepartement];
+						const found = await locate(s.pos);
+						if (found) cache[s.id] = found;
 					} catch {
 						/* on réessaiera la semaine prochaine */
 					}
@@ -191,8 +205,8 @@ async function communes(stations) {
 			);
 			await new Promise((res) => setTimeout(res, 150)); // reste loin de la limite de 50 req/s
 		}
-		mkdirSync(dirname(communesPath), { recursive: true });
-		writeFileSync(communesPath, JSON.stringify(cache, null, 0));
+		mkdirSync(dirname(cachePath), { recursive: true });
+		writeFileSync(cachePath, JSON.stringify(cache, null, 0));
 	}
 	return cache;
 }
@@ -216,13 +230,13 @@ export function build({ stations, platforms, legacy }, cache = {}) {
 		}
 		if (nearLegacy(s.pos).some((p) => distM(p, s.pos) <= PLATFORM_RADIUS_M))
 			legacyStations.push(s.t.name);
-		const [commune, dep] = cache[s.id] ?? [s.t['addr:city'] ?? '', ''];
+		const [commune, admin] = cache[s.id] ?? [s.t['addr:city'] ?? '', ''];
 		return [
 			s.id,
 			s.t.name,
 			normalize(s.t.name),
 			commune,
-			dep,
+			admin,
 			s.t.uic_ref ?? '',
 			r5(s.pos[1]),
 			r5(s.pos[0]),
@@ -251,14 +265,39 @@ export function build({ stations, platforms, legacy }, cache = {}) {
 	};
 }
 
+/** Gares hors de l'emprise approximative du pays (contrôle, statistiques seulement). */
+function outside(index, [w, s, e, n]) {
+	return index.filter(([, , , , , , lat, lon]) => lon < w || lon > e || lat < s || lat > n);
+}
+
 async function main() {
-	if (!input) {
-		console.error('Usage : node scripts/build-stations.mjs rail-fr.geojsonseq');
+	const input = process.argv[2];
+	const code = argValue('--country') ?? DEFAULT_COUNTRY;
+	if (!input || input.startsWith('--') || !isCountryCode(code)) {
+		console.error(
+			'Usage : node scripts/build-stations.mjs rail-<cc>.geojsonseq [--country ' +
+				Object.keys(COUNTRIES).join('|') +
+				']'
+		);
 		process.exit(2);
 	}
-	const data = await read(input);
-	const cache = await communes(dedupe(data.stations));
+	const country = COUNTRIES[code];
+	if (!country.enabled) console.warn(`Pays « ${code} » désactivé : index construit pour essai.`);
+	const outPath = argValue('--out') ?? `static/${country.index.file}`;
+	const cachePath = argValue('--communes') ?? country.index.geocoderCache;
+	const statsPath = argValue('--stats') ?? country.index.stats;
+	const offline = process.argv.includes('--offline'); // pas de géocodage (tests)
+
+	const data = await read(input, country);
+	const cache = await communes(dedupe(data.stations), {
+		geocoder: country.index.geocoder,
+		cachePath,
+		offline
+	});
 	const { index, stats } = build(data, cache);
+	const far = outside(index, country.bounds);
+	stats.outsideBounds = far.length;
+	stats.outsideBoundsSample = far.slice(0, 20).map((r) => r[1]);
 	const version = new Date().toISOString().slice(0, 10);
 	mkdirSync(dirname(outPath), { recursive: true });
 	writeFileSync(

@@ -11,7 +11,8 @@ export function stationView(station: Station, elements: OsmElement[], edits: Edi
 	// d'OpenStreetMap, pour pouvoir refaire la modification sur des données à jour.
 	const shown = edits.filter((e) => !(e.conflict && (e.kind === 'shape' || isRemoval(e))));
 	const merged = applyEdits(elements, shown);
-	const analysis = analyzeStation(merged, station.bbox);
+	// Schéma des pancartes et règles de quêtes du pays de la gare.
+	const analysis = analyzeStation(merged, station.bbox, undefined, station.country);
 	// Objets modifiés localement, pour les distinguer sur la carte et dans les listes.
 	const edited = new Set<string>(shown.map(editKey));
 	return {

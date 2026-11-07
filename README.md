@@ -17,10 +17,11 @@ Site : <https://stationcomplete.org>
 - Lot 5 : dessin d'un quai absent d'OSM (polygone au réticule, accrochage parallèle à 1,5 m de l'axe de la voie, contrôles de forme), puis numérotation et envoi.
 - Lot 7 : modifier un quai existant — forme (déplacer, ajouter, retirer des sommets ; un point partagé avec d'autres objets peut être déplacé, ils suivent, et l'appli le dit avant ; jamais supprimé), quai tracé en ligne redessiné en surface (même way), suppression d'un quai avec motif et retrait de sa zone d'arrêt.
 - Lot 7d : suppression d'une pancarte d'arrêt existante (nœud retiré de la voie seulement si c'est sans risque, sinon tags retirés ; la géométrie des voies ne change jamais), pointillés estompés réservés aux objets souterrains et légende de la carte, accrochage limité à 12 px de la croix et sommets glissés au doigt.
+- Lot P1 : organisation par pays, sans changement visible. Tout ce qui est propre à un pays (index des gares, photo aérienne, schéma des pancartes, subdivision, règles de quêtes, langues) est décrit dans `src/lib/core/countries.ts` ; la politique de sécurité, le service worker et la construction hebdomadaire de l'index en découlent. Seule la France est activée ; la Suisse est déclarée mais désactivée.
 
 ## Développer sur son ordinateur
 
-Prérequis : [Node.js](https://nodejs.org/) 22.17 ou plus récent.
+Prérequis : [Node.js](https://nodejs.org/) 22.18 ou plus récent (les scripts lisent directement la configuration des pays écrite en TypeScript).
 
 ```sh
 npm install        # installe les dépendances (une seule fois)
@@ -34,15 +35,26 @@ npm run test:e2e   # tests de bout en bout : parcours, accessibilité, hors-lign
 
 Première fois pour les tests : `npx playwright install chromium`.
 
+## Pays
+
+L'appli est organisée par pays : chaque gare appartient au pays de son index (`static/data/stations-<cc>.json`) et suit la configuration de ce pays. Pour ajouter un pays, suivre la check-list de `docs/architecture.md` (§ 13.5). Un index se construit localement, à partir d'un export osmium, avec :
+
+```sh
+node scripts/build-stations.mjs rail-fr.geojsonseq --country fr
+```
+
 ## Publication
 
 Chaque envoi sur la branche `main` déclenche le workflow `.github/workflows/deploy.yml`, qui vérifie (types, mise en forme, lint), construit, contrôle le budget de poids, lance les tests de bout en bout, puis publie le site sur GitHub Pages. Si une étape échoue, rien n'est publié. Le fichier `static/CNAME` relie le site au domaine `stationcomplete.org`.
+
+Chaque lundi, le workflow `.github/workflows/stations.yml` reconstruit l'index des gares de chaque pays activé (une tâche par pays : un pays en échec ne bloque pas les autres), l'enregistre dans le dépôt et relance la publication. Lancé à la main, il peut construire l'index d'un pays précis, même désactivé (champ « pays »).
 
 ## Documentation
 
 - `docs/ux-spec.md` : spécification UX (écrans, quêtes, principes visuels)
 - `docs/osm-tags-rapport.md` : modèle de données OpenStreetMap
-- `docs/architecture.md` : architecture technique et plan en lots
+- `docs/architecture.md` : architecture technique et plan en lots ; § 13 : organisation par pays et check-list « ajouter un pays »
+- `docs/pays/` : études par pays (Suisse)
 
 ## Licences
 
